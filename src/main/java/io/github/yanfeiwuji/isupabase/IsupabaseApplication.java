@@ -48,6 +48,7 @@ public class IsupabaseApplication {
         return sysUserMapper.selectAllWithRelations();
     }
 
+
     @GetMapping("/role")
     public List<SysRole> roleList() {
         return sysRoleMapper.selectAllWithRelations();
