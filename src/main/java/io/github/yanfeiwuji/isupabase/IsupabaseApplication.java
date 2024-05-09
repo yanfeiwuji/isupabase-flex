@@ -45,6 +45,7 @@ public class IsupabaseApplication {
                         .where(SysRoleTableDef.SYS_ROLE.ROLE_NAME.like("2"))
 
         );
+
         return sysUserMapper.selectAllWithRelations();
     }
 
