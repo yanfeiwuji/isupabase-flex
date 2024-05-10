@@ -27,7 +27,6 @@ public class AuthDialectImpl extends CommonsDialectImpl {
             return;
         }
 
-
         super.prepareAuth(queryWrapper, operateType);
     }
 
