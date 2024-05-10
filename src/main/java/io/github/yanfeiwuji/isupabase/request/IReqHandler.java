@@ -1,11 +1,9 @@
 package io.github.yanfeiwuji.isupabase.request;
 
-
 import io.github.yanfeiwuji.isupabase.request.ex.ReqEx;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
-
 
 public interface IReqHandler {
 
@@ -14,18 +12,17 @@ public interface IReqHandler {
     String REQ_TABLE_INFO_KEY = "reqTableInfo";
     String REQ_QUERY_WRAPPER_KEY = "reqQueryWrapper";
 
-
     ServerRequest before(ServerRequest request);
 
-    ServerResponse get(ServerRequest request);
+    ServerResponse get(ServerRequest request) throws Exception;
 
-    ServerResponse post(ServerRequest request);
+    ServerResponse post(ServerRequest request) throws Exception;
 
-    ServerResponse put(ServerRequest request);
+    ServerResponse put(ServerRequest request) throws Exception;
 
-    ServerResponse patch(ServerRequest request);
+    ServerResponse patch(ServerRequest request) throws Exception;
 
-    ServerResponse delete(ServerRequest request);
+    ServerResponse delete(ServerRequest request) throws Exception;
 
     ServerResponse after(ServerRequest request, ServerResponse response);
 

@@ -56,7 +56,6 @@ public class IsupabaseApplication {
         return result;
     }
 
-
     @GetMapping("/role")
     public List<SysRole> roleList() {
         return sysRoleMapper.selectAllWithRelations();
@@ -85,6 +84,5 @@ public class IsupabaseApplication {
                 .path(reqHandler.ROUTE_PATH, reqHandler::route)
                 .build();
     }
-
 
 }

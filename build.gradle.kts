@@ -17,13 +17,18 @@ repositories {
 }
 
 var mybatisFlexVersion = "1.8.8"
+var hutoolVersion = "5.8.26"
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("com.zaxxer:HikariCP")
-    implementation("com.mybatis-flex:mybatis-flex-spring-boot3-starter:$mybatisFlexVersion")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-
+    implementation("cn.hutool:hutool-all:$hutoolVersion")
+    implementation("com.mybatis-flex:mybatis-flex-spring-boot3-starter:$mybatisFlexVersion")
     annotationProcessor("com.mybatis-flex:mybatis-flex-processor:$mybatisFlexVersion")
+
+
+
+
 
     implementation("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

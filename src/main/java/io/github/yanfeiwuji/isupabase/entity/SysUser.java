@@ -20,10 +20,7 @@ public class SysUser {
     private Integer age;
     private Date birthday;
 
-    @RelationManyToMany(
-            joinTable = "sys_role_user", // 中间表
-            selfField = "id", joinSelfColumn = "uid",
-            targetField = "id", joinTargetColumn = "rid"
-    )
+    @RelationManyToMany(joinTable = "sys_role_user", // 中间表
+            selfField = "id", joinSelfColumn = "uid", targetField = "id", joinTargetColumn = "rid")
     private List<SysRole> roles;
 }

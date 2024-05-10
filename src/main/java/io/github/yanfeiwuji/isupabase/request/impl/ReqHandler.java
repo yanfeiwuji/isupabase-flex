@@ -1,19 +1,30 @@
 package io.github.yanfeiwuji.isupabase.request.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.mybatis.Mappers;
+import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
+
+import cn.hutool.json.JSONUtil;
+import io.github.yanfeiwuji.isupabase.request.BodyInfo;
+import io.github.yanfeiwuji.isupabase.request.IBodyHandler;
 import io.github.yanfeiwuji.isupabase.request.IReqHandler;
 import io.github.yanfeiwuji.isupabase.request.IReqQueryWrapperHandler;
+import io.github.yanfeiwuji.isupabase.request.ex.DbExManagers;
 import io.github.yanfeiwuji.isupabase.request.ex.ExResHttpStatus;
 import io.github.yanfeiwuji.isupabase.request.ex.ReqEx;
+import jakarta.servlet.ServletException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,30 +33,41 @@ import java.util.Optional;
 @AllArgsConstructor
 public class ReqHandler implements IReqHandler {
     private final IReqQueryWrapperHandler reqQueryWrapperHandler;
+    private final IBodyHandler bodyHandler;
 
     @Override
     public ServerRequest before(ServerRequest request) {
 
-        Optional.of(request.pathVariable(PATH_PARAM))
+        TableInfo tableInfo = Optional.of(request.pathVariable(PATH_PARAM))
                 .map(TableInfoFactory::ofTableName)
-                // .orElseThrow(()->n)
-                .ifPresent(it -> {
-                            request.servletRequest().setAttribute(REQ_TABLE_INFO_KEY, it);
-                            request.servletRequest().setAttribute(REQ_QUERY_WRAPPER_KEY, reqQueryWrapperHandler.handler(request, it));
-                        }
-                );
+                .orElseThrow(new ExResHttpStatus(DbExManagers.COMMON, HttpStatus.NOT_FOUND)::toEx);
+
+        request.servletRequest().setAttribute(REQ_TABLE_INFO_KEY, tableInfo);
+        request.servletRequest().setAttribute(REQ_QUERY_WRAPPER_KEY,
+                reqQueryWrapperHandler.handler(request, tableInfo));
+
         return request;
     }
 
     @Override
     public ServerResponse get(ServerRequest request) {
-        tableInfo(request);
-
-        return ServerResponse.ok().body(List.of("1", "2", "3"));
+        return ServerResponse.ok().body(mapper(request).selectOneByQuery(queryWrapper(request)));
     }
 
     @Override
-    public ServerResponse post(ServerRequest request) {
+    public ServerResponse post(ServerRequest request) throws ServletException, IOException {
+
+        TableInfo tableInfo = tableInfo(request);
+
+        BodyInfo<?> bodyInfo = bodyHandler.handler(request, tableInfo.getEntityClass());
+        Optional.ofNullable(bodyInfo)
+                .map(BodyInfo::getSingle)
+                .ifPresent(it -> mapper(request).insert(it));
+        Optional.ofNullable(bodyInfo)
+                .map(BodyInfo::getArray)
+                .map(it -> (List<Object>) it)
+                .ifPresent(it -> mapper(request).insertBatch(it));
+
         return ServerResponse.ok().build();
     }
 
@@ -83,5 +105,18 @@ public class ReqHandler implements IReqHandler {
         return request
                 .attribute(REQ_TABLE_INFO_KEY).map(TableInfo.class::cast)
                 .orElseThrow();
+    }
+
+    private QueryWrapper queryWrapper(ServerRequest request) {
+        return request
+                .attribute(REQ_QUERY_WRAPPER_KEY).map(QueryWrapper.class::cast)
+                .orElseThrow();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> BaseMapper<T> mapper(ServerRequest request) {
+
+        Class<T> entityClass = (Class<T>) tableInfo(request).getEntityClass();
+        return Mappers.ofEntityClass(entityClass);
     }
 }

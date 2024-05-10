@@ -5,7 +5,8 @@ import lombok.EqualsAndHashCode;
 
 /**
  * handler
- * <a href="https://postgrest.org/en/v12/references/errors.html#postgrest-error-codes">...</a>
+ * <a href=
+ * "https://postgrest.org/en/v12/references/errors.html#postgrest-error-codes">...</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
