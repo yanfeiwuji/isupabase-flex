@@ -1,10 +1,11 @@
 package io.github.yanfeiwuji.isupabase.request;
 
-
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
+
+import io.github.yanfeiwuji.isupabase.request.ex.ReqEx;
 
 public interface IReqHandler {
 
@@ -35,18 +36,15 @@ public interface IReqHandler {
         return RouterFunctions
                 .route()
                 .path(ROUTE_PATH,
-                        builder ->
-                                builder.before(this::before)
-                                        .GET(this::get)
-                                        .POST(this::post)
-                                        .PUT(this::put)
-                                        .PATCH(this::patch)
-                                        .DELETE(this::delete)
-                                        .after(this::after)
-                )
-                .onError(it -> true, this::onError)
+                        builder -> builder.before(this::before)
+                                .GET(this::get)
+                                .POST(this::post)
+                                .PUT(this::put)
+                                .PATCH(this::patch)
+                                .DELETE(this::delete)
+                                .after(this::after))
+                .onError(ReqEx.class, this::onError)
                 .build();
-
 
     }
 }

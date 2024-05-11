@@ -14,15 +14,18 @@ public enum DbExManagers {
                     null,
                     null,
                     "relation \"%s\" does not exist",
-                    HttpStatus.NOT_FOUND
-            ));
+                    HttpStatus.NOT_FOUND)),
+    COLUMN_NOT_FOUND(
+            new ExResTemp("42P01",
+                    null,
+                    null,
+                    "column \"%s\" does not exist",
+                    HttpStatus.NOT_FOUND));
+
     private ExResTemp exResTemp;
 
     public Supplier<ReqEx> supplierReqEx(Object... args) {
         return () -> new ReqEx(exResTemp, args);
     }
-
-
-
 
 }

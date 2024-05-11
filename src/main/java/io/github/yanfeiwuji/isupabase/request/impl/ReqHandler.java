@@ -39,16 +39,13 @@ public class ReqHandler implements IReqHandler {
 
         request.servletRequest().setAttribute(
                 REQ_TABLE_INFO_KEY,
-                tableInfo
-        );
+                tableInfo);
         request.servletRequest().setAttribute(
                 REQ_QUERY_WRAPPER_KEY,
-                reqQueryWrapperHandler.handler(request, tableInfo)
-        );
+                reqQueryWrapperHandler.handler(request, tableInfo));
         request.servletRequest().setAttribute(
                 REQ_TABLE_MAPPER_KEY,
-                Mappers.ofEntityClass(tableInfo.getEntityClass())
-        );
+                Mappers.ofEntityClass(tableInfo.getEntityClass()));
 
         return request;
     }
@@ -91,12 +88,10 @@ public class ReqHandler implements IReqHandler {
         BodyInfo<?> bodyInfo = bodyHandler.handler(request, tableInfo.getEntityClass());
 
         return Optional.ofNullable(bodyInfo).map(BodyInfo::getSingle)
-                .map(it ->
-                        {
-                            mapper(request).updateByQuery(it, queryWrapper(request));
-                            return it;
-                        }
-                ).map(it -> ServerResponse.ok().body(it))
+                .map(it -> {
+                    mapper(request).updateByQuery(it, queryWrapper(request));
+                    return it;
+                }).map(it -> ServerResponse.ok().body(it))
                 .orElse(ServerResponse.ok().build());
     }
 

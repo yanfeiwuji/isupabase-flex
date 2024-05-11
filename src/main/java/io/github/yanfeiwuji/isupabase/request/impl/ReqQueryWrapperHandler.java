@@ -8,9 +8,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
+
+import ch.qos.logback.core.joran.util.beans.BeanUtil;
 import io.github.yanfeiwuji.isupabase.request.IReqQueryWrapperHandler;
+import io.github.yanfeiwuji.isupabase.request.ex.DbExManagers;
+import io.github.yanfeiwuji.isupabase.request.utils.TableInfoCache;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -33,7 +38,6 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
     //
     private final Table<Class<?>, String, String> clazzColumnNaming = new RowKeyTable<>();
 
-
     @Override
     public QueryWrapper handler(ServerRequest request, TableInfo tableInfo) {
         MultiValueMap<String, String> params = request.params();
@@ -42,7 +46,8 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
         return wrapper;
     }
 
-    public QueryWrapper handlerHorizontalFilter(MultiValueMap<String, String> params, TableInfo tableInfo, QueryWrapper queryWrapper) {
+    public QueryWrapper handlerHorizontalFilter(MultiValueMap<String, String> params, TableInfo tableInfo,
+            QueryWrapper queryWrapper) {
         params.forEach((key, value) -> {
             handlerSimple(key, value.getFirst(), tableInfo, queryWrapper);
         });
@@ -60,34 +65,14 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
      * @return
      */
     public QueryWrapper handlerSimple(String key, String value, TableInfo tableInfo, QueryWrapper queryWrapper) {
-        String[] split = value.split("\\.", 1);
-        // queryWrapper
-        String[] allColumns = tableInfo.getAllColumns();
+        TableInfoCache.realColumn(key, tableInfo).orElseThrow();
 
-        Arrays.stream(allColumns).forEach(System.out::println);
-        log.info("colums:{}", allColumns);
-        Map<String, String> propertyColumnMapping = tableInfo.getPropertyColumnMapping();
-
+        ColumnInfo columnInfo = TableInfoCache.realColumnInfo(key, tableInfo)
+                .orElseThrow(DbExManagers.COLUMN_NOT_FOUND.supplierReqEx(key));
+        queryWrapper.eq(columnInfo.getColumn(), Integer.valueOf(value));
+        // TODO next from here
+        tableInfo.getColumnInfoList();
         return queryWrapper;
     }
-
-    private String as(String paramKey, TableInfo tableInfo) {
-
-
-        return cacheClazzNamingColumn.computeIfAbsent(tableInfo.getEntityClass(), (it) -> {
-            Map<String, String> map = tableInfo.getPropertyColumnMapping();
-            PropertyNamingStrategy propertyNamingStrategy = mapper.getPropertyNamingStrategy();
-            return Optional.ofNullable(propertyNamingStrategy)
-                    .filter(PropertyNamingStrategies.NamingBase.class::isInstance)
-                    .map(PropertyNamingStrategies.NamingBase.class::cast)
-                    .map(namingBase -> {
-                        MapBuilder<String, String> builder = MapUtil.builder();
-                        map.forEach((k, v) -> builder.put(namingBase.translate(k), v));
-                        return builder.build();
-                    }).orElse(Map.of());
-        }).get(paramKey);
-
-    }
-
 
 }
