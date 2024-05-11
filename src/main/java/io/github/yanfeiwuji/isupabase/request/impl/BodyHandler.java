@@ -30,7 +30,6 @@ public class BodyHandler implements IBodyHandler {
         if (JSONUtil.isTypeJSONArray(body)) {
             JavaType listType = mapper.getTypeFactory().constructParametricType(List.class, entityClass);
             List<T> list = mapper.readValue(body, listType);
-
             return new BodyInfo<>(list);
         } else {
             T value = mapper.readValue(body, entityClass);
