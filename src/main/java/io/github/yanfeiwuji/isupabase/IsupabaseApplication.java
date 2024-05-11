@@ -79,10 +79,7 @@ public class IsupabaseApplication {
 
     @Bean
     RouterFunction<ServerResponse> routerFunction(IReqHandler reqHandler) {
-        return RouterFunctions
-                .route()
-                .path(reqHandler.ROUTE_PATH, reqHandler::route)
-                .build();
+        return reqHandler.routerFunction();
     }
 
 }

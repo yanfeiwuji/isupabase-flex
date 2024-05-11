@@ -1,5 +1,7 @@
 package io.github.yanfeiwuji.isupabase.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.mybatisflex.core.dialect.DbType;
 import com.mybatisflex.core.dialect.DialectFactory;
 import com.mybatisflex.core.mybatis.FlexConfiguration;
@@ -24,4 +26,6 @@ public class ISupaConfig implements ConfigurationCustomizer {
         flexConfiguration.setLogImpl(StdOutImpl.class);
         //  flexConfiguration.setDo
     }
+
+
 }
