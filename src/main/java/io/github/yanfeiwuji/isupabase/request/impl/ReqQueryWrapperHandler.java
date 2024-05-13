@@ -1,31 +1,23 @@
 package io.github.yanfeiwuji.isupabase.request.impl;
 
-import cn.hutool.core.map.MapBuilder;
-import cn.hutool.core.map.MapUtil;
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.map.multi.RowKeyTable;
 import cn.hutool.core.map.multi.Table;
+import cn.hutool.json.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
-import com.mybatisflex.core.table.TableInfoFactory;
 
-import ch.qos.logback.core.joran.util.beans.BeanUtil;
 import io.github.yanfeiwuji.isupabase.request.IReqQueryWrapperHandler;
-import io.github.yanfeiwuji.isupabase.request.ex.DbExManagers;
-import io.github.yanfeiwuji.isupabase.request.utils.TableInfoCache;
+import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.servlet.function.ServerRequest;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -42,14 +34,19 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
     public QueryWrapper handler(ServerRequest request, TableInfo tableInfo) {
         MultiValueMap<String, String> params = request.params();
         QueryWrapper wrapper = QueryWrapper.create();
+
         handlerHorizontalFilter(params, tableInfo, wrapper);
         return wrapper;
     }
 
     public QueryWrapper handlerHorizontalFilter(MultiValueMap<String, String> params, TableInfo tableInfo,
-            QueryWrapper queryWrapper) {
+                                                QueryWrapper queryWrapper) {
         params.forEach((key, value) -> {
-            handlerSimple(key, value.getFirst(), tableInfo, queryWrapper);
+            try {
+                handlerSimple(key, value.getFirst(), tableInfo, queryWrapper);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
         });
         return queryWrapper;
     }
@@ -64,14 +61,20 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
      * @param queryWrapper
      * @return
      */
-    public QueryWrapper handlerSimple(String key, String value, TableInfo tableInfo, QueryWrapper queryWrapper) {
-        TableInfoCache.realColumn(key, tableInfo).orElseThrow();
 
-        ColumnInfo columnInfo = TableInfoCache.realColumnInfo(key, tableInfo)
-                .orElseThrow(DbExManagers.COLUMN_NOT_FOUND.supplierReqEx(key));
-        queryWrapper.eq(columnInfo.getColumn(), Integer.valueOf(value));
-        // TODO next from here
-        tableInfo.getColumnInfoList();
+    public QueryWrapper handlerSimple(String key, String value, TableInfo tableInfo, QueryWrapper queryWrapper) throws JsonProcessingException {
+
+        String column = CacheTableInfoUtils.nNRealColumn(key, tableInfo);
+        String property = CacheTableInfoUtils.nNRealProperty(key, tableInfo);
+
+        String json = new JSONObject().set(key, value).toString();
+        Object o = mapper.readValue(json, tableInfo.getEntityClass());
+        Object propertyValue = BeanUtil.getProperty(o, property);
+
+        log.info("o: {} key:{}，val-p:{} column:{} propertyValue:{}", o, key, property, column, propertyValue);
+        queryWrapper.eq(column, propertyValue);
+
+
         return queryWrapper;
     }
 

@@ -27,14 +27,16 @@ dependencies {
     implementation("com.mybatis-flex:mybatis-flex-spring-boot3-starter:$mybatisFlexVersion")
     implementation("com.google.guava:guava:$guavaVersion")
 
-    annotationProcessor("com.mybatis-flex:mybatis-flex-processor:$mybatisFlexVersion")
-
-
-
     implementation("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
 
     runtimeOnly("org.postgresql:postgresql")
+
+    annotationProcessor("com.mybatis-flex:mybatis-flex-processor:$mybatisFlexVersion")
+    annotationProcessor("org.projectlombok:lombok")
+
+
+    // developmentOnly("org.springframework.boot:spring-boot-devtools")
+
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
