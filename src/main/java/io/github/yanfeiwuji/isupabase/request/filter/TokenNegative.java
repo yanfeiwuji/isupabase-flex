@@ -7,5 +7,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum TokenNegative implements IToken {
     NOT("not");
+
     private String mark;
 }

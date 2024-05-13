@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 import java.util.Optional;
 
-public class SimpleOperatorHandler   {
+public class SimpleOperatorHandler {
     @AllArgsConstructor
     @Getter
     public enum SimpleOperator {
@@ -20,6 +20,7 @@ public class SimpleOperatorHandler   {
         NXL("nxl"),
         NXR("nxr"),
         ADJ("adj");
+
         private String mark;
 
         public static Optional<SimpleOperator> valueToSimpleOperator(String value) {
@@ -28,9 +29,5 @@ public class SimpleOperatorHandler   {
                     .findFirst();
         }
     }
-
-
-
-
 
 }

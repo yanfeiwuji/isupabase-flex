@@ -6,57 +6,30 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 @Getter
 @AllArgsConstructor
 public enum TokenSimpleOperator implements IOperator {
     NEQ("neq",
-            (f, q) -> q.ne(f.getRealColumn(), f.getValue()),
-            TokenSimpleOperator::calcValue
-    ),
+            (f, q) -> q.ne(f.getRealColumn(), f.getValue())),
     CS("cs",
-            (f, q) -> q.and("@> ?", f.getValue()),
-            TokenSimpleOperator::calcValue
-    ),
+            (f, q) -> q.and("@> ?", f.getValue())),
     CD("cd",
-            (f, q) -> q.and("<@ ?", f.getValue()),
-            TokenSimpleOperator::calcValue
-    ),
+            (f, q) -> q.and("<@ ?", f.getValue())),
     OV("ov",
-            (f, q) -> q.and("&& ?", f.getValue()),
-            TokenSimpleOperator::calcValue
-    ),
+            (f, q) -> q.and("&& ?", f.getValue())),
     SL("sl",
-            (f, q) -> q.and("<< ?", f.getValue()),
-            TokenSimpleOperator::calcValue
-    ),
+            (f, q) -> q.and("<< ?", f.getValue())),
     SR("sr",
-            (f, q) -> q.and(">> ?", f.getValue()),
-            TokenSimpleOperator::calcValue
-    ),
+            (f, q) -> q.and(">> ?", f.getValue())),
     NXL("nxl",
-            (f, q) -> q.and("&< ?", f.getValue()),
-            TokenSimpleOperator::calcValue
-    ),
+            (f, q) -> q.and("&< ?", f.getValue())),
     NXR("nxr",
-            (f, q) -> q.and("&> ?", f.getValue()),
-            TokenSimpleOperator::calcValue
-    ),
+            (f, q) -> q.and("&> ?", f.getValue())),
     ADJ("adj",
-            (f, q) -> q.and("-|- ?", f.getValue()),
-            TokenSimpleOperator::calcValue
-    );
+            (f, q) -> q.and("-|- ?", f.getValue()));
+
     private String mark;
-    private BiFunction<Filter, QueryWrapper, QueryWrapper> handlerFunc;
-    private BiConsumer<Filter, IOperator> calcValueFunc;
-
-
-    public static void calcValue(Filter filter, IOperator op) {
-        String paramValue = filter.getParamValue();
-        filter.setStrValue(IOperator.removePre(paramValue, op));
-        Object o = ExchangeUtils.singleValue(filter);
-        filter.setValue(o);
-    }
+    private BiConsumer<Filter, QueryWrapper> handlerFunc;
 
 }
