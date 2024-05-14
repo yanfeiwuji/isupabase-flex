@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum TokenModifiers implements IToken {
 
-    ALL("{all}"), ANY("{any}"), NONE("");
+    ALL("(all)"), ANY("(any)"), NONE("");
 
     private String mark;
 }

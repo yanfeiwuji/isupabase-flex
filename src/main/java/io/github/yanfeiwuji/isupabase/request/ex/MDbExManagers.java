@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 
 @AllArgsConstructor
 @Getter
-public enum DbExManagers {
+public enum MDbExManagers implements IExManagers {
     UNDEFINED_TABLE(
             new ExResTemp("42P01",
                     null,
@@ -20,12 +20,16 @@ public enum DbExManagers {
                     null,
                     null,
                     "column \"%s\" does not exist",
-                    HttpStatus.NOT_FOUND));
+                    HttpStatus.NOT_FOUND)),
+    // use java type not db type
+    INVALID_INPUT(
+            new ExResTemp("22P02",
+                    null,
+                    null,
+                    "invalid input syntax for type %s \"%s\"",
+                    HttpStatus.BAD_REQUEST));
 
     private ExResTemp exResTemp;
 
-    public Supplier<ReqEx> supplierReqEx(Object... args) {
-        return () -> new ReqEx(exResTemp, args);
-    }
 
 }

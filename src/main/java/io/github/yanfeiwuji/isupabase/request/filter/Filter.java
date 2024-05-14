@@ -1,12 +1,22 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
+import cn.hutool.core.text.CharPool;
+import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
+import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 
+import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
+import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
+import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ExchangeUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.OperationUtils;
 import lombok.Data;
 
 import java.util.Arrays;
@@ -14,6 +24,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.checkerframework.checker.units.qual.s;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * only handler column key and value
@@ -21,6 +33,7 @@ import org.checkerframework.checker.units.qual.s;
  */
 @Data
 public class Filter {
+    private static final Logger log = LoggerFactory.getLogger(Filter.class);
     private String paramKey;
     private String paramValue;
     private TableInfo tableInfo;
@@ -34,8 +47,13 @@ public class Filter {
     private List<Object> quantValue;
     // remove operate
 
-    private boolean negative = false;
+    private boolean negative;
+
     private IOperator operator;
+
+    // logic use
+    private List<Filter> filters;
+
     private TokenModifiers modifiers = TokenModifiers.NONE; // any or all or none
     private String strValue;
 
@@ -43,45 +61,68 @@ public class Filter {
         this.paramKey = paramKey;
         this.paramValue = paramValue;
         this.tableInfo = tableInfo;
+
+
+
         this.realProperty = CacheTableInfoUtils.nNRealProperty(paramKey, tableInfo);
         this.realColumn = CacheTableInfoUtils.nNRealColumn(paramKey, tableInfo);
 
-        this.negative = paramValue.startsWith(TokenNegative.NOT.getMark());
+        log.info("rp:{},rc:{}", realProperty, realColumn);
+        this.negative = TokenNegative.paramKeyIsNegative(paramKey);
         String nextVal = paramValue;
+
         if (this.negative) {
-            nextVal = paramValue.replaceFirst(TokenNegative.NOT.getMark() + StrPool.DOT, "");
+            nextVal = TokenNegative.removeNotDot(paramKey);
         }
+        log.info(nextVal);
+        //
 
-        List<String> split = StrUtil.split(nextVal, StrPool.DOT);
 
-        System.out.println(split);
-        if (split.size() != 2) {
-            return;
+        if (!CharSequenceUtil.contains(nextVal, StrPool.DOT)) {
+            throw MReqExManagers.FAILED_TO_PARSE.reqEx(paramValue);
         }
+        List<String> split = CharSequenceUtil.split(nextVal, CharPool.DOT, 2);
 
-        Arrays.asList(TokenModifiers.values())
-                .stream().filter(it -> split.get(0).endsWith(it.getMark()))
-                .findAny().ifPresent(it -> {
-                    this.modifiers = it;
-                });
+        Arrays.stream(TokenModifiers.values())
+                .filter(it -> split.getFirst().endsWith(it.getMark()))
+                .findAny().ifPresent(this::setModifiers);
 
-        String opMark = split.get(0).replaceFirst(this.modifiers.getMark(), "");
-        System.out.println(opMark);
+        String opMark =
+                CharSequenceUtil.replace(split.getFirst(), this.modifiers.getMark(), "");
 
-        // TODO set real op then imple eq logic
-        this.operator = TokenQuantOperator.EQ;
+        log.info("mark:{}", opMark);
+        this.operator = OperationUtils.markToOperator(opMark)
+                .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(paramValue));
+
+        log.info("op mark :{}", opMark);
 
         this.strValue = split.get(1);
+        log.info("this.strValue:{}", this.strValue);
+        this.initValue();
 
-        System.out.println(split.get(1) + "ddd");
-        if (modifiers.equals(TokenModifiers.NONE)) {
-            this.value = ExchangeUtils.singleValue(this);
-        } else {
-            this.quantValue = ExchangeUtils.listValue(this);
+    }
+
+    private void initValue() {
+        try {
+            if (this.operator.equals(TokenInOperator.IN)) {
+                this.quantValue = ExchangeUtils.parenthesesWrapListValue(this);
+                return;
+            }
+
+            if (modifiers.equals(TokenModifiers.NONE)) {
+                this.value = ExchangeUtils.singleValue(this);
+            } else {
+                this.quantValue = ExchangeUtils.delimWrapListValue(this);
+            }
+        } catch (JsonProcessingException e) {
+            ColumnInfo columnInfo = CacheTableInfoUtils.nNRealColumnInfo(paramKey, tableInfo);
+            throw MDbExManagers.INVALID_INPUT.reqEx(columnInfo.getPropertyType().getSimpleName(), strValue);
         }
     }
 
     public void handler(QueryWrapper queryWrapper) {
         operator.getHandlerFunc().accept(this, queryWrapper);
     }
+
+
 }

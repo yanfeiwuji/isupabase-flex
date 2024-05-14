@@ -12,7 +12,11 @@ import lombok.Getter;
 public enum TokenInOperator implements IOperator {
 
     IN("in", (f, q) -> {
-        q.in(f.getRealColumn(), f.getQuantValue());
+        if (f.isNegative()) {
+            q.notIn(f.getRealColumn(), f.getQuantValue());
+        } else {
+            q.in(f.getRealColumn(), f.getQuantValue());
+        }
     });
 
     private String mark;

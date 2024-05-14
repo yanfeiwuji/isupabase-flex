@@ -7,9 +7,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * = OpEqual eq
@@ -26,25 +28,42 @@ import java.util.function.Consumer;
 @AllArgsConstructor
 public enum TokenQuantOperator implements IOperator {
     EQ("eq",
-            (f, q) -> q.eq(f.getRealColumn(), f.getValue())),
+            (f, q) -> TokenQuantOperator.apply(f, q, qw -> qw::eq, qw -> qw::ne)),
     GTE("gte",
-            (f, q) -> q.ge(f.getRealColumn(), f.getValue())),
+            (f, q) -> TokenQuantOperator.apply(f, q, qw -> qw::ge, qw -> qw::lt)),
     GT("gt",
-            (f, q) -> q.gt(f.getRealColumn(), f.getValue())),
+            (f, q) -> TokenQuantOperator.apply(f, q, qw -> qw::gt, qw -> qw::le)),
     LET("lte",
-            (f, q) -> q.le(f.getRealColumn(), f.getValue())),
+            (f, q) -> TokenQuantOperator.apply(f, q, qw -> qw::le, qw -> qw::gt)),
     LT("lt",
-            (f, q) -> q.lt(f.getRealColumn(), f.getValue())),
+            (f, q) -> TokenQuantOperator.apply(f, q, qw -> qw::lt, qw -> qw::ge)),
     LIKE("like",
-            (f, q) -> q.like(f.getRealColumn(), f.getValue())),
+            (f, q) -> TokenQuantOperator.apply(f, q, qw -> qw::like, qw -> qw::notLike)),
     ILIKE("ilike",
-            (f, q) -> q.notLike(f.getRealColumn(), f.getValue())),
+            (f, q) -> TokenQuantOperator.apply(f, q, qw -> qw::notLike, qw -> qw::like)),
     MATCH("match",
-            (f, q) -> q.eq(f.getRealColumn(), f.getValue())),
+            (f, q) -> TokenQuantOperator.apply(f, q, qw -> qw::like, qw -> qw::notLike)),
     IMATCH("imatch",
-            (f, q) -> q.eq(f.getRealColumn(), f.getValue()));
+            (f, q) -> TokenQuantOperator.apply(f, q, qw -> qw::notLike, qw -> qw::like));
 
     private String mark;
     private BiConsumer<Filter, QueryWrapper> handlerFunc;
+
+    private static void apply(Filter filter,
+                              QueryWrapper queryWrapper,
+                              Function<QueryWrapper, BiConsumer<String, Object>> positiveFunc,
+                              Function<QueryWrapper, BiConsumer<String, Object>> negativeFunc
+
+    ) {
+        Function<QueryWrapper, BiConsumer<String, Object>> exFunc = filter.isNegative() ? negativeFunc : positiveFunc;
+        TokenModifiers modifiers = filter.getModifiers();
+        List<Object> quantValue = filter.getQuantValue();
+        Consumer<QueryWrapper> quantConsumer = qw -> quantValue.forEach(v -> exFunc.apply(qw).accept(filter.getRealColumn(), v));
+        switch (modifiers) {
+            case NONE -> exFunc.apply(queryWrapper).accept(filter.getRealColumn(), filter.getValue());
+            case ALL -> queryWrapper.and(quantConsumer);
+            case ANY -> queryWrapper.or(quantConsumer);
+        }
+    }
 
 }
