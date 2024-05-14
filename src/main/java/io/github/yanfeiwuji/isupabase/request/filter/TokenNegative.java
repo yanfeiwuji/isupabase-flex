@@ -11,11 +11,11 @@ public enum TokenNegative implements IToken {
 
     private String mark;
 
-    public static boolean paramKeyIsNegative(String paramKey) {
-        return paramKey.startsWith(NOT.mark + StrUtil.DOT);
+    public static boolean strIsNegative(String str) {
+        return str.startsWith(NOT.mark + StrUtil.DOT);
     }
 
-    public static String removeNotDot(String paramKey) {
-        return StrUtil.replace(paramKey, NOT.mark + StrUtil.DOT, "");
+    public static String removeNotDot(String str) {
+        return StrUtil.replace(str, NOT.mark + StrUtil.DOT, "");
     }
 }

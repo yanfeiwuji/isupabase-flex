@@ -13,8 +13,7 @@ import java.util.function.Function;
 @AllArgsConstructor
 public enum TokenSimpleOperator implements IOperator {
     NEQ("neq",
-            (f, q) -> q.ne(f.getRealColumn(), f.getValue())
-    ),
+            (f, q) -> q.ne(f.getRealColumn(), f.getValue())),
 
     CS("cs",
             (f, q) -> q.and("@> ?", f.getValue())),
@@ -42,9 +41,5 @@ public enum TokenSimpleOperator implements IOperator {
 
     private String mark;
     private BiConsumer<Filter, QueryWrapper> handlerFunc;
-
-
-
-
 
 }

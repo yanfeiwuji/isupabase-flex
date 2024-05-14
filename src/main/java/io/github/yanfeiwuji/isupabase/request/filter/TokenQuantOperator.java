@@ -50,15 +50,17 @@ public enum TokenQuantOperator implements IOperator {
     private BiConsumer<Filter, QueryWrapper> handlerFunc;
 
     private static void apply(Filter filter,
-                              QueryWrapper queryWrapper,
-                              Function<QueryWrapper, BiConsumer<String, Object>> positiveFunc,
-                              Function<QueryWrapper, BiConsumer<String, Object>> negativeFunc
+            QueryWrapper queryWrapper,
+            Function<QueryWrapper, BiConsumer<String, Object>> positiveFunc,
+            Function<QueryWrapper, BiConsumer<String, Object>> negativeFunc
 
     ) {
-        Function<QueryWrapper, BiConsumer<String, Object>> exFunc = filter.isNegative() ? negativeFunc : positiveFunc;
+        Function<QueryWrapper, BiConsumer<String, Object>> exFunc = filter.isNegative() ? negativeFunc
+                : positiveFunc;
         TokenModifiers modifiers = filter.getModifiers();
         List<Object> quantValue = filter.getQuantValue();
-        Consumer<QueryWrapper> quantConsumer = qw -> quantValue.forEach(v -> exFunc.apply(qw).accept(filter.getRealColumn(), v));
+        Consumer<QueryWrapper> quantConsumer = qw -> quantValue
+                .forEach(v -> exFunc.apply(qw).accept(filter.getRealColumn(), v));
         switch (modifiers) {
             case NONE -> exFunc.apply(queryWrapper).accept(filter.getRealColumn(), filter.getValue());
             case ALL -> queryWrapper.and(quantConsumer);

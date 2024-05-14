@@ -3,11 +3,8 @@ package io.github.yanfeiwuji.isupabase.request.filter;
 import cn.hutool.core.text.CharPool;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.StrUtil;
 
-import cn.hutool.json.JSONUtil;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.table.ColumnInfo;
@@ -18,22 +15,22 @@ import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ExchangeUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.OperationUtils;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
-
-import org.checkerframework.checker.units.qual.s;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Optional;
+import java.util.stream.Collector;
 
 /**
  * only handler column key and value
  * key = not?.op?(mode).value()
  */
 @Data
+@Slf4j
 public class Filter {
-    private static final Logger log = LoggerFactory.getLogger(Filter.class);
+
     private String paramKey;
     private String paramValue;
     private TableInfo tableInfo;
@@ -62,22 +59,41 @@ public class Filter {
         this.paramValue = paramValue;
         this.tableInfo = tableInfo;
 
+        String nextKey = paramKey;
+        if (TokenNegative.strIsNegative(paramKey)) {
+            this.negative = true;
+            nextKey = TokenNegative.removeNotDot(paramKey);
+        }
 
+        Optional<TokenLogicOperator> logicOp = OperationUtils.markToLogicOperator(nextKey);
+        if (logicOp.isPresent()) {
+            this.operator = logicOp.get();
+            String need = StrUtil.strip(paramValue, "(", ")");
+            // TODO handle and() this and
+            this.filters = StrUtil.split(need, ',')
+                    .stream()
+                    .map(it -> StrUtil.split(it, CharPool.DOT, 2))
+                    .filter(it -> it.size() == 2)
+                    .map(it -> {
+                        return new Filter(it.get(0), it.get(1), tableInfo);
+                    }).toList();
+        } else {
+            handlerSingle();
+        }
 
+    }
+
+    private void handlerSingle() {
         this.realProperty = CacheTableInfoUtils.nNRealProperty(paramKey, tableInfo);
         this.realColumn = CacheTableInfoUtils.nNRealColumn(paramKey, tableInfo);
 
         log.info("rp:{},rc:{}", realProperty, realColumn);
-        this.negative = TokenNegative.paramKeyIsNegative(paramKey);
+        this.negative = TokenNegative.strIsNegative(paramValue);
         String nextVal = paramValue;
 
         if (this.negative) {
-            nextVal = TokenNegative.removeNotDot(paramKey);
+            nextVal = TokenNegative.removeNotDot(paramValue);
         }
-        log.info(nextVal);
-        //
-
-
         if (!CharSequenceUtil.contains(nextVal, StrPool.DOT)) {
             throw MReqExManagers.FAILED_TO_PARSE.reqEx(paramValue);
         }
@@ -87,8 +103,7 @@ public class Filter {
                 .filter(it -> split.getFirst().endsWith(it.getMark()))
                 .findAny().ifPresent(this::setModifiers);
 
-        String opMark =
-                CharSequenceUtil.replace(split.getFirst(), this.modifiers.getMark(), "");
+        String opMark = CharSequenceUtil.replace(split.getFirst(), this.modifiers.getMark(), "");
 
         log.info("mark:{}", opMark);
         this.operator = OperationUtils.markToOperator(opMark)
@@ -99,7 +114,6 @@ public class Filter {
         this.strValue = split.get(1);
         log.info("this.strValue:{}", this.strValue);
         this.initValue();
-
     }
 
     private void initValue() {
@@ -123,6 +137,5 @@ public class Filter {
     public void handler(QueryWrapper queryWrapper) {
         operator.getHandlerFunc().accept(this, queryWrapper);
     }
-
 
 }

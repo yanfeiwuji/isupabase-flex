@@ -11,8 +11,10 @@ import java.util.function.Consumer;
 @AllArgsConstructor
 public enum TokenLogicOperator implements IOperator {
     AND("and", (f, q) -> {
+
         Consumer<QueryWrapper> consumer = qw -> f.getFilters().forEach(
                 it -> it.handler(qw));
+
         q.and(consumer);
 
     }),
@@ -24,5 +26,5 @@ public enum TokenLogicOperator implements IOperator {
 
     private String mark;
     private BiConsumer<Filter, QueryWrapper> handlerFunc;
-    // public void  isLogicOp(paramKey){}
+    // public void isLogicOp(paramKey){}
 }
