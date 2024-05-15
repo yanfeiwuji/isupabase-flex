@@ -1,30 +1,22 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
 import com.mybatisflex.core.query.QueryWrapper;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.experimental.UtilityClass;
 
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
-@Getter
-@AllArgsConstructor
-public enum TokenLogicOperator implements IOperator {
-    AND("and", (f, q) -> {
-
+@UtilityClass
+public class MLogicOperators {
+    final Operator AND = new Operator("and",Pattern.compile("^and(.*)"),(f, q) -> {
         Consumer<QueryWrapper> consumer = qw -> f.getFilters().forEach(
                 it -> it.handler(qw));
-
         q.and(consumer);
 
-    }),
-    OR("or", (f, q) -> {
+    });
+    final Operator OR = new Operator("or",Pattern.compile("^or(.*)"),(f, q) -> {
         Consumer<QueryWrapper> consumer = qw -> f.getFilters().forEach(
                 it -> it.handler(qw));
-        q.or(consumer);
+        q.and(consumer);
     });
-
-    private String mark;
-    private BiConsumer<Filter, QueryWrapper> handlerFunc;
-    // public void isLogicOp(paramKey){}
 }

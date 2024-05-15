@@ -2,6 +2,7 @@ package io.github.yanfeiwuji.isupabase.request.impl;
 
 import java.util.List;
 
+import io.github.yanfeiwuji.isupabase.request.filter.MTokens;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -27,6 +28,7 @@ public class BodyHandler implements IBodyHandler {
     @SneakyThrows
     public <T> BodyInfo<T> handler(ServerRequest request, Class<T> entityClass) {
         String body = request.body(String.class);
+
         if (JSONUtil.isTypeJSONArray(body)) {
             JavaType listType = mapper.getTypeFactory().constructParametricType(List.class, entityClass);
             List<T> list = mapper.readValue(body, listType);

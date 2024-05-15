@@ -18,10 +18,9 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collector;
+import java.util.regex.Pattern;
 
 /**
  * only handler column key and value
@@ -30,6 +29,7 @@ import java.util.stream.Collector;
 @Data
 @Slf4j
 public class Filter {
+
 
     private String paramKey;
     private String paramValue;
@@ -46,37 +46,38 @@ public class Filter {
 
     private boolean negative;
 
-    private IOperator operator;
+    private Operator operator;
 
     // logic use
     private List<Filter> filters;
 
-    private TokenModifiers modifiers = TokenModifiers.NONE; // any or all or none
+    private Modifier modifier = Modifier.none; // any or all or none
     private String strValue;
 
     public Filter(String paramKey, String paramValue, TableInfo tableInfo) {
         this.paramKey = paramKey;
         this.paramValue = paramValue;
         this.tableInfo = tableInfo;
+        // not.or or not.and
+        this.negative = MTokens.NOT.find(paramKey);
 
-        String nextKey = paramKey;
-        if (TokenNegative.strIsNegative(paramKey)) {
-            this.negative = true;
-            nextKey = TokenNegative.removeNotDot(paramKey);
-        }
+        String nextKey = MTokens.NOT.value(paramKey).orElse(paramKey);
 
-        Optional<TokenLogicOperator> logicOp = OperationUtils.markToLogicOperator(nextKey);
+
+        Optional<Operator> logicOp = OperationUtils.markToOperator(nextKey)
+                .filter(OperationUtils::isLogicOperator);
+
         if (logicOp.isPresent()) {
             this.operator = logicOp.get();
-            String need = StrUtil.strip(paramValue, "(", ")");
-            // TODO handle and() this and
-            this.filters = StrUtil.split(need, ',')
+            String need = CharSequenceUtil.strip(paramValue, "(", ")");
+
+            this.filters = CharSequenceUtil.split(need, ',')
                     .stream()
-                    .map(it -> StrUtil.split(it, CharPool.DOT, 2))
-                    .filter(it -> it.size() == 2)
-                    .map(it -> {
-                        return new Filter(it.get(0), it.get(1), tableInfo);
-                    }).toList();
+                    .map(MTokens.DOT::keyValue)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .map(it -> new Filter(it.key(), it.value(), tableInfo))
+                    .toList();
         } else {
             handlerSingle();
         }
@@ -88,42 +89,37 @@ public class Filter {
         this.realColumn = CacheTableInfoUtils.nNRealColumn(paramKey, tableInfo);
 
         log.info("rp:{},rc:{}", realProperty, realColumn);
-        this.negative = TokenNegative.strIsNegative(paramValue);
+        this.negative = MTokens.NOT.find(paramValue);
         String nextVal = paramValue;
 
         if (this.negative) {
-            nextVal = TokenNegative.removeNotDot(paramValue);
+            nextVal = MTokens.NOT.value(paramValue).orElse(paramValue);
         }
-        if (!CharSequenceUtil.contains(nextVal, StrPool.DOT)) {
-            throw MReqExManagers.FAILED_TO_PARSE.reqEx(paramValue);
-        }
-        List<String> split = CharSequenceUtil.split(nextVal, CharPool.DOT, 2);
-
-        Arrays.stream(TokenModifiers.values())
-                .filter(it -> split.getFirst().endsWith(it.getMark()))
-                .findAny().ifPresent(this::setModifiers);
-
-        String opMark = CharSequenceUtil.replace(split.getFirst(), this.modifiers.getMark(), "");
-
-        log.info("mark:{}", opMark);
-        this.operator = OperationUtils.markToOperator(opMark)
+        log.info("nextVal：{}", nextVal);
+        this.operator = MTokens.DOT.first(nextVal)
+                .flatMap(OperationUtils::markToOperator)
                 .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(paramValue));
 
-        log.info("op mark :{}", opMark);
+        if (OperationUtils.isQuantOperator(operator)) {
+            this.modifier = operator.first(nextVal)
+                    .filter(it -> !it.isBlank())
+                    .map(Modifier::valueOf)
+                    .orElse(Modifier.none);
+        }
 
-        this.strValue = split.get(1);
+        this.strValue = this.operator.value(nextVal).orElse("");
         log.info("this.strValue:{}", this.strValue);
         this.initValue();
     }
 
     private void initValue() {
         try {
-            if (this.operator.equals(TokenInOperator.IN)) {
+            if (OperationUtils.isInOperator(this.operator)) {
                 this.quantValue = ExchangeUtils.parenthesesWrapListValue(this);
                 return;
             }
 
-            if (modifiers.equals(TokenModifiers.NONE)) {
+            if (modifier.equals(Modifier.none)) {
                 this.value = ExchangeUtils.singleValue(this);
             } else {
                 this.quantValue = ExchangeUtils.delimWrapListValue(this);
@@ -135,7 +131,7 @@ public class Filter {
     }
 
     public void handler(QueryWrapper queryWrapper) {
-        operator.getHandlerFunc().accept(this, queryWrapper);
+        operator.handler().accept(this, queryWrapper);
     }
 
 }
