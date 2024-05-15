@@ -73,9 +73,14 @@ public class Filter {
 
             this.filters = CharSequenceUtil.split(need, ',')
                     .stream()
-                    .map(MTokens.DOT::keyValue)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
+                    .map(it ->
+                            MTokens.LOGIC_KV.keyValue(it).orElse(MTokens.DOT.keyValue(it)
+                                    .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(it)))
+                    )
+                    .map(it -> {
+                        log.info("kv:{}", it);
+                        return it;
+                    })
                     .map(it -> new Filter(it.key(), it.value(), tableInfo))
                     .toList();
         } else {
@@ -125,8 +130,10 @@ public class Filter {
                 this.quantValue = ExchangeUtils.delimWrapListValue(this);
             }
         } catch (JsonProcessingException e) {
+            log.info(paramValue);
             ColumnInfo columnInfo = CacheTableInfoUtils.nNRealColumnInfo(paramKey, tableInfo);
-            throw MDbExManagers.INVALID_INPUT.reqEx(columnInfo.getPropertyType().getSimpleName(), strValue);
+            throw MDbExManagers.INVALID_INPUT
+                    .reqEx(columnInfo.getPropertyType().getSimpleName(), strValue);
         }
     }
 
