@@ -33,11 +33,10 @@ public class MQuantOperators {
     public final Operator IMATCH = new Operator("eq", TokenUtils.quantOp("imatch"),
             (f, q) -> MQuantOperators.apply(f, q, qw -> qw::notLike, qw -> qw::like));
 
-
     private void apply(Filter filter,
-                       QueryWrapper queryWrapper,
-                       Function<QueryWrapper, BiConsumer<String, Object>> positiveFunc,
-                       Function<QueryWrapper, BiConsumer<String, Object>> negativeFunc
+            QueryWrapper queryWrapper,
+            Function<QueryWrapper, BiConsumer<String, Object>> positiveFunc,
+            Function<QueryWrapper, BiConsumer<String, Object>> negativeFunc
 
     ) {
         Function<QueryWrapper, BiConsumer<String, Object>> exFunc = filter.isNegative() ? negativeFunc
@@ -47,9 +46,10 @@ public class MQuantOperators {
         Consumer<QueryWrapper> quantConsumer = qw -> quantValue
                 .forEach(v -> exFunc.apply(qw).accept(filter.getRealColumn(), v));
         switch (modifiers) {
-            case Modifier.none -> exFunc.apply(queryWrapper).accept(filter.getRealColumn(), filter.getValue());
-            case Modifier.all  -> queryWrapper.and(quantConsumer);
-            case  Modifier.any -> queryWrapper.or(quantConsumer);
+            case Modifier.none ->
+                exFunc.apply(queryWrapper).accept(filter.getRealColumn(), filter.getValue());
+            case Modifier.all -> queryWrapper.and(quantConsumer);
+            case Modifier.any -> queryWrapper.or(quantConsumer);
         }
     }
 }

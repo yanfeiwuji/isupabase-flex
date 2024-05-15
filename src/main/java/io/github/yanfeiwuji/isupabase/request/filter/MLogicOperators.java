@@ -8,13 +8,13 @@ import java.util.regex.Pattern;
 
 @UtilityClass
 public class MLogicOperators {
-    final Operator AND = new Operator("and",Pattern.compile("^and(.*)"),(f, q) -> {
+    final Operator AND = new Operator("and", Pattern.compile("^and(.*)"), (f, q) -> {
         Consumer<QueryWrapper> consumer = qw -> f.getFilters().forEach(
                 it -> it.handler(qw));
         q.and(consumer);
 
     });
-    final Operator OR = new Operator("or",Pattern.compile("^or(.*)"),(f, q) -> {
+    final Operator OR = new Operator("or", Pattern.compile("^or(.*)"), (f, q) -> {
         Consumer<QueryWrapper> consumer = qw -> f.getFilters().forEach(
                 it -> it.handler(qw));
         q.and(consumer);

@@ -6,7 +6,7 @@ import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 
 public record Operator(String mark, Pattern pattern,
-                       BiConsumer<Filter, QueryWrapper> handler)
+        BiConsumer<Filter, QueryWrapper> handler)
         implements IToken {
 
 }

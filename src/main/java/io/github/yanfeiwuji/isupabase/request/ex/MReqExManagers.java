@@ -12,6 +12,8 @@ public enum MReqExManagers implements IExManagers {
                     null,
                     null,
                     "\"failed to parse filter (%s)\"",
-                    HttpStatus.BAD_REQUEST));;
+                    HttpStatus.BAD_REQUEST));
+    ;
+
     private ExResTemp exResTemp;
 }
