@@ -16,18 +16,18 @@ import java.util.stream.Stream;
 @Slf4j
 public class OperationUtils {
     private static final Map<String, Operator> MARK_OPERATORS;
-    private static final Map<String, String> LOGIC_MARKS =
-            Stream.of("and", "or")
-                    .collect(Collectors.toMap(it -> it, it -> it));
+    private static final Map<String, String> LOGIC_MARKS = Stream.of("and", "or")
+            .collect(Collectors.toMap(it -> it, it -> it));
 
-    private static final Map<String, String> QUANT_MARKS =
-            Stream.of("eq", "gte", "gt", "lte", "lt", "like", "ilike", "match", "imatch")
-                    .collect(Collectors.toMap(it -> it, it -> it));
+    private static final Map<String, String> QUANT_MARKS = Stream
+            .of("eq", "gte", "gt", "lte", "lt", "like", "ilike", "match", "imatch")
+            .collect(Collectors.toMap(it -> it, it -> it));
 
-    private static final Map<String, String> IS_VALUES =
-            Stream.of("false", "true", "null", "unknown")
-                    .collect(Collectors.toMap(it -> it, it -> it));
+    private static final Map<String, String> IS_VALUES = Stream.of("false", "true", "null", "unknown")
+            .collect(Collectors.toMap(it -> it, it -> it));
 
+    private static final Map<String, String> IS_BOOL_VALUES = Stream.of("false", "true")
+            .collect(Collectors.toMap(it -> it, it -> it));
 
     static {
         MARK_OPERATORS = MapUtil.newConcurrentHashMap();
@@ -64,7 +64,6 @@ public class OperationUtils {
         MARK_OPERATORS.put(operator.mark(), operator);
     }
 
-
     public Optional<Operator> markToOperator(String mark) {
         return Optional.ofNullable(MARK_OPERATORS.get(mark));
     }
@@ -81,13 +80,16 @@ public class OperationUtils {
         return operator.mark().equals(MInIsOperators.IS.mark());
     }
 
-    public boolean checkIsValue(String value) {
+    public boolean isIsValue(String value) {
         return IS_VALUES.containsKey(value);
+    }
+
+    public boolean isIsBoolValue(String value) {
+        return IS_BOOL_VALUES.containsKey(value);
     }
 
     public boolean isQuantOperator(Operator operator) {
         return QUANT_MARKS.containsKey(operator.mark());
     }
-
 
 }

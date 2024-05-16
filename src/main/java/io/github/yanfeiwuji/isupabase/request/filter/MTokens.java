@@ -1,14 +1,10 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
-import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.StrUtil;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @UtilityClass
@@ -18,7 +14,8 @@ public final class MTokens {
     final Token LOGIC_KV = new Token(
             "logic_kv", Pattern.compile("(and|or|not\\.and|not\\.or)(.*)"));
 
-    // final Token COMMA_SEPARATOR = new Token("comma_separator", Pattern.compile(",(?=(?:[^()]|(?R))*\\))"));
+    // final Token COMMA_SEPARATOR = new Token("comma_separator",
+    // Pattern.compile(",(?=(?:[^()]|(?R))*\\))"));
 
     public List<String> splitByComma(String input) {
         List<String> result = new ArrayList<>();

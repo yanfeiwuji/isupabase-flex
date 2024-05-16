@@ -4,7 +4,10 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import lombok.extern.slf4j.Slf4j;
+
 public interface IToken {
+
     String mark();
 
     Pattern pattern();
@@ -13,8 +16,12 @@ public interface IToken {
         return pattern().matcher(input).find();
     }
 
-
     default Optional<String> value(String input) {
+        System.out.println(input);
+        System.out.println(pattern().toString());
+        Matcher matcher = pattern().matcher(input);
+        matcher.find();
+
         return Optional.of(input)
                 .map(pattern()::matcher)
                 .filter(Matcher::find)
@@ -41,6 +48,5 @@ public interface IToken {
                 .filter(it -> it.groupCount() >= 1)
                 .map(it -> new KeyValue(it.group(1), it.group(it.groupCount())));
     }
-
 
 }

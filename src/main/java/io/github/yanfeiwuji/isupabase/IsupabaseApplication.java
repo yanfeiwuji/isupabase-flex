@@ -45,12 +45,12 @@ public class IsupabaseApplication {
         RelationManager.addQueryRelations("roles");
         RelationManager.addIgnoreRelations("users");
         List<SysUser> result = null;
+
         QueryWrapper wrapper = QueryWrapper.create().select(SYS_USER.ALL_COLUMNS, SYS_ROLE.ALL_COLUMNS)
                 .from(SYS_USER)
                 .leftJoin(SYS_ROLE_USER).on(SYS_USER.ID.eq(SYS_ROLE_USER.UID))
                 .leftJoin(SYS_ROLE).on(SYS_ROLE.ID.eq(SYS_ROLE_USER.RID))
                 .where(SYS_ROLE.ROLE_NAME.like("2"));
-
         result = sysUserMapper.selectListByQuery(wrapper);
 
         return result;

@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
-import java.util.function.Supplier;
-
 @AllArgsConstructor
 @Getter
 public enum MDbExManagers implements IExManagers {
@@ -30,6 +28,5 @@ public enum MDbExManagers implements IExManagers {
                     HttpStatus.BAD_REQUEST));
 
     private ExResTemp exResTemp;
-
 
 }

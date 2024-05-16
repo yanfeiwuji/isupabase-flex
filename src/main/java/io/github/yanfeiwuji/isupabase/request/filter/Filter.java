@@ -1,17 +1,12 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
-import cn.hutool.core.text.CharPool;
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.StrUtil;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
-import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
-import io.github.yanfeiwuji.isupabase.entity.table.SysUserTableDef;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
@@ -20,10 +15,8 @@ import io.github.yanfeiwuji.isupabase.request.utils.OperationUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * only handler column key and value
@@ -32,7 +25,6 @@ import java.util.regex.Pattern;
 @Data
 @Slf4j
 public class Filter {
-
 
     private String paramKey;
     private String paramValue;
@@ -56,7 +48,6 @@ public class Filter {
     // logic use
     private List<Filter> filters;
 
-
     private EModifier modifier = EModifier.none; // any or all or none
     private String strValue;
 
@@ -69,7 +60,6 @@ public class Filter {
 
         String nextKey = MTokens.NOT.value(paramKey).orElse(paramKey);
 
-
         Optional<Operator> logicOp = OperationUtils.markToOperator(nextKey)
                 .filter(OperationUtils::isLogicOperator);
 
@@ -79,10 +69,9 @@ public class Filter {
 
             this.filters = MTokens.splitByComma(need)
                     .stream()
-                    .map(it ->
-                            MTokens.LOGIC_KV.keyValue(it).orElse(MTokens.DOT.keyValue(it)
-                                    .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(it)))
-                    ).map(it -> {
+                    .map(it -> MTokens.LOGIC_KV.keyValue(it).orElse(MTokens.DOT.keyValue(it)
+                            .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(it))))
+                    .map(it -> {
                         log.info("kv:{}", it);
                         return it;
                     })
@@ -104,7 +93,7 @@ public class Filter {
         if (this.negative) {
             nextVal = MTokens.NOT.value(paramValue).orElse(paramValue);
         }
-        log.info("nextVal：{}", nextVal);
+        log.info("nextVal:{}", nextVal);
         this.operator = MTokens.DOT.first(nextVal)
                 .flatMap(OperationUtils::markToOperator)
                 .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(paramValue));
@@ -129,8 +118,17 @@ public class Filter {
                 return;
             }
             if (OperationUtils.isIsOperator(this.operator)) {
-                if (!OperationUtils.checkIsValue(this.strValue)) {
+                if (!OperationUtils.isIsValue(this.strValue)) {
                     throw MReqExManagers.FAILED_TO_PARSE.reqEx(this.paramValue);
+                }
+
+                if (OperationUtils.isIsBoolValue(this.strValue)) {
+                    if (!CacheTableInfoUtils.nNRealColumnInfo(paramKey,
+                            tableInfo).getPropertyType()
+                            .equals(Boolean.class)) {
+                        // TODO get real erro
+                        throw MReqExManagers.FAILED_TO_PARSE.reqEx(this.paramValue);
+                    }
                 }
                 return;
             }
@@ -147,7 +145,6 @@ public class Filter {
                     .reqEx(columnInfo.getPropertyType().getSimpleName(), strValue);
         }
     }
-
 
     public QueryCondition toQueryCondition() {
         return this.operator.handler().apply(this);
