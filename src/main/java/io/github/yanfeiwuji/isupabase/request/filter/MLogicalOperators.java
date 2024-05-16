@@ -1,6 +1,9 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
+import com.mybatisflex.core.query.OperatorQueryCondition;
 import com.mybatisflex.core.query.QueryCondition;
+import com.mybatisflex.core.query.RawQueryCondition;
+import io.github.yanfeiwuji.isupabase.entity.table.SysUserTableDef;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,10 +23,13 @@ public class MLogicalOperators {
     );
 
     public Function<Filter, QueryCondition> apply(BinaryOperator<QueryCondition> binaryOperator) {
-        return f -> QueryCondition.createEmpty()
 
-                .and(f.getFilters().stream().map(Filter::toQueryCondition)
-                .reduce(binaryOperator)
-                .orElse(QueryCondition.createEmpty()));
+        return f -> {
+            QueryCondition condition = QueryCondition.createEmpty()
+                    .and(f.getFilters().stream().map(Filter::toQueryCondition)
+                            .reduce(binaryOperator)
+                            .orElse(QueryCondition.createEmpty()));
+            return f.isNegative() ? new OperatorQueryCondition(" NOT ", condition) : condition;
+        };
     }
 }
