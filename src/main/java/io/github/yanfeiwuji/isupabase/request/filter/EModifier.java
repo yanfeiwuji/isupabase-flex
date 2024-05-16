@@ -1,5 +1,5 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
-public enum Modifier {
+public enum EModifier {
     any, all, none;
 }

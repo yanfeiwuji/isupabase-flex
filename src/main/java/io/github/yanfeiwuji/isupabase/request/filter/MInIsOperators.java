@@ -1,23 +1,27 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
+import com.mybatisflex.core.query.QueryCondition;
+import com.mybatisflex.core.query.QueryWrapper;
 import lombok.experimental.UtilityClass;
 
 import java.util.regex.Pattern;
 
 @UtilityClass
 public class MInIsOperators {
-    public final Operator IN = new Operator("in", Pattern.compile("in\\.\\((.*)\\)"), (f, q) -> {
+    public final Operator IN = new Operator("in", Pattern.compile("^in\\.\\((.*)\\)$"),
+            f -> f.isNegative() ?
+                    f.getQueryColumn().notIn(f.getQuantValue()) :
+                    f.getQueryColumn().in(f.getQuantValue()));
+
+    public final Operator IS = new Operator("is", Pattern.compile("^is\\.(null|true|false|unknown)$"),
+            MInIsOperators::handlerIs
+    );
+
+    private QueryCondition handlerIs(Filter f) {
         if (f.isNegative()) {
-            q.notIn(f.getRealColumn(), f.getQuantValue());
+            return QueryCondition.create(f.getQueryColumn(), " is not %s ".formatted(f.getStrValue()));
         } else {
-            q.in(f.getRealColumn(), f.getQuantValue());
+            return QueryCondition.create(f.getQueryColumn(), " is %s ".formatted(f.getStrValue()));
         }
-    });
-    public final Operator IS = new Operator("is", Pattern.compile("in\\.\\((.*)\\)"), (f, q) -> {
-        if (f.isNegative()) {
-            q.notIn(f.getRealColumn(), f.getQuantValue());
-        } else {
-            q.in(f.getRealColumn(), f.getQuantValue());
-        }
-    });
+    }
 }

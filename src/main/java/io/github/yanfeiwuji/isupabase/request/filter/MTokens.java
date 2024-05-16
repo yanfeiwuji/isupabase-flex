@@ -1,8 +1,14 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
+import cn.hutool.core.text.StrPool;
+import cn.hutool.core.util.StrUtil;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.experimental.UtilityClass;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @UtilityClass
@@ -12,9 +18,26 @@ public final class MTokens {
     final Token LOGIC_KV = new Token(
             "logic_kv", Pattern.compile("(and|or|not\\.and|not\\.or)(.*)"));
 
-    public static void main(String[] args) {
-        boolean b = LOGIC_KV.find("not.and(asd)");
-        LOGIC_KV.keyValue("not.and(asd)").ifPresent(System.out::println);
-        System.out.println(b);
+    // final Token COMMA_SEPARATOR = new Token("comma_separator", Pattern.compile(",(?=(?:[^()]|(?R))*\\))"));
+
+    public List<String> splitByComma(String input) {
+        List<String> result = new ArrayList<>();
+        int start = 0;
+        int bracketLevel = 0;
+
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (c == '(') {
+                bracketLevel++;
+            } else if (c == ')') {
+                bracketLevel--;
+            } else if (c == ',' && bracketLevel == 0) {
+                result.add(input.substring(start, i).trim());
+                start = i + 1;
+            }
+        }
+        result.add(input.substring(start).trim());
+        return result;
     }
+
 }

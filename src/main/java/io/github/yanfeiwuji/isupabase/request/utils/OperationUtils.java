@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 @UtilityClass
 @Slf4j
 public class OperationUtils {
-    private static final Map<String, Operator> MARK_OPERATOR;
+    private static final Map<String, Operator> MARK_OPERATORS;
     private static final Map<String, String> LOGIC_MARKS =
             Stream.of("and", "or")
                     .collect(Collectors.toMap(it -> it, it -> it));
@@ -24,9 +24,13 @@ public class OperationUtils {
             Stream.of("eq", "gte", "gt", "lte", "lt", "like", "ilike", "match", "imatch")
                     .collect(Collectors.toMap(it -> it, it -> it));
 
+    private static final Map<String, String> IS_VALUES =
+            Stream.of("false", "true", "null", "unknown")
+                    .collect(Collectors.toMap(it -> it, it -> it));
+
 
     static {
-        MARK_OPERATOR = MapUtil.newConcurrentHashMap();
+        MARK_OPERATORS = MapUtil.newConcurrentHashMap();
         OperationUtils.putMarkOperator(MLogicalOperators.AND);
         OperationUtils.putMarkOperator(MLogicalOperators.OR);
 
@@ -57,12 +61,12 @@ public class OperationUtils {
     }
 
     private void putMarkOperator(Operator operator) {
-        MARK_OPERATOR.put(operator.mark(), operator);
+        MARK_OPERATORS.put(operator.mark(), operator);
     }
 
 
     public Optional<Operator> markToOperator(String mark) {
-        return Optional.ofNullable(MARK_OPERATOR.get(mark));
+        return Optional.ofNullable(MARK_OPERATORS.get(mark));
     }
 
     public boolean isLogicOperator(Operator operator) {
@@ -71,6 +75,14 @@ public class OperationUtils {
 
     public boolean isInOperator(Operator operator) {
         return operator.mark().equals(MInIsOperators.IN.mark());
+    }
+
+    public boolean isIsOperator(Operator operator) {
+        return operator.mark().equals(MInIsOperators.IS.mark());
+    }
+
+    public boolean checkIsValue(String value) {
+        return IS_VALUES.containsKey(value);
     }
 
     public boolean isQuantOperator(Operator operator) {

@@ -6,9 +6,12 @@ import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.StrUtil;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.mybatisflex.core.query.QueryColumn;
+import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
+import io.github.yanfeiwuji.isupabase.entity.table.SysUserTableDef;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
@@ -38,6 +41,8 @@ public class Filter {
     private String realProperty;
     private String realColumn;
 
+    private QueryColumn queryColumn;
+
     // real value
     private Object value;
     // quant in here
@@ -51,7 +56,8 @@ public class Filter {
     // logic use
     private List<Filter> filters;
 
-    private Modifier modifier = Modifier.none; // any or all or none
+
+    private EModifier modifier = EModifier.none; // any or all or none
     private String strValue;
 
     public Filter(String paramKey, String paramValue, TableInfo tableInfo) {
@@ -71,13 +77,12 @@ public class Filter {
             this.operator = logicOp.get();
             String need = CharSequenceUtil.strip(paramValue, "(", ")");
 
-            this.filters = CharSequenceUtil.split(need, ',')
+            this.filters = MTokens.splitByComma(need)
                     .stream()
                     .map(it ->
                             MTokens.LOGIC_KV.keyValue(it).orElse(MTokens.DOT.keyValue(it)
                                     .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(it)))
-                    )
-                    .map(it -> {
+                    ).map(it -> {
                         log.info("kv:{}", it);
                         return it;
                     })
@@ -86,13 +91,12 @@ public class Filter {
         } else {
             handlerSingle();
         }
-
     }
 
     private void handlerSingle() {
         this.realProperty = CacheTableInfoUtils.nNRealProperty(paramKey, tableInfo);
         this.realColumn = CacheTableInfoUtils.nNRealColumn(paramKey, tableInfo);
-
+        this.queryColumn = CacheTableInfoUtils.nNRealQueryColumn(paramKey, tableInfo);
         log.info("rp:{},rc:{}", realProperty, realColumn);
         this.negative = MTokens.NOT.find(paramValue);
         String nextVal = paramValue;
@@ -108,11 +112,12 @@ public class Filter {
         if (OperationUtils.isQuantOperator(operator)) {
             this.modifier = operator.first(nextVal)
                     .filter(it -> !it.isBlank())
-                    .map(Modifier::valueOf)
-                    .orElse(Modifier.none);
+                    .map(EModifier::valueOf)
+                    .orElse(EModifier.none);
         }
 
         this.strValue = this.operator.value(nextVal).orElse("");
+        log.info("mark:{}", this.operator.mark());
         log.info("this.strValue:{}", this.strValue);
         this.initValue();
     }
@@ -123,8 +128,14 @@ public class Filter {
                 this.quantValue = ExchangeUtils.parenthesesWrapListValue(this);
                 return;
             }
+            if (OperationUtils.isIsOperator(this.operator)) {
+                if (!OperationUtils.checkIsValue(this.strValue)) {
+                    throw MReqExManagers.FAILED_TO_PARSE.reqEx(this.paramValue);
+                }
+                return;
+            }
 
-            if (modifier.equals(Modifier.none)) {
+            if (modifier.equals(EModifier.none)) {
                 this.value = ExchangeUtils.singleValue(this);
             } else {
                 this.quantValue = ExchangeUtils.delimWrapListValue(this);
@@ -137,8 +148,9 @@ public class Filter {
         }
     }
 
-    public void handler(QueryWrapper queryWrapper) {
-        operator.handler().accept(this, queryWrapper);
+
+    public QueryCondition toQueryCondition() {
+        return this.operator.handler().apply(this);
     }
 
 }
