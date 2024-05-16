@@ -1,7 +1,7 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
-import com.mybatisflex.core.query.QueryCondition;
-import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.constant.SqlOperator;
+import com.mybatisflex.core.query.*;
 import lombok.experimental.UtilityClass;
 
 import java.util.regex.Pattern;
@@ -18,10 +18,19 @@ public class MInIsOperators {
     );
 
     private QueryCondition handlerIs(Filter f) {
+        // todo handler other param
         if (f.isNegative()) {
-            return QueryCondition.create(f.getQueryColumn(), " is not %s ".formatted(f.getStrValue()));
+            QueryColumn queryColumn = f.getQueryColumn();
+
+
+            return QueryColumnBehavior.castCondition(QueryCondition.create(
+                    queryColumn, " is not %s ".formatted(f.getStrValue()), null).when(true));
         } else {
-            return QueryCondition.create(f.getQueryColumn(), " is %s ".formatted(f.getStrValue()));
+            return QueryColumnBehavior.castCondition(QueryCondition.create(
+                    f.getQueryColumn(),
+                    " is %s ".formatted(f.getStrValue()),
+                    null
+            ).when(true));
         }
     }
 }
