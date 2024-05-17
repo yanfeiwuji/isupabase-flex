@@ -9,13 +9,16 @@ import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
+import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ExchangeUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.OperationUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -67,15 +70,19 @@ public class Filter {
             this.operator = logicOp.get();
             String need = CharSequenceUtil.strip(paramValue, "(", ")");
 
-            this.filters = MTokens.splitByComma(need)
+            this.filters = TokenUtils.splitByComma(need)
                     .stream()
+                    .map(it -> {
+                        System.out.println(it);
+                        return it;
+                    })
                     .map(it -> MTokens.LOGIC_KV.keyValue(it).orElse(MTokens.DOT.keyValue(it)
                             .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(it))))
                     .map(it -> {
                         log.info("kv:{}", it);
                         return it;
                     })
-                    .map(it -> new Filter(it.key(), it.value(), tableInfo))
+                    .map(it -> new Filter(it.key(), it.value(), this.tableInfo))
                     .toList();
         } else {
             handlerSingle();
@@ -83,60 +90,46 @@ public class Filter {
     }
 
     private void handlerSingle() {
-        this.realProperty = CacheTableInfoUtils.nNRealProperty(paramKey, tableInfo);
-        this.realColumn = CacheTableInfoUtils.nNRealColumn(paramKey, tableInfo);
-        this.queryColumn = CacheTableInfoUtils.nNRealQueryColumn(paramKey, tableInfo);
+        realProperty = CacheTableInfoUtils.nNRealProperty(paramKey, tableInfo);
+        realColumn = CacheTableInfoUtils.nNRealColumn(paramKey, tableInfo);
+        queryColumn = CacheTableInfoUtils.nNRealQueryColumn(paramKey, tableInfo);
         log.info("rp:{},rc:{}", realProperty, realColumn);
-        this.negative = MTokens.NOT.find(paramValue);
+        negative = MTokens.NOT.find(paramValue);
         String nextVal = paramValue;
 
-        if (this.negative) {
+        if (negative) {
             nextVal = MTokens.NOT.value(paramValue).orElse(paramValue);
         }
         log.info("nextVal:{}", nextVal);
-        this.operator = MTokens.DOT.first(nextVal)
+        operator = MTokens.DOT.first(nextVal)
                 .flatMap(OperationUtils::markToOperator)
                 .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(paramValue));
 
         if (OperationUtils.isQuantOperator(operator)) {
-            this.modifier = operator.first(nextVal)
+            modifier = operator.first(nextVal)
                     .filter(it -> !it.isBlank())
                     .map(EModifier::valueOf)
                     .orElse(EModifier.none);
         }
 
-        this.strValue = this.operator.value(nextVal).orElse("");
-        log.info("mark:{}", this.operator.mark());
-        log.info("this.strValue:{}", this.strValue);
-        this.initValue();
+        strValue = operator.value(nextVal).orElse("");
+        log.info("mark:{}", operator.mark());
+        log.info("strValue:{}", strValue);
+        initValue();
     }
 
     private void initValue() {
         try {
-            if (OperationUtils.isInOperator(this.operator)) {
-                this.quantValue = ExchangeUtils.parenthesesWrapListValue(this);
-                return;
-            }
-            if (OperationUtils.isIsOperator(this.operator)) {
-                if (!OperationUtils.isIsValue(this.strValue)) {
-                    throw MReqExManagers.FAILED_TO_PARSE.reqEx(this.paramValue);
-                }
-
-                if (OperationUtils.isIsBoolValue(this.strValue)) {
-                    if (!CacheTableInfoUtils.nNRealColumnInfo(paramKey,
-                            tableInfo).getPropertyType()
-                            .equals(Boolean.class)) {
-                        // TODO get real erro
-                        throw MReqExManagers.FAILED_TO_PARSE.reqEx(this.paramValue);
-                    }
-                }
-                return;
-            }
-
-            if (modifier.equals(EModifier.none)) {
-                this.value = ExchangeUtils.singleValue(this);
+            if (OperationUtils.isInOperator(operator)) {
+                handlerIn();
+            } else if (OperationUtils.isIsOperator(operator)) {
+                handlerIs();
             } else {
-                this.quantValue = ExchangeUtils.delimWrapListValue(this);
+                if (Objects.requireNonNull(modifier) == EModifier.none) {
+                    value = ExchangeUtils.singleValue(this);
+                } else {
+                    quantValue = ExchangeUtils.delimWrapListValue(this);
+                }
             }
         } catch (JsonProcessingException e) {
             log.info(paramValue);
@@ -146,8 +139,28 @@ public class Filter {
         }
     }
 
+    private void handlerIn() throws JsonProcessingException {
+        quantValue = ExchangeUtils.parenthesesWrapListValue(this);
+    }
+
+    private void handlerIs() throws JsonProcessingException {
+        if (!OperationUtils.isIsValue(strValue)) {
+            throw MReqExManagers.FAILED_TO_PARSE.reqEx(paramValue);
+        }
+
+        if (OperationUtils.isIsBoolValue(strValue) &&
+                !CacheTableInfoUtils.nNRealColumnInfo(paramKey, tableInfo).getPropertyType()
+                        .equals(Boolean.class)) {
+            throw MDbExManagers.DATATYPE_MISMATCH.reqEx("IS %s %s".formatted(
+                            negative ? "NOT" : "", strValue),
+                    "boolean",
+                    CacheTableInfoUtils.realDbType(paramKey, tableInfo));
+        }
+
+    }
+
     public QueryCondition toQueryCondition() {
-        return this.operator.handler().apply(this);
+        return operator.handler().apply(this);
     }
 
 }

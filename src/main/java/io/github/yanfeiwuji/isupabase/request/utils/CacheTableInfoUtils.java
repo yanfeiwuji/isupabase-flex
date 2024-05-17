@@ -19,6 +19,8 @@ import com.mybatisflex.core.table.TableInfo;
 import cn.hutool.core.map.MapBuilder;
 import cn.hutool.core.map.MapUtil;
 
+import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.entity.table.SysUserTableDef;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import lombok.experimental.UtilityClass;
 import org.slf4j.Logger;
@@ -36,6 +38,7 @@ public class CacheTableInfoUtils {
     private static final Map<Class<?>, Map<String, ColumnInfo>> CACHE_CLAZZ_PARAM_NAME_COLUMN_INFO = new ConcurrentHashMap<>();
     private static final Map<Class<?>, Map<String, QueryColumn>> CACHE_CLAZZ_PARAM_NAME_QUERY_COLUMN = new ConcurrentHashMap<>();
     private static final Map<Class<?>, QueryTable> CACHE_CLAZZ_QUERY_TABLE = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, QueryColumn> CACHE_CLAZZ_QUERY_ALL_COLUMNS = new ConcurrentHashMap<>();
 
     private static final Logger log = LoggerFactory.getLogger(CacheTableInfoUtils.class);
     private static ObjectMapper mapper;
@@ -55,14 +58,15 @@ public class CacheTableInfoUtils {
     public ColumnInfo nNRealColumnInfo(String paramKey, TableInfo tableInfo) {
         return realColumnInfo(paramKey, tableInfo).orElseThrow(MDbExManagers.COLUMN_NOT_FOUND.supplierReqEx(paramKey));
     }
-    public QueryTable nNRealQueryTable(TableInfo tableInfo) {
+
+    public QueryTable nNQueryTable(TableInfo tableInfo) {
         return CACHE_CLAZZ_QUERY_TABLE.computeIfAbsent(tableInfo.getEntityClass(),
                 it -> new QueryTable(tableInfo.getSchema(), tableInfo.getTableName()));
     }
-    public QueryColumn nNRealQueryColumn(String paramKey, TableInfo tableInfo) {
-        return realQueryColumn(paramKey,tableInfo).orElseThrow(MDbExManagers.COLUMN_NOT_FOUND.supplierReqEx(paramKey));
-    }
 
+    public QueryColumn nNRealQueryColumn(String paramKey, TableInfo tableInfo) {
+        return realQueryColumn(paramKey, tableInfo).orElseThrow(MDbExManagers.COLUMN_NOT_FOUND.supplierReqEx(paramKey));
+    }
 
 
     public Optional<String> realColumn(String paramKey, TableInfo tableInfo) {
@@ -104,14 +108,13 @@ public class CacheTableInfoUtils {
 
             Map<String, ColumnInfo> build = builder.build();
             log.info("info:{}", build);
-
             return build;
         });
     }
 
 
     public Optional<QueryColumn> realQueryColumn(String paramKey, TableInfo tableInfo) {
-        QueryTable queryTable = nNRealQueryTable(tableInfo);
+        QueryTable queryTable = nNQueryTable(tableInfo);
         return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_QUERY_COLUMN, namingBase -> {
             Map<String, String> propertyColumnMapping = tableInfo.getPropertyColumnMapping();
             Map<String, QueryColumn> queryColumnMap = MapUtil.newConcurrentHashMap();
@@ -126,6 +129,13 @@ public class CacheTableInfoUtils {
 
     }
 
+    public QueryColumn nNQueryAllColumns(TableInfo tableInfo) {
+        return CACHE_CLAZZ_QUERY_ALL_COLUMNS.computeIfAbsent(
+                tableInfo.getEntityClass(),
+                it -> new QueryColumn(nNQueryTable(tableInfo), CommonStr.STAR)
+        );
+    }
+
 
     private <T> Optional<T> pickReal(String paramKey, TableInfo tableInfo, Map<Class<?>, Map<String, T>> cacheMap,
                                      Function<Optional<NamingBase>, Map<String, T>> func) {
@@ -137,6 +147,16 @@ public class CacheTableInfoUtils {
                             .map(PropertyNamingStrategies.NamingBase.class::cast);
                     return func.apply(namingOptional);
                 }).get(paramKey));
+    }
+
+    // TODO to get real dbType
+    public String realDbType(String paramKey, TableInfo tableInfo) {
+
+        ColumnInfo columnInfo = nNRealColumnInfo(paramKey, tableInfo);
+        return Optional.of(columnInfo)
+                .map(ColumnInfo::getJdbcType)
+                .map(Enum::name)
+                .orElse(columnInfo.getPropertyType().getSimpleName());
     }
 
 }

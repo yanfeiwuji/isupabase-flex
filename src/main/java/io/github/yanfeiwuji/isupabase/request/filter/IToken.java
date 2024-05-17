@@ -17,10 +17,7 @@ public interface IToken {
     }
 
     default Optional<String> value(String input) {
-        System.out.println(input);
-        System.out.println(pattern().toString());
-        Matcher matcher = pattern().matcher(input);
-        matcher.find();
+
 
         return Optional.of(input)
                 .map(pattern()::matcher)
@@ -42,6 +39,7 @@ public interface IToken {
 
     // reduce matcher create
     default Optional<KeyValue> keyValue(String input) {
+
         return Optional.of(input)
                 .map(pattern()::matcher)
                 .filter(Matcher::find)

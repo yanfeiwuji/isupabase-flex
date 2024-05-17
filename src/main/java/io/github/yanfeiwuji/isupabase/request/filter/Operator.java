@@ -11,4 +11,5 @@ public record Operator(String mark, Pattern pattern,
         Function<Filter, QueryCondition> handler)
         implements IToken {
 
+
 }
