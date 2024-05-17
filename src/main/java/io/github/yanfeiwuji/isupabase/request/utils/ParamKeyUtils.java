@@ -1,6 +1,5 @@
 package io.github.yanfeiwuji.isupabase.request.utils;
 
-
 import lombok.experimental.UtilityClass;
 
 import java.util.Map;
@@ -11,7 +10,7 @@ import java.util.stream.Stream;
 public class ParamKeyUtils {
     public static final String SELECT_KEY = "select";
     public static final Map<String, String> IGNORE_FILTER = Stream.of(
-                    SELECT_KEY)
+            SELECT_KEY)
             .collect(Collectors.toMap(it -> it, it -> it));
 
     public boolean canFilter(String key) {

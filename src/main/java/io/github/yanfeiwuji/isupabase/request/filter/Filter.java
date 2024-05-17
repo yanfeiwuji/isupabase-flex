@@ -152,7 +152,7 @@ public class Filter {
                 !CacheTableInfoUtils.nNRealColumnInfo(paramKey, tableInfo).getPropertyType()
                         .equals(Boolean.class)) {
             throw MDbExManagers.DATATYPE_MISMATCH.reqEx("IS %s %s".formatted(
-                            negative ? "NOT" : "", strValue),
+                    negative ? "NOT" : "", strValue),
                     "boolean",
                     CacheTableInfoUtils.realDbType(paramKey, tableInfo));
         }

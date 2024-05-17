@@ -24,32 +24,30 @@ import java.util.stream.Stream;
 @AllArgsConstructor
 public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
 
-
     @Override
     public QueryWrapper handler(ServerRequest request, TableInfo tableInfo) {
         MultiValueMap<String, String> params = request.params();
         QueryWrapper wrapper = QueryWrapper.create();
         handlerSelect(params, tableInfo, wrapper);
 
-
         handlerHorizontalFilter(params, tableInfo, wrapper);
         return wrapper;
     }
 
     public void handlerSelect(MultiValueMap<String, String> params,
-                              TableInfo tableInfo,
-                              QueryWrapper queryWrapper) {
-        String selectValue =
-                Optional.ofNullable(params.getFirst(ParamKeyUtils.SELECT_KEY))
-                        .orElse("*");
+            TableInfo tableInfo,
+            QueryWrapper queryWrapper) {
+        String selectValue = Optional.ofNullable(params.getFirst(ParamKeyUtils.SELECT_KEY))
+
+                .orElse("*");
 
         new Select(selectValue, tableInfo).handlerQueryWrapper(queryWrapper);
 
     }
 
     public void handlerHorizontalFilter(MultiValueMap<String, String> params,
-                                        TableInfo tableInfo,
-                                        QueryWrapper queryWrapper) {
+            TableInfo tableInfo,
+            QueryWrapper queryWrapper) {
 
         params.entrySet().stream()
                 .filter(it -> ParamKeyUtils.canFilter(it.getKey()))
@@ -57,7 +55,6 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
                 .map(Filter::toQueryCondition)
                 .reduce(QueryCondition::and)
                 .ifPresent(queryWrapper::where);
-
 
     }
 

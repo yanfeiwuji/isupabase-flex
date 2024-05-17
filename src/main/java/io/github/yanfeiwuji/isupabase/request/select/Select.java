@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @Data
 @Slf4j
@@ -27,25 +28,36 @@ public class Select {
     private List<Select> selects;
 
     public Select(String selectValue, TableInfo tableInfo) {
+
         log.info("selectValue:{}", selectValue);
         this.selectValue = selectValue;
+
         queryColumns = new ArrayList<>();
+
         List<String> selects = TokenUtils.splitByComma(selectValue);
+        selects.forEach(System.out::println);
+
         if (selects.contains(CommonStr.STAR)) {
             queryColumns.add(CacheTableInfoUtils.nNQueryAllColumns(tableInfo));
+        } else {
+            selects.stream().filter(it -> CacheTableInfoUtils.columnInTable(it, tableInfo))
+                    .map(it -> CacheTableInfoUtils.nNRealQueryColumn(it, tableInfo))
+                    .forEach(queryColumns::add);
         }
 
-        Map<String, Class<?>> associationType = tableInfo.getAssociationType();
-        log.info("associationType:{}", associationType);
-        log.info("tacolumns:{}");
-        //  TODO handler relations
-        // List<AbstractRelation> relations = RelationManager.getRelations();
+        selects = selects.stream().filter(it -> !CacheTableInfoUtils.columnInTable(it, tableInfo)).toList();
+        // TODO 获取关系
+        System.out.println(selects);
+
+        List<AbstractRelation> relations = RelationManager.getRelations(tableInfo.getEntityClass());
+
+        System.out.println(relations);
 
         TokenUtils.splitByComma(selectValue);
 
     }
 
-
     public void handlerQueryWrapper(QueryWrapper queryWrapper) {
+        queryWrapper.select(this.queryColumns);
     }
 }
