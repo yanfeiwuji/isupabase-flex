@@ -1,6 +1,5 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
-import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.query.*;
 import lombok.experimental.UtilityClass;
 

@@ -32,8 +32,14 @@ public enum MDbExManagers implements IExManagers {
                     null,
                     null,
                     "argument of %S must be type %s, not type %s",
-                    HttpStatus.BAD_REQUEST)
-    );
+                    HttpStatus.BAD_REQUEST)),
+    UNDEFIDEND_COLUMN(new ExResTemp(
+            "42703",
+            null,
+            null,
+            "column %s.%s does not exist",
+            HttpStatus.BAD_REQUEST));
+
     private final ExResTemp exResTemp;
 
 }

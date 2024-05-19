@@ -1,19 +1,14 @@
 package io.github.yanfeiwuji.isupabase.request.utils;
 
 import cn.hutool.core.map.MapUtil;
-import com.mybatisflex.core.query.QueryWrapper;
 import io.github.yanfeiwuji.isupabase.request.filter.*;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @UtilityClass
-@Slf4j
 public class OperationUtils {
     private static final Map<String, Operator> MARK_OPERATORS;
     private static final Map<String, String> LOGIC_MARKS = Stream.of("and", "or")

@@ -1,7 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
 import com.mybatisflex.core.query.QueryCondition;
-import com.mybatisflex.core.query.QueryConditionBuilder;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.experimental.UtilityClass;
 

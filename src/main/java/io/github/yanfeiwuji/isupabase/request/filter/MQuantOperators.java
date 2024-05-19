@@ -1,16 +1,10 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
-import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
-import com.mybatisflex.core.query.QueryWrapper;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.experimental.UtilityClass;
 
-import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 @UtilityClass
 public class MQuantOperators {

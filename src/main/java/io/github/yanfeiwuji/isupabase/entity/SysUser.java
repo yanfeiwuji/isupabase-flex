@@ -3,6 +3,7 @@ package io.github.yanfeiwuji.isupabase.entity;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.RelationManyToMany;
+import com.mybatisflex.annotation.RelationOneToOne;
 import com.mybatisflex.annotation.Table;
 import com.mybatisflex.core.keygen.KeyGenerators;
 import lombok.Data;
@@ -19,6 +20,9 @@ public class SysUser {
     private String userName;
     private Integer age;
     private Date birthday;
+
+    @RelationOneToOne(selfField = "id", targetField = "uid", joinTable = "")
+    private SysUserExt sysUserExt;
 
     @RelationManyToMany(joinTable = "sys_role_user", // 中间表
             selfField = "id", joinSelfColumn = "uid", targetField = "id", joinTargetColumn = "rid")

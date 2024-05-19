@@ -2,6 +2,7 @@ package io.github.yanfeiwuji.isupabase.request.impl;
 
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.mybatis.Mappers;
+import com.mybatisflex.core.query.QueryChain;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
@@ -36,23 +37,20 @@ public class ReqHandler implements IReqHandler {
         TableInfo tableInfo = Optional.of(request.pathVariable(PATH_PARAM))
                 .map(TableInfoFactory::ofTableName)
                 .orElseThrow(MDbExManagers.UNDEFINED_TABLE.supplierReqEx(tableName));
+        BaseMapper<?> baseMapper = Mappers.ofEntityClass(tableInfo.getEntityClass());
 
-        request.servletRequest().setAttribute(
-                REQ_TABLE_INFO_KEY,
-                tableInfo);
-        request.servletRequest().setAttribute(
-                REQ_QUERY_WRAPPER_KEY,
-                reqQueryWrapperHandler.handler(request, tableInfo));
-        request.servletRequest().setAttribute(
-                REQ_TABLE_MAPPER_KEY,
-                Mappers.ofEntityClass(tableInfo.getEntityClass()));
+        QueryChain<?> queryChain = QueryChain.of(baseMapper);
+        reqQueryWrapperHandler.handler(request, tableInfo, queryChain);
+        request.servletRequest().setAttribute(REQ_TABLE_INFO_KEY, tableInfo);
+        request.servletRequest().setAttribute(REQ_QUERY_CHAIN, queryChain);
+        request.servletRequest().setAttribute(REQ_TABLE_MAPPER_KEY, baseMapper);
 
         return request;
     }
 
     @Override
     public ServerResponse get(ServerRequest request) {
-        return ServerResponse.ok().body(mapper(request).selectListByQuery(queryWrapper(request)));
+        return ServerResponse.ok().body(queryChain(request).listAs(tableInfo(request).getEntityClass()));
     }
 
     @Override
@@ -66,7 +64,7 @@ public class ReqHandler implements IReqHandler {
                 .ifPresent(it -> mapper(request).insert(it));
         Optional.ofNullable(bodyInfo)
                 .map(BodyInfo::getArray)
-                .map(it -> (List<Object>) it)
+                .map(it -> (List) it)
                 .ifPresent(it -> mapper(request).insertBatch(it));
 
         return ServerResponse.ok().build();
@@ -89,7 +87,7 @@ public class ReqHandler implements IReqHandler {
 
         return Optional.ofNullable(bodyInfo).map(BodyInfo::getSingle)
                 .map(it -> {
-                    mapper(request).updateByQuery(it, queryWrapper(request));
+                    mapper(request).updateByQuery(it, queryChain(request));
                     return it;
                 }).map(it -> ServerResponse.ok().body(it))
                 .orElse(ServerResponse.ok().build());
@@ -97,7 +95,7 @@ public class ReqHandler implements IReqHandler {
 
     @Override
     public ServerResponse delete(ServerRequest request) {
-        QueryWrapper wrapper = queryWrapper(request);
+        QueryWrapper wrapper = queryChain(request);
         mapper(request).deleteByQuery(wrapper);
         return ServerResponse.ok().build();
     }
@@ -123,9 +121,10 @@ public class ReqHandler implements IReqHandler {
                 .orElseThrow();
     }
 
-    private QueryWrapper queryWrapper(ServerRequest request) {
+    private QueryChain<?> queryChain(ServerRequest request) {
         return request
-                .attribute(REQ_QUERY_WRAPPER_KEY).map(QueryWrapper.class::cast)
+                .attribute(REQ_QUERY_CHAIN)
+                .map(QueryChain.class::cast)
                 .orElseThrow();
     }
 

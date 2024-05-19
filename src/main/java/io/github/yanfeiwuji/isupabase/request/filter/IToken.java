@@ -4,8 +4,6 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import lombok.extern.slf4j.Slf4j;
-
 public interface IToken {
 
     String mark();
@@ -17,7 +15,6 @@ public interface IToken {
     }
 
     default Optional<String> value(String input) {
-
 
         return Optional.of(input)
                 .map(pattern()::matcher)

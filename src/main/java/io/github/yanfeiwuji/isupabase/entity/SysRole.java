@@ -13,10 +13,7 @@ public class SysRole {
     private Long id;
     private String roleName;
 
-    @RelationManyToMany(
-            joinTable = "sys_role_user", // 中间表
-            selfField = "id", joinSelfColumn = "rid",
-            targetField = "id", joinTargetColumn = "uid"
-    )
+    @RelationManyToMany(joinTable = "sys_role_user", // 中间表
+            selfField = "id", joinSelfColumn = "rid", targetField = "id", joinTargetColumn = "uid")
     private List<SysUser> users;
 }

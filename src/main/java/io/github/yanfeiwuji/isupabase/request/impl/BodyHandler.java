@@ -13,11 +13,9 @@ import io.github.yanfeiwuji.isupabase.request.BodyInfo;
 import io.github.yanfeiwuji.isupabase.request.IBodyHandler;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
 @AllArgsConstructor
-@Slf4j
 public class BodyHandler implements IBodyHandler {
     private final ObjectMapper mapper;
 
