@@ -26,7 +26,7 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
         MultiValueMap<String, String> params = request.params();
         Select select = handlerSelect(params, tableInfo);
         List<Filter> filters = handlerHorizontalFilter(params, tableInfo);
-        new ApiReq(select, filters).handler(queryChain);
+        new ApiReq(select, filters, List.of()).handler(queryChain);
     }
 
     public Select handlerSelect(MultiValueMap<String, String> params,

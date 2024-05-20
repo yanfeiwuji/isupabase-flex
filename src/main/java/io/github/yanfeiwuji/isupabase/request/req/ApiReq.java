@@ -4,20 +4,17 @@ import java.util.List;
 import java.util.Objects;
 
 import com.mybatisflex.core.query.QueryChain;
-import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import io.github.yanfeiwuji.isupabase.request.filter.Filter;
 import io.github.yanfeiwuji.isupabase.request.select.Select;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
-import jakarta.security.auth.message.MessagePolicy.Target;
 
-public record ApiReq(Select select, List<Filter> filters) {
+public record ApiReq(Select select, List<Filter> filters, List<Filter> subFilter) {
 
     public void handler(QueryChain<?> queryChain) {
 

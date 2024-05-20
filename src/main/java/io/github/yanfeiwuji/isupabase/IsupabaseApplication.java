@@ -2,6 +2,7 @@ package io.github.yanfeiwuji.isupabase;
 
 import com.mybatisflex.core.query.QueryChain;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.relation.RelationManager;
 import io.github.yanfeiwuji.isupabase.entity.SysRole;
 import io.github.yanfeiwuji.isupabase.entity.SysRoleUser;
@@ -43,21 +44,14 @@ public class IsupabaseApplication {
 
     @GetMapping
     public List<SysUser> user() {
-
         List<SysUser> result = null;
-
         // result = sysUserMapper.selectListByQuery(wrapper);
-        result = QueryChain.of(sysUserMapper)
-                .select(SYS_USER.DEFAULT_COLUMNS, SYS_ROLE.ID)
-                .from(SYS_USER)
-                .leftJoin(SYS_ROLE_USER).on(SYS_USER.ID.eq(SYS_ROLE_USER.UID))
-                .leftJoin(SYS_ROLE).on(SYS_ROLE.ID.eq(SYS_ROLE_USER.RID))
-                .listAs(SysUser.class);
         return result;
     }
 
     @GetMapping("/role")
     public List<SysRole> roleList() {
+
         return sysRoleMapper.selectAllWithRelations();
     }
 
