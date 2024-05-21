@@ -14,7 +14,6 @@ public class ParamKeyUtils {
             .collect(Collectors.toMap(it -> it, it -> it));
 
     public boolean canFilter(String key) {
-        System.out.println(key);
         return !IGNORE_FILTER.containsKey(key);
     }
 }

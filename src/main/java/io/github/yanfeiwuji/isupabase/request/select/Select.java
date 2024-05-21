@@ -21,9 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Data
 @Slf4j
@@ -31,18 +29,33 @@ public class Select {
     // id,name,xxx
     // default
     private String selectValue;
-    // table
-    private List<QueryColumn> queryColumns = List.of();
 
+    // a,b,roles(a,users(*))
+    // roles is roles.
+    // users is roles.users
+    private String relPre;
+
+    // table query columns
+    private List<QueryColumn> queryColumns;
+
+    // this parent to sub  rel
     private AbstractRelation<?> relation;
+
+    private TableInfo tableInfo;
+    // sub select
     private List<Select> subSelect;
 
-    public Select(String selectValue, TableInfo tableInfo, AbstractRelation<?> relation) {
+    public Select(String selectValue, TableInfo tableInfo) {
+        this(selectValue, tableInfo, null, null);
+    }
 
+    public Select(String selectValue, TableInfo tableInfo, AbstractRelation<?> relation, String preRel) {
         log.info("selectValue:{}", selectValue);
         this.selectValue = selectValue;
         this.relation = relation;
-        // TODO sub query use exist then
+        this.tableInfo = tableInfo;
+        this.relPre = preRel;
+
         queryColumns = new ArrayList<>();
 
         List<String> selects = TokenUtils.splitByComma(selectValue);
@@ -62,18 +75,19 @@ public class Select {
         selects = Optional.ofNullable(groupByInColumn.get(false))
                 .orElse(List.of()).stream().filter(it -> !CommonStr.STAR.equals(it)).toList();
 
-        // selects = selects.stream().filter(it ->
-        // !CacheTableInfoUtils.columnInTable(it, tableInfo)).toList();
+
         Map<Boolean, List<String>> groupByIsRelFormat = selects.stream()
-                .collect(Collectors.groupingBy(it -> MTokens.SELECT_WITH_SUB.find(it)));
+                .collect(Collectors.groupingBy(MTokens.SELECT_WITH_SUB::find));
 
         List<String> others = Optional.ofNullable(groupByIsRelFormat.get(false)).orElse(List.of());
 
-        if (others.size() != 0) {
+        if (!others.isEmpty()) {
             throw MDbExManagers.UNDEFIDEND_COLUMN.reqEx(tableInfo.getTableName(), others.getFirst());
         }
         // hand sub
-        Map<Boolean, List<KeyValue>> groupByIsRel = Optional.ofNullable(groupByIsRelFormat.get(true)).orElse(List.of())
+        Map<Boolean, List<KeyValue>> groupByIsRel = Optional
+                .ofNullable(groupByIsRelFormat.get(true))
+                .orElse(List.of())
                 .stream()
                 .map(MTokens.SELECT_WITH_SUB::keyValue)
                 .filter(Optional::isPresent)
@@ -82,7 +96,7 @@ public class Select {
 
         List<KeyValue> notRelButFormat = Optional.ofNullable(groupByIsRel.get(false)).orElse(List.of());
 
-        if (notRelButFormat.size() != 0) {
+        if (!notRelButFormat.isEmpty()) {
             throw MDbExManagers.UNDEFIDEND_COLUMN.reqEx(tableInfo.getTableName(), notRelButFormat.getFirst().key());
         }
 
@@ -90,7 +104,7 @@ public class Select {
                 .orElse(List.of()).stream()
                 .map(it -> {
                     AbstractRelation<?> realRelation = CacheTableInfoUtils.nNRealRelation(it.key(), tableInfo);
-                    return new Select(it.value(), realRelation.getTargetTableInfo(), realRelation);
+                    return new Select(it.value(), realRelation.getTargetTableInfo(), realRelation, "%s.".formatted(it.key()));
                 }).toList();
 
     }
@@ -100,12 +114,27 @@ public class Select {
         return queryColumns;
     }
 
+    public List<AbstractRelation<?>> abstractRelations(List<AbstractRelation<?>> result) {
+        result.add(relation);
+        result.addAll(this.subSelect.stream().flatMap(it -> it.abstractRelations(result).stream()).toList());
+        return result.stream().filter(Objects::nonNull).toList();
+    }
+
     public List<AbstractRelation<?>> abstractRelations() {
-        List<AbstractRelation<?>> list = new ArrayList<>();
-        list.add(relation);
-        System.out.println(list);
-        System.out.println(this.subSelect + "=");
-        list.addAll(this.subSelect.stream().flatMap(it -> it.abstractRelations().stream()).toList());
-        return list.stream().filter(Objects::nonNull).toList();
+        return abstractRelations(new ArrayList<>());
+    }
+
+
+    public List<String> allRelPres(List<String> result) {
+
+
+        result.add(this.relPre);
+        result.addAll(this.subSelect.stream().flatMap(it -> it.allRelPres(result).stream()).toList());
+        System.out.println(result);
+        return result.stream().filter(Objects::nonNull).toList();
+    }
+
+    public List<String> allRelPres() {
+        return allRelPres(new ArrayList<>());
     }
 }

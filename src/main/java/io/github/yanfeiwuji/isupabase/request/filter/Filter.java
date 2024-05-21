@@ -72,16 +72,10 @@ public class Filter {
 
             this.filters = TokenUtils.splitByComma(need)
                     .stream()
-                    .map(it -> {
-                        System.out.println(it);
-                        return it;
-                    })
+
                     .map(it -> MTokens.LOGIC_KV.keyValue(it).orElse(MTokens.DOT.keyValue(it)
                             .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(it))))
-                    .map(it -> {
-                        log.info("kv:{}", it);
-                        return it;
-                    })
+
                     .map(it -> new Filter(it.key(), it.value(), this.tableInfo))
                     .toList();
         } else {

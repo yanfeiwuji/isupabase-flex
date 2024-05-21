@@ -75,23 +75,19 @@ public class CacheTableInfoUtils {
     }
 
     public Optional<String> realColumn(String paramKey, TableInfo tableInfo) {
-        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_COLUMN, namingBase -> {
-            return tableInfo.getPropertyColumnMapping()
-                    .entrySet().stream().collect(
-                            Collectors.toMap(it -> CacheTableInfoUtils.propertyToParamKey(it.getKey(), namingBase),
-                                    it -> it.getValue()));
-        });
+        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_COLUMN, namingBase -> tableInfo.getPropertyColumnMapping()
+                .entrySet().stream().collect(
+                        Collectors.toMap(it -> CacheTableInfoUtils.propertyToParamKey(it.getKey(), namingBase),
+                                Map.Entry::getValue)));
     }
 
     public Optional<String> realProperty(String paramKey, TableInfo tableInfo) {
-        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_PROPERTY, namingBase -> {
-            return tableInfo.getPropertyColumnMapping()
-                    .entrySet().stream()
-                    .collect(
-                            Collectors.toMap(
-                                    it -> CacheTableInfoUtils.propertyToParamKey(it.getKey(), namingBase),
-                                    it -> it.getKey()));
-        });
+        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_PROPERTY, namingBase -> tableInfo.getPropertyColumnMapping()
+                .entrySet().stream()
+                .collect(
+                        Collectors.toMap(
+                                it -> CacheTableInfoUtils.propertyToParamKey(it.getKey(), namingBase),
+                                Map.Entry::getKey)));
     }
 
     public Optional<ColumnInfo> realColumnInfo(String paramKey, TableInfo tableInfo) {
@@ -125,17 +121,15 @@ public class CacheTableInfoUtils {
     }
 
     public Optional<AbstractRelation<?>> realRelation(String paramKey, TableInfo tableInfo) {
-        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_REL, namingBase -> {
-            tableInfo.getEntityClass();
-            return RelationManager
-                    .getRelations(tableInfo.getEntityClass())
-                    .stream().collect(
-                            Collectors
-                                    .toMap(it -> namingBase
-                                            .map(naming -> naming.translate(it.getRelationField().getName()))
-                                            .orElse(it.getRelationField().getName()),
-                                            it -> it));
-        });
+        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_REL, namingBase ->
+                RelationManager
+                .getRelations(tableInfo.getEntityClass())
+                .stream().collect(
+                        Collectors
+                                .toMap(it -> namingBase
+                                        .map(naming -> naming.translate(it.getRelationField().getName()))
+                                        .orElse(it.getRelationField().getName()),
+                                        it -> it)));
     }
 
     public String[] clazzRels(TableInfo tableInfo) {

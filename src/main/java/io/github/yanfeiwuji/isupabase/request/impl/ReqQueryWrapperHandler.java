@@ -24,27 +24,11 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
     @Override
     public void handler(ServerRequest request, TableInfo tableInfo, QueryChain<?> queryChain) {
         MultiValueMap<String, String> params = request.params();
-        Select select = handlerSelect(params, tableInfo);
-        List<Filter> filters = handlerHorizontalFilter(params, tableInfo);
-        new ApiReq(select, filters, List.of()).handler(queryChain);
+        //   Select select = handlerSelect(params, tableInfo);
+        //  List<Filter> filters = handlerHorizontalFilter(params, tableInfo);
+        new ApiReq(request, tableInfo);
     }
 
-    public Select handlerSelect(MultiValueMap<String, String> params,
-            TableInfo tableInfo) {
-        String selectValue = Optional.ofNullable(params.getFirst(ParamKeyUtils.SELECT_KEY))
-                .orElse("*");
-        return new Select(selectValue, tableInfo, null);
 
-    }
-
-    public List<Filter> handlerHorizontalFilter(MultiValueMap<String, String> params,
-            TableInfo tableInfo) {
-        return params.entrySet().stream()
-                .filter(it -> ParamKeyUtils.canFilter(it.getKey()))
-                .flatMap(kv -> kv.getValue().stream().map(v -> new Filter(kv.getKey(), v, tableInfo)))
-                .toList();
-        // .map(Filter::toQueryCondition)
-        // .reduce(QueryCondition::and).orElse(QueryCondition.createEmpty());
-    }
 
 }
