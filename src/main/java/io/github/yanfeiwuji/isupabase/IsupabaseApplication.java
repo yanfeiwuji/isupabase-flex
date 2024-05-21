@@ -22,10 +22,6 @@ import org.springframework.web.servlet.function.*;
 
 import java.util.List;
 
-import static io.github.yanfeiwuji.isupabase.entity.table.SysRoleTableDef.SYS_ROLE;
-import static io.github.yanfeiwuji.isupabase.entity.table.SysRoleUserTableDef.SYS_ROLE_USER;
-import static io.github.yanfeiwuji.isupabase.entity.table.SysUserTableDef.*;
-
 @RestController
 @SpringBootApplication
 @AllArgsConstructor

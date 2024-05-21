@@ -24,11 +24,9 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
     @Override
     public void handler(ServerRequest request, TableInfo tableInfo, QueryChain<?> queryChain) {
         MultiValueMap<String, String> params = request.params();
-        //   Select select = handlerSelect(params, tableInfo);
-        //  List<Filter> filters = handlerHorizontalFilter(params, tableInfo);
-        new ApiReq(request, tableInfo);
+        // Select select = handlerSelect(params, tableInfo);
+        // List<Filter> filters = handlerHorizontalFilter(params, tableInfo);
+        new ApiReq(request, tableInfo, queryChain);
     }
-
-
 
 }

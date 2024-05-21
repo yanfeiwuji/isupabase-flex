@@ -4,6 +4,7 @@ import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.mybatis.Mappers;
 import com.mybatisflex.core.query.QueryChain;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.relation.RelationManager;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
@@ -50,7 +51,7 @@ public class ReqHandler implements IReqHandler {
 
     @Override
     public ServerResponse get(ServerRequest request) {
-        return ServerResponse.ok().body(queryChain(request).listAs(tableInfo(request).getEntityClass()));
+        return ServerResponse.ok().body(queryChain(request).list());
     }
 
     @Override
@@ -107,12 +108,13 @@ public class ReqHandler implements IReqHandler {
 
     @Override
     public ServerResponse onError(Throwable throwable, ServerRequest request) {
-        log.info("ERROR HERE");
+
         return Optional.of(throwable)
                 .filter(ReqEx.class::isInstance)
                 .map(ReqEx.class::cast)
                 .map(ReqEx::toResponse)
                 .orElse(ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+
     }
 
     private TableInfo tableInfo(ServerRequest request) {

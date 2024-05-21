@@ -1,10 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
-import com.mybatisflex.core.query.Join;
-import com.mybatisflex.core.query.Joiner;
 import com.mybatisflex.core.query.QueryColumn;
-import com.mybatisflex.core.query.QueryTable;
-import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
@@ -38,7 +34,7 @@ public class Select {
     // table query columns
     private List<QueryColumn> queryColumns;
 
-    // this parent to sub  rel
+    // this parent to sub rel
     private AbstractRelation<?> relation;
 
     private TableInfo tableInfo;
@@ -75,7 +71,6 @@ public class Select {
         selects = Optional.ofNullable(groupByInColumn.get(false))
                 .orElse(List.of()).stream().filter(it -> !CommonStr.STAR.equals(it)).toList();
 
-
         Map<Boolean, List<String>> groupByIsRelFormat = selects.stream()
                 .collect(Collectors.groupingBy(MTokens.SELECT_WITH_SUB::find));
 
@@ -104,7 +99,8 @@ public class Select {
                 .orElse(List.of()).stream()
                 .map(it -> {
                     AbstractRelation<?> realRelation = CacheTableInfoUtils.nNRealRelation(it.key(), tableInfo);
-                    return new Select(it.value(), realRelation.getTargetTableInfo(), realRelation, "%s.".formatted(it.key()));
+                    return new Select(it.value(), realRelation.getTargetTableInfo(), realRelation,
+                            preRel == null ? "%s".formatted(it.key()) : "%s.%s".formatted(preRel, it.key()));
                 }).toList();
 
     }
@@ -116,7 +112,7 @@ public class Select {
 
     public List<AbstractRelation<?>> abstractRelations(List<AbstractRelation<?>> result) {
         result.add(relation);
-        result.addAll(this.subSelect.stream().flatMap(it -> it.abstractRelations(result).stream()).toList());
+        this.subSelect.stream().forEach(it -> it.abstractRelations(result).stream());
         return result.stream().filter(Objects::nonNull).toList();
     }
 
@@ -124,17 +120,14 @@ public class Select {
         return abstractRelations(new ArrayList<>());
     }
 
-
     public List<String> allRelPres(List<String> result) {
-
-
         result.add(this.relPre);
-        result.addAll(this.subSelect.stream().flatMap(it -> it.allRelPres(result).stream()).toList());
-        System.out.println(result);
+        this.subSelect.stream().forEach(it -> it.allRelPres(result));
         return result.stream().filter(Objects::nonNull).toList();
     }
 
     public List<String> allRelPres() {
         return allRelPres(new ArrayList<>());
     }
+
 }

@@ -19,6 +19,7 @@ public class RelJoinConditions {
 
     public RelJoinConditions(AbstractRelation<?> abstractRelation) {
         this.abstractRelation = abstractRelation;
+
         // todo handler table join
         TableInfo tableInfo = TableInfoFactory.ofTableName(abstractRelation.getJoinTable());
 
