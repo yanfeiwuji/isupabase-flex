@@ -29,10 +29,6 @@ public record DepthRelQueryExt(List<QueryColumn> selects, QueryCondition conditi
 
     public boolean needToClearTargetColumn(AbstractRelation<?> relation) {
         String column = CacheTableInfoUtils.nNRelTargetQueryColumn(relation).getName();
-        System.out.println(column);
-        boolean res = selects.stream().map(it -> it.getName()).noneMatch(it -> it.equals(column));
-        System.out.println(res);
-        System.out.println(selects.stream().map(it -> it.getName()).toList());
         return selects.stream().map(it -> it.getName()).noneMatch(it -> it.equals(column));
     }
 

@@ -16,13 +16,7 @@ public final class MTokens {
     public final Token SELECT_WITH_SUB = new Token("select_with_sub",
             Pattern.compile("^(.*?)\\((.*)\\)$"));
 
-    public final Token ORDER_BY = new Token("order_by", Pattern.compile("(.+?)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));
-
-    public static void main(String[] args) {
-
-        ORDER_BY.groups("a.asc").forEach(System.out::println);
-        //  DOT.groups("a.asc.asd").forEach(System.out::println);
-    }
-
+    public final Token ORDER_BY = new Token("order_by",
+            Pattern.compile("(.+?)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));
 
 }

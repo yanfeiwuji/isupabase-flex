@@ -56,7 +56,6 @@ public class ApiReq {
     private List<String> subTables;
     private Map<String, QueryCondition> subFilters = Map.of();
 
-
     public ApiReq(ServerRequest request, String tableName) {
         MultiValueMap<String, String> params = request.params();
         HttpMethod method = request.method();
@@ -64,7 +63,6 @@ public class ApiReq {
         this.tableName = tableName;
         TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
         this.select = handlerSelect(params, tableInfo);
-
 
         if (method.equals(HttpMethod.GET)) {
             this.subTables = this.select.allRelPres();
@@ -124,12 +122,8 @@ public class ApiReq {
 
         Map<String, DepthRelQueryExt> depthRelQueryExtMap = select.toMapDepthRel().entrySet().stream().collect(
                 Collectors.toMap(Map.Entry::getKey,
-                        it -> new DepthRelQueryExt(it.getValue(), QueryCondition.createEmpty())
-                )
-        );
+                        it -> new DepthRelQueryExt(it.getValue(), QueryCondition.createEmpty())));
         RelationManagerExt.setDepthRelQueryExts(depthRelQueryExtMap);
-        System.out.println(subTables + "sdafs");
-        System.out.println(depthRelQueryExtMap+"Sddsdasad");
 
         RelationManagerExt.setMaxDepth(this.select.depthRels().size());
         RelationManagerExt.queryRelationsWithDepthRelQuery(baseMapper, list);
@@ -145,10 +139,9 @@ public class ApiReq {
     public void handler(QueryChain<?> queryChain) {
         queryChain.select(select.getQueryColumns());
         queryChain.where(
-                        filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
-                                .orElse(QueryCondition.createEmpty()))
+                filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
+                        .orElse(QueryCondition.createEmpty()))
                 .withRelations();
     }
-
 
 }
