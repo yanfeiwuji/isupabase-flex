@@ -36,6 +36,7 @@ import com.mybatisflex.core.util.LambdaGetter;
 import com.mybatisflex.core.util.LambdaUtil;
 import com.mybatisflex.core.util.MapUtil;
 import com.mybatisflex.core.util.StringUtil;
+import io.github.yanfeiwuji.isupabase.request.utils.MapKeyUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -388,7 +389,7 @@ public class RelationManagerExt {
 
                     // 仅绑定字段:As目标实体类 不进行字段绑定:As映射类型
                     QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues);
-                    System.out.println(relation.getName() + "===name===");
+
                     List<?> targetObjectList = mapper.selectListByQueryAs(queryWrapper,
                             relation.isOnlyQueryValueField() ? relation.getTargetEntityClass()
                                     : relation.getMappingType());
@@ -440,6 +441,7 @@ public class RelationManagerExt {
         if (currentDepth >= maxDepth) {
             return;
         }
+
 
         Class<Entity> entityClass = (Class<Entity>) ClassUtil.getUsefulClass(entities.get(0).getClass());
         List<AbstractRelation> relations = getRelations(entityClass);
@@ -521,10 +523,11 @@ public class RelationManagerExt {
                     // 仅绑定字段:As目标实体类 不进行字段绑定:As映射类型
                     QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues);
                     String targetName = relation.getTargetField().getName();
-                    System.out.println(currentDepth + ":" + relation.getName());
+
+
                     Optional.ofNullable(depthRelQueryExtsThreadLocal)
                             .map(ThreadLocal::get)
-                            .map(it -> it.get(currentDepth + ":" + relation.getName()))
+                            .map(it -> it.get(MapKeyUtils.depthRelKey(currentDepth, relation.getName())))
                             .ifPresent(ext -> {
                                 queryWrapper.select(ext.addTargetName(targetName));
                                 queryWrapper.and(ext.condition());
@@ -536,7 +539,8 @@ public class RelationManagerExt {
                     if (CollectionUtil.isNotEmpty(targetObjectList)) {
 
                         // 递归查询
-                        doQueryRelations(mapper, targetObjectList, currentDepth + 1, maxDepth, ignoreRelations,
+
+                        doQueryRelationsWithDepthRelQuery(mapper, targetObjectList, currentDepth + 1, maxDepth, ignoreRelations,
                                 queryRelations);
 
                         // 进行内存 join

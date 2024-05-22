@@ -53,8 +53,8 @@ public class ApiReq {
     // root
     private String tableName;
     private List<Filter> filters;
-    private List<Filter> subFilter = List.of();
-    private List<String> subTables = List.of();
+    private List<String> subTables;
+    private Map<String, QueryCondition> subFilters = Map.of();
 
 
     public ApiReq(ServerRequest request, String tableName) {
@@ -98,7 +98,7 @@ public class ApiReq {
     }
 
     public List<?> result(BaseMapper baseMapper) {
-        if (subFilter.isEmpty()) {
+        if (subFilters.isEmpty()) {
             if (subTables.isEmpty()) {
                 return singleTableResult(baseMapper);
             } else {
@@ -121,17 +121,17 @@ public class ApiReq {
         queryWrapper.select(select.getQueryColumns());
         queryWrapper.where(filtersToQueryCondition());
         List list = baseMapper.selectListByQuery(queryWrapper);
-        subTables.forEach(System.out::println);
-        System.out.println(subTables);
-        Map<String, DepthRelQueryExt> depthRelQueryExtMap =  select.toMapDepthRel().entrySet().stream().collect(
+
+        Map<String, DepthRelQueryExt> depthRelQueryExtMap = select.toMapDepthRel().entrySet().stream().collect(
                 Collectors.toMap(Map.Entry::getKey,
                         it -> new DepthRelQueryExt(it.getValue(), QueryCondition.createEmpty())
                 )
         );
-        System.out.println(depthRelQueryExtMap);
         RelationManagerExt.setDepthRelQueryExts(depthRelQueryExtMap);
-        RelationManagerExt.setMaxDepth(select.depthRels().size());
+        System.out.println(subTables + "sdafs");
+        System.out.println(depthRelQueryExtMap+"Sddsdasad");
 
+        RelationManagerExt.setMaxDepth(this.select.depthRels().size());
         RelationManagerExt.queryRelationsWithDepthRelQuery(baseMapper, list);
 
         return list;

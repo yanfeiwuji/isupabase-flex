@@ -8,6 +8,7 @@ import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import io.github.yanfeiwuji.isupabase.request.filter.KeyValue;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.MapKeyUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -141,7 +142,10 @@ public class Select {
         while (!currentSelectList.isEmpty()) {
             for (Select select : currentSelectList) {
                 if (Objects.nonNull(select.getRelName())) {
-                    map.put(depth + ":" + select.getRelName(), select.queryColumns);
+                    map.put(
+                            MapKeyUtils.depthRelKey(depth, select.getRelName()),
+                            select.queryColumns
+                    );
                 }
             }
             depth += 1;
