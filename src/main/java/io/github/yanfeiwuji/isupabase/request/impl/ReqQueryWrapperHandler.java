@@ -11,8 +11,6 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
 
-import java.util.*;
-
 @Component
 @AllArgsConstructor
 public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
@@ -20,8 +18,6 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
     @Override
     public ApiReq handler(ServerRequest request, String tableName) {
 
-        // Select select = handlerSelect(params, tableInfo);
-        // List<Filter> filters = handlerHorizontalFilter(params, tableInfo);
         return new ApiReq(request, tableName);
     }
 

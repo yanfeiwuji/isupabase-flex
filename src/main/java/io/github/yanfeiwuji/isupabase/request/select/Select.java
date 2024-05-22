@@ -12,10 +12,8 @@ import io.github.yanfeiwuji.isupabase.request.utils.MapKeyUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.MultiValueMap;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Data
@@ -25,12 +23,11 @@ public class Select {
     // default
     private String selectValue;
 
-
     // table query columns
     private List<QueryColumn> queryColumns;
 
     // this parent to sub rel
-    //  private AbstractRelation<?> relation;
+    // private AbstractRelation<?> relation;
     // a,b,roles(a,users(*))
     // roles is roles.
     // users is roles.users
@@ -103,12 +100,10 @@ public class Select {
                     AbstractRelation<?> realRelation = CacheTableInfoUtils.nNRealRelation(it.key(), tableInfo);
                     return new Select(it.value(), realRelation.getTargetTableInfo(),
                             preRel == null ? "%s".formatted(it.key()) : "%s.%s".formatted(preRel, it.key()),
-                            realRelation.getName()
-                    );
+                            realRelation.getName());
                 }).toList();
 
     }
-
 
     private List<String> allRelPres(List<String> result) {
         result.add(this.relPre);
@@ -124,7 +119,8 @@ public class Select {
         List<List<String>> depthRelsList = new ArrayList<>();
         List<Select> currentSelectList = List.of(this);
         while (!currentSelectList.isEmpty()) {
-            List<String> list = currentSelectList.stream().flatMap(it -> it.subSelect.stream().map(Select::getRelPre)).toList();
+            List<String> list = currentSelectList.stream().flatMap(it -> it.subSelect.stream().map(Select::getRelPre))
+                    .toList();
             if (!list.isEmpty()) {
                 depthRelsList.add(list);
             }
@@ -144,8 +140,7 @@ public class Select {
                 if (Objects.nonNull(select.getRelName())) {
                     map.put(
                             MapKeyUtils.depthRelKey(depth, select.getRelName()),
-                            select.queryColumns
-                    );
+                            select.queryColumns);
                 }
             }
             depth += 1;

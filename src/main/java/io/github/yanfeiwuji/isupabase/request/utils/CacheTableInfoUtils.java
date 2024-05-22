@@ -44,6 +44,7 @@ public class CacheTableInfoUtils {
     private static final Map<Class<?>, Map<String, AbstractRelation<?>>> CACHE_CLAZZ_PARAM_NAME_REL = new ConcurrentHashMap<>();
     private static final Map<Class<?>, String[]> CACHE_CLAZZ_RELS = new ConcurrentHashMap<>();
     private static final Map<String, TableInfo> CACHE_TABLE_INFO = new ConcurrentHashMap<>();
+    private static final Map<String, QueryColumn> CACHE_REL_TARGET_QUERY_COLUMN = new ConcurrentHashMap<>();
     private ObjectMapper mapper;
     private Optional<NamingBase> namingBaseOptional;
 
@@ -56,7 +57,6 @@ public class CacheTableInfoUtils {
         return realTableInfo(tableName)
                 .orElseThrow(MDbExManagers.UNDEFINED_TABLE.supplierReqEx(tableName));
     }
-
 
     public String nNRealColumn(String paramKey, TableInfo tableInfo) {
         return realColumn(paramKey, tableInfo).orElseThrow(MDbExManagers.COLUMN_NOT_FOUND.supplierReqEx(paramKey));
@@ -71,6 +71,7 @@ public class CacheTableInfoUtils {
     }
 
     public QueryTable nNQueryTable(TableInfo tableInfo) {
+        tableInfo.getPropertyColumnMapping();
         return CACHE_CLAZZ_QUERY_TABLE.computeIfAbsent(tableInfo.getEntityClass(),
                 it -> new QueryTable(tableInfo.getSchema(), tableInfo.getTableName()));
     }
@@ -109,10 +110,8 @@ public class CacheTableInfoUtils {
             List<IdInfo> idInfos = tableInfo.getPrimaryKeyList();
             MapBuilder<String, ColumnInfo> builder = MapUtil.builder();
             columnInfos.forEach(info -> builder.put(
-                            CacheTableInfoUtils.propertyToParamKey(info.getProperty()),
-                            info
-                    )
-            );
+                    CacheTableInfoUtils.propertyToParamKey(info.getProperty()),
+                    info));
 
             idInfos.forEach(info -> builder.put(
                     CacheTableInfoUtils.propertyToParamKey(info.getProperty()),
@@ -123,11 +122,12 @@ public class CacheTableInfoUtils {
 
     public Optional<QueryColumn> realQueryColumn(String paramKey, TableInfo tableInfo) {
         QueryTable queryTable = nNQueryTable(tableInfo);
-        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_QUERY_COLUMN, () -> tableInfo.getPropertyColumnMapping().entrySet().stream()
-                .collect(
-                        Collectors.toMap(
-                                it -> CacheTableInfoUtils.propertyToParamKey(it.getKey()),
-                                it -> new QueryColumn(queryTable, it.getValue()))));
+        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_QUERY_COLUMN,
+                () -> tableInfo.getPropertyColumnMapping().entrySet().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        it -> CacheTableInfoUtils.propertyToParamKey(it.getKey()),
+                                        it -> new QueryColumn(queryTable, it.getValue()))));
     }
 
     public Optional<TableInfo> realTableInfo(String tableName) {
@@ -135,22 +135,31 @@ public class CacheTableInfoUtils {
     }
 
     public Optional<AbstractRelation<?>> realRelation(String paramKey, TableInfo tableInfo) {
-        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_REL, () ->
-                RelationManager
-                        .getRelations(tableInfo.getEntityClass())
-                        .stream().collect(Collectors
-                                .toMap(
-                                        it -> CacheTableInfoUtils.propertyToParamKey(it.getRelationField().getName()),
-                                        it -> it
-                                )
-                        )
-        );
+        return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_REL, () -> RelationManager
+                .getRelations(tableInfo.getEntityClass())
+                .stream().collect(Collectors
+                        .toMap(
+                                it -> CacheTableInfoUtils.propertyToParamKey(it.getRelationField().getName()),
+                                it -> it)));
+    }
+
+    public QueryColumn nNRelTargetQueryColumn(AbstractRelation<?> relation) {
+        return Optional.ofNullable(CACHE_REL_TARGET_QUERY_COLUMN.computeIfAbsent(relation.getName(),
+                name -> {
+                    TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
+                    String column = tableInfo.getPropertyColumnMapping().get(relation.getTargetField().getName());
+                    return new QueryColumn(nNQueryTable(tableInfo), column);
+                })).orElseThrow(() -> {
+                    TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
+                    String column = tableInfo.getPropertyColumnMapping().get(relation.getTargetField().getName());
+                    return MDbExManagers.COLUMN_NOT_FOUND.reqEx(column);
+                });
     }
 
     public String[] clazzRels(TableInfo tableInfo) {
         return CACHE_CLAZZ_RELS.computeIfAbsent(tableInfo.getEntityClass(),
                 clazz -> RelationManager.getRelations(clazz).stream().map(it -> it.getRelationField().getName())
-                        .toList().toArray(new String[]{}));
+                        .toList().toArray(new String[] {}));
     }
 
     public QueryColumn nNQueryAllColumns(TableInfo tableInfo) {
@@ -177,11 +186,10 @@ public class CacheTableInfoUtils {
     }
 
     private <T> Optional<T> pickReal(String paramKey, TableInfo tableInfo, Map<Class<?>, Map<String, T>> cacheMap,
-                                     Supplier<Map<String, T>> func) {
+            Supplier<Map<String, T>> func) {
         return Optional.ofNullable(
                 cacheMap.computeIfAbsent(tableInfo.getEntityClass(), it -> func.get())
-                        .get(paramKey)
-        );
+                        .get(paramKey));
     }
 
     private Optional<NamingBase> initNamingBaseOptional() {
