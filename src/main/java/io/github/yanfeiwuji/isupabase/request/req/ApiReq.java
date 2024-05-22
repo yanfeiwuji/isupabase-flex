@@ -1,16 +1,28 @@
 package io.github.yanfeiwuji.isupabase.request.req;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.QueryChain;
+import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
+import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.RelationManager;
 import com.mybatisflex.core.table.TableInfo;
+import com.mybatisflex.core.util.MapUtil;
+import com.mybatisflex.core.util.MapperUtil;
+import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
+import io.github.yanfeiwuji.isupabase.flex.RelationManagerExt;
 import io.github.yanfeiwuji.isupabase.request.filter.Filter;
 import io.github.yanfeiwuji.isupabase.request.select.Select;
+import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ParamKeyUtils;
 import lombok.Data;
+import org.springframework.http.HttpMethod;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.servlet.function.ServerRequest;
 
@@ -35,37 +47,41 @@ import org.springframework.web.servlet.function.ServerRequest;
  */
 @Data
 public class ApiReq {
+
+    //
     private Select select;
     // root
-
-    private TableInfo tableInfo;
+    private String tableName;
     private List<Filter> filters;
-    private List<Filter> subFilter;
+    private List<Filter> subFilter = List.of();
+    private List<String> subTables = List.of();
 
-    private List<String> subTables;
 
-    public ApiReq(ServerRequest request, TableInfo tableInfo, QueryChain<?> queryChain) {
+    public ApiReq(ServerRequest request, String tableName) {
         MultiValueMap<String, String> params = request.params();
-        this.tableInfo = tableInfo;
-        this.select = handlerSelect(params);
+        HttpMethod method = request.method();
 
-        this.subTables = this.select.allRelPres();
+        this.tableName = tableName;
+        TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
+        this.select = handlerSelect(params, tableInfo);
 
-        this.filters = handlerHorizontalFilter(params);
+
+        if (method.equals(HttpMethod.GET)) {
+            this.subTables = this.select.allRelPres();
+        }
+
+        this.filters = handlerHorizontalFilter(params, tableInfo);
 
     }
 
-    public Select handlerSelect(MultiValueMap<String, String> params) {
-
+    private Select handlerSelect(MultiValueMap<String, String> params, TableInfo tableInfo) {
         String selectValue = Optional
                 .ofNullable(params.getFirst(ParamKeyUtils.SELECT_KEY))
                 .orElse("*");
-
         return new Select(selectValue, tableInfo);
-
     }
 
-    public List<Filter> handlerHorizontalFilter(MultiValueMap<String, String> params) {
+    private List<Filter> handlerHorizontalFilter(MultiValueMap<String, String> params, TableInfo tableInfo) {
         return params.entrySet()
                 .stream()
                 .filter(it -> subTables.stream().noneMatch(rel -> it.getKey().startsWith(rel)))
@@ -74,12 +90,65 @@ public class ApiReq {
                 .toList();
     }
 
+    // single
+    public QueryWrapper queryWrapper() {
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        return queryWrapper.select(select.getQueryColumns())
+                .where(filtersToQueryCondition());
+    }
+
+    public List<?> result(BaseMapper baseMapper) {
+        if (subFilter.isEmpty()) {
+            if (subTables.isEmpty()) {
+                return singleTableResult(baseMapper);
+            } else {
+                return singleTableWithRelResult(baseMapper);
+            }
+        }
+
+        return List.of();
+    }
+
+    private List<?> singleTableResult(BaseMapper baseMapper) {
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        queryWrapper.select(select.getQueryColumns());
+        queryWrapper.where(filtersToQueryCondition());
+        return baseMapper.selectListByQuery(queryWrapper);
+    }
+
+    private List<?> singleTableWithRelResult(BaseMapper baseMapper) {
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        queryWrapper.select(select.getQueryColumns());
+        queryWrapper.where(filtersToQueryCondition());
+        List list = baseMapper.selectListByQuery(queryWrapper);
+        subTables.forEach(System.out::println);
+        System.out.println(subTables);
+        Map<String, DepthRelQueryExt> depthRelQueryExtMap =  select.toMapDepthRel().entrySet().stream().collect(
+                Collectors.toMap(Map.Entry::getKey,
+                        it -> new DepthRelQueryExt(it.getValue(), QueryCondition.createEmpty())
+                )
+        );
+        System.out.println(depthRelQueryExtMap);
+        RelationManagerExt.setDepthRelQueryExts(depthRelQueryExtMap);
+        RelationManagerExt.setMaxDepth(select.depthRels().size());
+
+        RelationManagerExt.queryRelationsWithDepthRelQuery(baseMapper, list);
+
+        return list;
+    }
+
+    private QueryCondition filtersToQueryCondition() {
+        return filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
+                .orElse(QueryCondition.createEmpty());
+    }
+
     public void handler(QueryChain<?> queryChain) {
         queryChain.select(select.getQueryColumns());
         queryChain.where(
-                filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
-                        .orElse(QueryCondition.createEmpty()))
+                        filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
+                                .orElse(QueryCondition.createEmpty()))
                 .withRelations();
     }
+
 
 }

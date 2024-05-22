@@ -31,7 +31,7 @@ public class Filter {
 
     private String paramKey;
     private String paramValue;
-    private TableInfo tableInfo;
+    private String tableName;
 
     private String realProperty;
     private String realColumn;
@@ -57,7 +57,7 @@ public class Filter {
     public Filter(String paramKey, String paramValue, TableInfo tableInfo) {
         this.paramKey = paramKey;
         this.paramValue = paramValue;
-        this.tableInfo = tableInfo;
+        this.tableName = tableInfo.getTableName();
         // not.or or not.and
         this.negative = MTokens.NOT.find(paramKey);
 
@@ -76,14 +76,14 @@ public class Filter {
                     .map(it -> MTokens.LOGIC_KV.keyValue(it).orElse(MTokens.DOT.keyValue(it)
                             .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(it))))
 
-                    .map(it -> new Filter(it.key(), it.value(), this.tableInfo))
+                    .map(it -> new Filter(it.key(), it.value(), tableInfo))
                     .toList();
         } else {
-            handlerSingle();
+            handlerSingle(tableInfo);
         }
     }
 
-    private void handlerSingle() {
+    private void handlerSingle(TableInfo tableInfo) {
         realProperty = CacheTableInfoUtils.nNRealProperty(paramKey, tableInfo);
         realColumn = CacheTableInfoUtils.nNRealColumn(paramKey, tableInfo);
         queryColumn = CacheTableInfoUtils.nNRealQueryColumn(paramKey, tableInfo);
@@ -107,22 +107,21 @@ public class Filter {
         }
 
         strValue = operator.value(nextVal).orElse("");
-        log.info("mark:{}", operator.mark());
-        log.info("strValue:{}", strValue);
-        initValue();
+
+        initValue(tableInfo);
     }
 
-    private void initValue() {
+    private void initValue(TableInfo tableInfo) {
         try {
             if (OperationUtils.isInOperator(operator)) {
-                handlerIn();
+                handlerIn(tableInfo);
             } else if (OperationUtils.isIsOperator(operator)) {
-                handlerIs();
+                handlerIs(tableInfo);
             } else {
                 if (Objects.requireNonNull(modifier) == EModifier.none) {
-                    value = ExchangeUtils.singleValue(this);
+                    value = ExchangeUtils.singleValue(this, tableInfo);
                 } else {
-                    quantValue = ExchangeUtils.delimWrapListValue(this);
+                    quantValue = ExchangeUtils.delimWrapListValue(this, tableInfo);
                 }
             }
         } catch (JsonProcessingException e) {
@@ -133,11 +132,11 @@ public class Filter {
         }
     }
 
-    private void handlerIn() throws JsonProcessingException {
-        quantValue = ExchangeUtils.parenthesesWrapListValue(this);
+    private void handlerIn(TableInfo tableInfo) throws JsonProcessingException {
+        quantValue = ExchangeUtils.parenthesesWrapListValue(this,tableInfo);
     }
 
-    private void handlerIs() throws JsonProcessingException {
+    private void handlerIs(TableInfo tableInfo) {
         if (!OperationUtils.isIsValue(strValue)) {
             throw MReqExManagers.FAILED_TO_PARSE.reqEx(paramValue);
         }
@@ -146,7 +145,7 @@ public class Filter {
                 !CacheTableInfoUtils.nNRealColumnInfo(paramKey, tableInfo).getPropertyType()
                         .equals(Boolean.class)) {
             throw MDbExManagers.DATATYPE_MISMATCH.reqEx("IS %s %s".formatted(
-                    negative ? "NOT" : "", strValue),
+                            negative ? "NOT" : "", strValue),
                     "boolean",
                     CacheTableInfoUtils.realDbType(paramKey, tableInfo));
         }

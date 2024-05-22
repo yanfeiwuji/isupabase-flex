@@ -21,10 +21,15 @@ public class SysUser {
     private Integer age;
     private Date birthday;
 
-    @RelationOneToOne(selfField = "id", targetField = "uid", joinTable = "")
+
+    @RelationOneToOne(selfField = "id", targetField = "uid")
     private SysUserExt sysUserExt;
 
     @RelationManyToMany(joinTable = "sys_role_user", // 中间表
-            selfField = "id", joinSelfColumn = "uid", targetField = "id", joinTargetColumn = "rid")
+            selfField = "id",
+            joinSelfColumn = "uid",
+            targetField = "id",
+            joinTargetColumn = "rid"
+    )
     private List<SysRole> roles;
 }

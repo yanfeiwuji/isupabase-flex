@@ -11,12 +11,10 @@ import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.MultiValueMap;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Data
@@ -26,18 +24,19 @@ public class Select {
     // default
     private String selectValue;
 
-    // a,b,roles(a,users(*))
-    // roles is roles.
-    // users is roles.users
-    private String relPre;
 
     // table query columns
     private List<QueryColumn> queryColumns;
 
     // this parent to sub rel
-    private AbstractRelation<?> relation;
+    //  private AbstractRelation<?> relation;
+    // a,b,roles(a,users(*))
+    // roles is roles.
+    // users is roles.users
+    private String relPre;
+    private String relName;
 
-    private TableInfo tableInfo;
+    private String tableName;
     // sub select
     private List<Select> subSelect;
 
@@ -45,12 +44,13 @@ public class Select {
         this(selectValue, tableInfo, null, null);
     }
 
-    public Select(String selectValue, TableInfo tableInfo, AbstractRelation<?> relation, String preRel) {
+    public Select(String selectValue, TableInfo tableInfo, String preRel, String relName) {
         log.info("selectValue:{}", selectValue);
         this.selectValue = selectValue;
-        this.relation = relation;
-        this.tableInfo = tableInfo;
+        // this.relation = relation;
+        this.tableName = tableInfo.getTableName();
         this.relPre = preRel;
+        this.relName = relName;
 
         queryColumns = new ArrayList<>();
 
@@ -98,36 +98,55 @@ public class Select {
         this.subSelect = Optional.ofNullable(groupByIsRel.get(true))
                 .orElse(List.of()).stream()
                 .map(it -> {
+
                     AbstractRelation<?> realRelation = CacheTableInfoUtils.nNRealRelation(it.key(), tableInfo);
-                    return new Select(it.value(), realRelation.getTargetTableInfo(), realRelation,
-                            preRel == null ? "%s".formatted(it.key()) : "%s.%s".formatted(preRel, it.key()));
+                    return new Select(it.value(), realRelation.getTargetTableInfo(),
+                            preRel == null ? "%s".formatted(it.key()) : "%s.%s".formatted(preRel, it.key()),
+                            realRelation.getName()
+                    );
                 }).toList();
 
     }
 
-    public List<QueryColumn> columnsWithSub() {
-        queryColumns.addAll(this.subSelect.stream().flatMap(it -> it.columnsWithSub().stream()).toList());
-        return queryColumns;
-    }
 
-    public List<AbstractRelation<?>> abstractRelations(List<AbstractRelation<?>> result) {
-        result.add(relation);
-        this.subSelect.stream().forEach(it -> it.abstractRelations(result).stream());
-        return result.stream().filter(Objects::nonNull).toList();
-    }
-
-    public List<AbstractRelation<?>> abstractRelations() {
-        return abstractRelations(new ArrayList<>());
-    }
-
-    public List<String> allRelPres(List<String> result) {
+    private List<String> allRelPres(List<String> result) {
         result.add(this.relPre);
-        this.subSelect.stream().forEach(it -> it.allRelPres(result));
-        return result.stream().filter(Objects::nonNull).toList();
+        this.subSelect.forEach(it -> it.allRelPres(result));
+        return result;
     }
 
     public List<String> allRelPres() {
-        return allRelPres(new ArrayList<>());
+        return allRelPres(new ArrayList<>()).stream().filter(Objects::nonNull).toList();
     }
 
+    public List<List<String>> depthRels() {
+        List<List<String>> depthRelsList = new ArrayList<>();
+        List<Select> currentSelectList = List.of(this);
+        while (!currentSelectList.isEmpty()) {
+            List<String> list = currentSelectList.stream().flatMap(it -> it.subSelect.stream().map(Select::getRelPre)).toList();
+            if (!list.isEmpty()) {
+                depthRelsList.add(list);
+            }
+            currentSelectList = currentSelectList.stream().flatMap(it -> it.subSelect.stream()).toList();
+        }
+        return depthRelsList;
+
+    }
+
+    // depth:rel ,querySelect
+    public Map<String, List<QueryColumn>> toMapDepthRel() {
+        Map<String, List<QueryColumn>> map = new HashMap<>();
+        List<Select> currentSelectList = List.of(this);
+        int depth = -1;
+        while (!currentSelectList.isEmpty()) {
+            for (Select select : currentSelectList) {
+                if (Objects.nonNull(select.getRelName())) {
+                    map.put(depth + ":" + select.getRelName(), select.queryColumns);
+                }
+            }
+            depth += 1;
+            currentSelectList = currentSelectList.stream().flatMap(it -> it.subSelect.stream()).toList();
+        }
+        return map;
+    }
 }

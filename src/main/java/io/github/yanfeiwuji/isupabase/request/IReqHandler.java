@@ -12,7 +12,7 @@ public interface IReqHandler {
     String PATH_PARAM = "tableName";
     String ROUTE_PATH = String.format("{%s}", PATH_PARAM);
     String REQ_TABLE_INFO_KEY = "reqTableInfo";
-    String REQ_QUERY_CHAIN = "reqQueryChain";
+    String REQ_API_REQ_KEY = "reqApiReq";
 
     String REQ_TABLE_MAPPER_KEY = "reqTableMapper";
 

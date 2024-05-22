@@ -38,20 +38,14 @@ import com.mybatisflex.core.util.MapUtil;
 import com.mybatisflex.core.util.StringUtil;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.mybatisflex.core.query.QueryMethods.column;
 
 /**
  * copy from flex to add select and column
- * 
+ *
  * @author michael
  */
 @SuppressWarnings("rawtypes")
@@ -82,6 +76,7 @@ public class RelationManagerExt {
      */
     private static ThreadLocal<Set<String>> ignoreRelations = new ThreadLocal<>();
 
+
     /**
      * 查询时，仅查询这个配置的 Relations
      */
@@ -92,12 +87,23 @@ public class RelationManagerExt {
      */
     private static ThreadLocal<Boolean> autoClearConfig = ThreadLocal.withInitial(() -> true);
 
+
+    /**
+     * key    integer:RelName value config
+     * deepth:
+     */
+    private static ThreadLocal<Map<String, DepthRelQueryExt>> depthRelQueryExtsThreadLocal = new ThreadLocal<>();
+
     public static int getDefaultQueryDepth() {
         return defaultQueryDepth;
     }
 
     public static void setDefaultQueryDepth(int defaultQueryDepth) {
         RelationManagerExt.defaultQueryDepth = defaultQueryDepth;
+    }
+
+    public static void setDepthRelQueryExts(Map<String, DepthRelQueryExt> depthRelQueryExts) {
+        depthRelQueryExtsThreadLocal.set(depthRelQueryExts);
     }
 
     public static void setMaxDepth(int maxDepth) {
@@ -265,8 +271,14 @@ public class RelationManagerExt {
 
     public static <Entity> void queryRelations(BaseMapper<?> mapper, List<Entity> entities) {
         try {
-            doQueryRelations(mapper, entities, 0, depthThreadLocal.get(), ignoreRelations.get(),
-                    onlyQueryRelations.get());
+            doQueryRelations(
+                    mapper,
+                    entities,
+                    0,
+                    depthThreadLocal.get(),
+                    ignoreRelations.get(),
+                    onlyQueryRelations.get()
+            );
         } finally {
             clearConfigIfNecessary();
         }
@@ -282,12 +294,13 @@ public class RelationManagerExt {
             extraConditionParams.remove();
             onlyQueryRelations.remove();
             ignoreRelations.remove();
+            depthRelQueryExtsThreadLocal.remove();
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     static <Entity> void doQueryRelations(BaseMapper<?> mapper, List<Entity> entities, int currentDepth, int maxDepth,
-            Set<String> ignoreRelations, Set<String> queryRelations) {
+                                          Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -375,6 +388,7 @@ public class RelationManagerExt {
 
                     // 仅绑定字段:As目标实体类 不进行字段绑定:As映射类型
                     QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues);
+                    System.out.println(relation.getName() + "===name===");
                     List<?> targetObjectList = mapper.selectListByQueryAs(queryWrapper,
                             relation.isOnlyQueryValueField() ? relation.getTargetEntityClass()
                                     : relation.getMappingType());
@@ -400,10 +414,25 @@ public class RelationManagerExt {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    static <Entity> void doQueryRelationsWithColAndCond(BaseMapper<?> mapper, List<Entity> entities, int currentDepth,
-            int maxDepth,
-            Set<String> ignoreRelations, Set<String> queryRelations) {
+    public static <Entity> void queryRelationsWithDepthRelQuery(BaseMapper<?> mapper, List<Entity> entities) {
+        try {
+            doQueryRelationsWithDepthRelQuery(
+                    mapper,
+                    entities,
+                    0,
+                    depthThreadLocal.get(),
+                    ignoreRelations.get(),
+                    onlyQueryRelations.get()
+            );
+        } finally {
+            clearConfigIfNecessary();
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    static <Entity> void doQueryRelationsWithDepthRelQuery(BaseMapper<?> mapper, List<Entity> entities, int currentDepth,
+                                                           int maxDepth,
+                                                           Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -491,6 +520,16 @@ public class RelationManagerExt {
 
                     // 仅绑定字段:As目标实体类 不进行字段绑定:As映射类型
                     QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues);
+                    String targetName = relation.getTargetField().getName();
+                    System.out.println(currentDepth + ":" + relation.getName());
+                    Optional.ofNullable(depthRelQueryExtsThreadLocal)
+                            .map(ThreadLocal::get)
+                            .map(it -> it.get(currentDepth + ":" + relation.getName()))
+                            .ifPresent(ext -> {
+                                queryWrapper.select(ext.addTargetName(targetName));
+                                queryWrapper.and(ext.condition());
+                            });
+
                     List<?> targetObjectList = mapper.selectListByQueryAs(queryWrapper,
                             relation.isOnlyQueryValueField() ? relation.getTargetEntityClass()
                                     : relation.getMappingType());
