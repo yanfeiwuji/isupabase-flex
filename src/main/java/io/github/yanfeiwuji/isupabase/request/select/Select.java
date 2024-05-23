@@ -1,9 +1,13 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import com.mybatisflex.core.query.QueryColumn;
+import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import io.github.yanfeiwuji.isupabase.request.filter.KeyValue;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
@@ -46,6 +50,7 @@ public class Select {
         log.info("selectValue:{}", selectValue);
         this.selectValue = selectValue;
         // this.relation = relation;
+
         this.tableName = tableInfo.getTableName();
         this.relPre = preRel;
         this.relName = relName;
@@ -96,8 +101,8 @@ public class Select {
         this.subSelect = Optional.ofNullable(groupByIsRel.get(true))
                 .orElse(List.of()).stream()
                 .map(it -> {
-
                     AbstractRelation<?> realRelation = CacheTableInfoUtils.nNRealRelation(it.key(), tableInfo);
+
                     return new Select(it.value(), realRelation.getTargetTableInfo(),
                             preRel == null ? "%s".formatted(it.key()) : "%s.%s".formatted(preRel, it.key()),
                             realRelation.getName());
@@ -130,22 +135,32 @@ public class Select {
 
     }
 
-    // depth:rel ,querySelect
-    public Map<String, List<QueryColumn>> toMapDepthRel() {
-        Map<String, List<QueryColumn>> map = new HashMap<>();
+    public RelQueryInfo tpRelQueryInfo() {
+        Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = HashBasedTable.create();
+
+        Table<Integer, String, String> depthRelPre = HashBasedTable.create();
         List<Select> currentSelectList = List.of(this);
         int depth = -1;
         while (!currentSelectList.isEmpty()) {
             for (Select select : currentSelectList) {
                 if (Objects.nonNull(select.getRelName())) {
-                    map.put(
-                            MapKeyUtils.depthRelKey(depth, select.getRelName()),
-                            select.queryColumns);
+                    depthRelQueryExtTable.put(
+                            depth,
+                            select.getRelName(),
+                            new DepthRelQueryExt(select.queryColumns, QueryCondition.createEmpty())
+                    );
+                    depthRelPre.put(
+                            depth,
+                            select.getRelName(),
+                            select.getRelPre()
+                    );
                 }
             }
             depth += 1;
             currentSelectList = currentSelectList.stream().flatMap(it -> it.subSelect.stream()).toList();
         }
-        return map;
+        return new RelQueryInfo(depth, depthRelPre, depthRelQueryExtTable);
     }
+
+
 }

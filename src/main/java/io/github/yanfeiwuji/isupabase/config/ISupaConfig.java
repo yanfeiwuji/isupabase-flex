@@ -1,6 +1,9 @@
 package io.github.yanfeiwuji.isupabase.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mybatisflex.core.audit.AuditManager;
+import com.mybatisflex.core.audit.ConsoleMessageCollector;
+import com.mybatisflex.core.audit.MessageCollector;
 import com.mybatisflex.core.dialect.DbType;
 import com.mybatisflex.core.dialect.DialectFactory;
 import com.mybatisflex.core.mybatis.FlexConfiguration;
@@ -28,8 +31,14 @@ public class ISupaConfig implements ConfigurationCustomizer {
 
     @Override
     public void customize(FlexConfiguration flexConfiguration) {
-        flexConfiguration.setLogImpl(StdOutImpl.class);
+        //  flexConfiguration.setLogImpl(StdOutImpl.class);
         // flexConfiguration.setDo
+
+        AuditManager.setAuditEnable(true);
+
+        //设置 SQL 审计收集器
+        MessageCollector collector = new ConsoleMessageCollector();
+        AuditManager.setMessageCollector(collector);
     }
 
     @Bean
@@ -39,5 +48,6 @@ public class ISupaConfig implements ConfigurationCustomizer {
             ExchangeUtils.init(mapper);
         };
     }
+
 
 }

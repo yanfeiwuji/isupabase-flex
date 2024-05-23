@@ -1,11 +1,9 @@
 package io.github.yanfeiwuji.isupabase.request.req;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Table;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.QueryChain;
 import com.mybatisflex.core.query.QueryColumn;
@@ -18,10 +16,12 @@ import com.mybatisflex.core.util.MapperUtil;
 import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
 import io.github.yanfeiwuji.isupabase.flex.RelationManagerExt;
 import io.github.yanfeiwuji.isupabase.request.filter.Filter;
+import io.github.yanfeiwuji.isupabase.request.select.RelQueryInfo;
 import io.github.yanfeiwuji.isupabase.request.select.Select;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ParamKeyUtils;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -46,6 +46,7 @@ import org.springframework.web.servlet.function.ServerRequest;
  * with order
  */
 @Data
+@Slf4j
 public class ApiReq {
 
     //
@@ -55,8 +56,12 @@ public class ApiReq {
     private List<Filter> filters;
     private List<String> subTables;
     private Map<String, QueryCondition> subFilters = Map.of();
+    private RelQueryInfo relQueryInfo;
+
 
     public ApiReq(ServerRequest request, String tableName) {
+
+        log.info("start time:{}", System.currentTimeMillis());
         MultiValueMap<String, String> params = request.params();
         HttpMethod method = request.method();
 
@@ -66,10 +71,12 @@ public class ApiReq {
 
         if (method.equals(HttpMethod.GET)) {
             this.subTables = this.select.allRelPres();
+            this.relQueryInfo = this.select.tpRelQueryInfo();
+            this.handlerSubFilter();
         }
 
-        this.filters = handlerHorizontalFilter(params, tableInfo);
 
+        this.filters = handlerHorizontalFilter(params, tableInfo);
     }
 
     private Select handlerSelect(MultiValueMap<String, String> params, TableInfo tableInfo) {
@@ -102,9 +109,25 @@ public class ApiReq {
             } else {
                 return singleTableWithRelResult(baseMapper);
             }
+        } else {
+
         }
 
         return List.of();
+    }
+
+    private void handlerSubFilter() {
+        Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = this.relQueryInfo.depthRelQueryExt();
+        Table<Integer, String, String> integerStringStringTable = this.relQueryInfo.depthRelPre();
+
+        depthRelQueryExtTable.cellSet().forEach(it -> {
+            System.out.println(it.getRowKey() + ":" + it.getColumnKey() + "  "
+                    + integerStringStringTable.get(it.getRowKey(), it.getColumnKey())
+
+            );
+
+        });
+
     }
 
     private List<?> singleTableResult(BaseMapper baseMapper) {
@@ -115,19 +138,21 @@ public class ApiReq {
     }
 
     private List<?> singleTableWithRelResult(BaseMapper baseMapper) {
+        long start = System.currentTimeMillis();
+        log.info("start time:{}", start);
         QueryWrapper queryWrapper = QueryWrapper.create();
         queryWrapper.select(select.getQueryColumns());
         queryWrapper.where(filtersToQueryCondition());
+
+        log.info("pre query time:{}", System.currentTimeMillis() - start);
         List list = baseMapper.selectListByQuery(queryWrapper);
 
-        Map<String, DepthRelQueryExt> depthRelQueryExtMap = select.toMapDepthRel().entrySet().stream().collect(
-                Collectors.toMap(Map.Entry::getKey,
-                        it -> new DepthRelQueryExt(it.getValue(), QueryCondition.createEmpty())));
-        RelationManagerExt.setDepthRelQueryExts(depthRelQueryExtMap);
 
-        RelationManagerExt.setMaxDepth(this.select.depthRels().size());
+        RelationManagerExt.setDepthRelQueryExts(this.relQueryInfo.depthRelQueryExt());
+        RelationManagerExt.setMaxDepth(this.relQueryInfo.maxDepth());
+
         RelationManagerExt.queryRelationsWithDepthRelQuery(baseMapper, list);
-
+        log.info("total time:{}", System.currentTimeMillis() - start);
         return list;
     }
 
@@ -139,8 +164,8 @@ public class ApiReq {
     public void handler(QueryChain<?> queryChain) {
         queryChain.select(select.getQueryColumns());
         queryChain.where(
-                filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
-                        .orElse(QueryCondition.createEmpty()))
+                        filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
+                                .orElse(QueryCondition.createEmpty()))
                 .withRelations();
     }
 

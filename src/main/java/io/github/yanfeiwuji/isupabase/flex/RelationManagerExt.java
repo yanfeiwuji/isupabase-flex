@@ -15,6 +15,7 @@ package io.github.yanfeiwuji.isupabase.flex;
  *  limitations under the License.
  */
 
+import com.google.common.collect.Table;
 import com.mybatisflex.annotation.RelationManyToMany;
 import com.mybatisflex.annotation.RelationManyToOne;
 import com.mybatisflex.annotation.RelationOneToMany;
@@ -96,7 +97,9 @@ public class RelationManagerExt {
      * key integer:RelName value config
      * deepth:
      */
-    private static ThreadLocal<Map<String, DepthRelQueryExt>> depthRelQueryExtsThreadLocal = new ThreadLocal<>();
+    private static ThreadLocal<Table<Integer, String, DepthRelQueryExt>>
+            depthRelQueryExtsThreadLocal =
+            new ThreadLocal<>();
 
     public static int getDefaultQueryDepth() {
         return defaultQueryDepth;
@@ -106,8 +109,8 @@ public class RelationManagerExt {
         RelationManagerExt.defaultQueryDepth = defaultQueryDepth;
     }
 
-    public static void setDepthRelQueryExts(Map<String, DepthRelQueryExt> depthRelQueryExts) {
-        depthRelQueryExtsThreadLocal.set(depthRelQueryExts);
+    public static void setDepthRelQueryExts(Table<Integer, String, DepthRelQueryExt> table) {
+        depthRelQueryExtsThreadLocal.set(table);
     }
 
     public static void setMaxDepth(int maxDepth) {
@@ -301,9 +304,9 @@ public class RelationManagerExt {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     static <Entity> void doQueryRelations(BaseMapper<?> mapper, List<Entity> entities, int currentDepth, int maxDepth,
-            Set<String> ignoreRelations, Set<String> queryRelations) {
+                                          Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -431,11 +434,11 @@ public class RelationManagerExt {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     static <Entity> void doQueryRelationsWithDepthRelQuery(BaseMapper<?> mapper, List<Entity> entities,
-            int currentDepth,
-            int maxDepth,
-            Set<String> ignoreRelations, Set<String> queryRelations) {
+                                                           int currentDepth,
+                                                           int maxDepth,
+                                                           Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -456,7 +459,7 @@ public class RelationManagerExt {
                 Optional<DepthRelQueryExt> depthRelQueryExtOptional = Optional
                         .ofNullable(depthRelQueryExtsThreadLocal)
                         .map(ThreadLocal::get)
-                        .map(it -> it.get(MapKeyUtils.depthRelKey(currentDepth, relation.getName())));
+                        .map(it -> it.get(currentDepth, relation.getName()));
                 if (depthRelQueryExtOptional.isEmpty()) {
                     return;
                 }
@@ -534,7 +537,7 @@ public class RelationManagerExt {
 
                     depthRelQueryExtOptional.ifPresent(ext -> {
                         queryWrapper.select(ext.addTargetColumn(relation));
-                        queryWrapper.and(ext.condition());
+                        queryWrapper.and(ext.getCondition());
                     });
 
                     List<?> targetObjectList = mapper.selectListByQueryAs(queryWrapper,
@@ -554,9 +557,7 @@ public class RelationManagerExt {
                         // clear rel
                         depthRelQueryExtOptional.ifPresent(it -> {
                             if (it.needToClearTargetColumn(relation)) {
-                                targetObjectList.forEach(targetObj -> {
-                                    relation.getTargetFieldWrapper().set(null, targetObj);
-                                });
+                                targetObjectList.forEach(targetObj -> relation.getTargetFieldWrapper().set(null, targetObj));
                             }
                         });
                     }

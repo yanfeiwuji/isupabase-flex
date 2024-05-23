@@ -40,8 +40,7 @@ public class IsupabaseApplication {
 
     @GetMapping
     public List<SysUser> user() {
-        List<SysUser> result = null;
-        // result = sysUserMapper.selectListByQuery(wrapper);
+        List<SysUser> result = sysUserMapper.selectAll();
         return result;
     }
 
