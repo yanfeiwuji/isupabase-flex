@@ -15,9 +15,12 @@ import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.util.MapUtil;
 import com.mybatisflex.core.util.MapperUtil;
+
+import io.github.yanfeiwuji.isupabase.entity.table.SysUserExtTableDef;
 import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
 import io.github.yanfeiwuji.isupabase.flex.RelationManagerExt;
 import io.github.yanfeiwuji.isupabase.request.filter.Filter;
+import io.github.yanfeiwuji.isupabase.request.select.RelInner;
 import io.github.yanfeiwuji.isupabase.request.select.RelQueryInfo;
 import io.github.yanfeiwuji.isupabase.request.select.Select;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
@@ -59,7 +62,6 @@ public class ApiReq {
     private List<String> subTables;
     private Map<String, QueryCondition> subFilters = Map.of();
     private RelQueryInfo relQueryInfo;
-
 
     public ApiReq(ServerRequest request, String tableName) {
         long s = System.currentTimeMillis();
@@ -136,8 +138,7 @@ public class ApiReq {
                     .filter(kv -> kv.getKey().startsWith(pre))
                     .flatMap(kv -> kv.getValue().stream().map(v -> new Filter(
                             CharSequenceUtil.removePrefix(kv.getKey(), pre + StrPool.DOT),
-                            v, tableInfo
-                    )))
+                            v, tableInfo)))
                     .map(Filter::toQueryCondition).reduce(QueryCondition::and)
                     .orElse(QueryCondition.createEmpty());
             it.getValue().setCondition(queryCondition);
@@ -152,19 +153,18 @@ public class ApiReq {
         return baseMapper.selectListByQuery(queryWrapper);
     }
 
+    @SuppressWarnings("unchecked")
     private List<?> singleTableWithRelResult(BaseMapper<?> baseMapper) {
         long start = System.currentTimeMillis();
         log.info("start time:{}", start);
         QueryWrapper queryWrapper = QueryWrapper.create();
-        relQueryInfo.inners().cellSet().forEach(it -> {
-            System.out.println("inner:" + it.getRowKey() + ":" + it.getColumnKey() + ":" + it.getValue());
-        });
+
         queryWrapper.select(select.getQueryColumns());
+        handlerInner(queryWrapper);
         queryWrapper.and(filtersToQueryCondition());
 
         log.info("pre query time:{}", System.currentTimeMillis() - start);
         List list = baseMapper.selectListByQuery(queryWrapper);
-
 
         RelationManagerExt.setDepthRelQueryExts(this.relQueryInfo.depthRelQueryExt());
         RelationManagerExt.setMaxDepth(this.relQueryInfo.maxDepth());
@@ -182,13 +182,40 @@ public class ApiReq {
     public void handler(QueryChain<?> queryChain) {
         queryChain.select(select.getQueryColumns());
         queryChain.where(filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
-                        .orElse(QueryCondition.createEmpty()))
+                .orElse(QueryCondition.createEmpty()))
                 .withRelations();
     }
 
     public void handlerInner(QueryWrapper queryWrapper) {
-        QueryCondition.createEmpty().and("EXIST ", QueryWrapper.create());
-        relQueryInfo.inners().cellSet();
+        List<RelInner> relInners = relQueryInfo.inners();
+        Table<Integer, String, DepthRelQueryExt> dTable = relQueryInfo.depthRelQueryExt();
+
+        relInners.forEach(rel -> {
+            AbstractRelation<?> relation = rel.getAbstractRelation();
+            String relName = relation.getName();
+
+            TableInfo subTableInfo = relation.getTargetTableInfo();
+            QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(subTableInfo);
+
+            QueryCondition queryCondition = dTable.get(0, relName).getCondition();
+
+            QueryColumn targetColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(relation);
+            QueryColumn selfColumn = CacheTableInfoUtils.nNRelSelfQueryColumn(relation);
+
+            String sql = QueryWrapper.create()
+                    .select("1")
+                    .from(queryTable)
+                    .where(targetColumn.eq(selfColumn))
+                    .and(queryCondition).toSQL();
+            System.out.println(sql);
+
+            // queryWrapper.and(
+            // new RawQueryCondition(" EXIST ",)
+
+            // );
+
+        });
+        // relQueryInfo.inners().cellSet();
     }
 
 }

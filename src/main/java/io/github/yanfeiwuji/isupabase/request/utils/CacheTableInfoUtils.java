@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -146,12 +145,25 @@ public class CacheTableInfoUtils {
     public QueryColumn nNRelTargetQueryColumn(AbstractRelation<?> relation) {
         return Optional.ofNullable(CACHE_REL_TARGET_QUERY_COLUMN.computeIfAbsent(relation.getName(),
                 name -> {
-                    TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
+                    TableInfo tableInfo = relation.getTargetTableInfo();
                     String column = tableInfo.getPropertyColumnMapping().get(relation.getTargetField().getName());
                     return new QueryColumn(nNQueryTable(tableInfo), column);
                 })).orElseThrow(() -> {
-                    TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
+                    TableInfo tableInfo = relation.getTargetTableInfo();
                     String column = tableInfo.getPropertyColumnMapping().get(relation.getTargetField().getName());
+                    return MDbExManagers.COLUMN_NOT_FOUND.reqEx(column);
+                });
+    }
+
+    public QueryColumn nNRelSelfQueryColumn(AbstractRelation<?> relation) {
+        return Optional.ofNullable(CACHE_REL_TARGET_QUERY_COLUMN.computeIfAbsent(relation.getName(),
+                name -> {
+                    TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getSelfEntityClass());
+                    String column = tableInfo.getPropertyColumnMapping().get(relation.getSelfField().getName());
+                    return new QueryColumn(nNQueryTable(tableInfo), column);
+                })).orElseThrow(() -> {
+                    TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getSelfEntityClass());
+                    String column = tableInfo.getPropertyColumnMapping().get(relation.getSelfField().getName());
                     return MDbExManagers.COLUMN_NOT_FOUND.reqEx(column);
                 });
     }

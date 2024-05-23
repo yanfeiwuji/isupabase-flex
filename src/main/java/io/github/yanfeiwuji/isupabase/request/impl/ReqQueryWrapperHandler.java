@@ -17,7 +17,6 @@ public class ReqQueryWrapperHandler implements IReqQueryWrapperHandler {
 
     @Override
     public ApiReq handler(ServerRequest request, String tableName) {
-
         return new ApiReq(request, tableName);
     }
 

@@ -97,9 +97,7 @@ public class RelationManagerExt {
      * key integer:RelName value config
      * deepth:
      */
-    private static ThreadLocal<Table<Integer, String, DepthRelQueryExt>>
-            depthRelQueryExtsThreadLocal =
-            new ThreadLocal<>();
+    private static ThreadLocal<Table<Integer, String, DepthRelQueryExt>> depthRelQueryExtsThreadLocal = new ThreadLocal<>();
 
     public static int getDefaultQueryDepth() {
         return defaultQueryDepth;
@@ -304,9 +302,9 @@ public class RelationManagerExt {
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     static <Entity> void doQueryRelations(BaseMapper<?> mapper, List<Entity> entities, int currentDepth, int maxDepth,
-                                          Set<String> ignoreRelations, Set<String> queryRelations) {
+            Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -434,11 +432,11 @@ public class RelationManagerExt {
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     static <Entity> void doQueryRelationsWithDepthRelQuery(BaseMapper<?> mapper, List<Entity> entities,
-                                                           int currentDepth,
-                                                           int maxDepth,
-                                                           Set<String> ignoreRelations, Set<String> queryRelations) {
+            int currentDepth,
+            int maxDepth,
+            Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -557,7 +555,8 @@ public class RelationManagerExt {
                         // clear rel
                         depthRelQueryExtOptional.ifPresent(it -> {
                             if (it.needToClearTargetColumn(relation)) {
-                                targetObjectList.forEach(targetObj -> relation.getTargetFieldWrapper().set(null, targetObj));
+                                targetObjectList
+                                        .forEach(targetObj -> relation.getTargetFieldWrapper().set(null, targetObj));
                             }
                         });
                     }

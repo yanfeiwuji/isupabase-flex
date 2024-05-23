@@ -3,14 +3,12 @@ package io.github.yanfeiwuji.isupabase.request.utils;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
@@ -28,7 +26,6 @@ public class ExchangeUtils {
         ExchangeUtils.mapper = mapper;
     }
 
-
     public Object singleValue(Filter filter, TableInfo tableInfo) throws JsonProcessingException {
         String json = new JSONObject()
                 .set(filter.getParamKey(), filter.getStrValue()).toString();
@@ -44,7 +41,8 @@ public class ExchangeUtils {
         return listValue(filter, tableInfo, StrPool.DELIM_START, StrPool.DELIM_END);
     }
 
-    public List<Object> listValue(Filter filter, TableInfo tableInfo, CharSequence prefix, CharSequence suffix) throws JsonProcessingException {
+    public List<Object> listValue(Filter filter, TableInfo tableInfo, CharSequence prefix, CharSequence suffix)
+            throws JsonProcessingException {
         String strValue = filter.getStrValue();
         String need = CharSequenceUtil.strip(strValue, prefix, suffix);
 
@@ -61,6 +59,5 @@ public class ExchangeUtils {
 
         return list.stream().map(it -> BeanUtil.getProperty(it, filter.getRealProperty())).collect(Collectors.toList());
     }
-
 
 }

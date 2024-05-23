@@ -9,6 +9,8 @@ import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
+import com.mybatisflex.core.table.TableInfoFactory;
+
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
@@ -55,12 +57,11 @@ public class Select {
     }
 
     public Select(String selectValue,
-                  TableInfo tableInfo,
-                  String preRel,
-                  String relName,
-                  RelParamKeyTableName relParamKeyTableName,
-                  boolean inner
-    ) {
+            TableInfo tableInfo,
+            String preRel,
+            String relName,
+            RelParamKeyTableName relParamKeyTableName,
+            boolean inner) {
 
         log.info("selectValue:{}", selectValue);
         this.selectValue = selectValue;
@@ -106,36 +107,33 @@ public class Select {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.groupingBy(
-                                it -> CacheTableInfoUtils.relInTable(
-                                        CharSequenceUtil.replaceLast(it.key(), CommonStr.SELECT_INNER_MARK, ""),
-                                        tableInfo
-                                )
-                        )
-                );
+                        it -> CacheTableInfoUtils.relInTable(
+                                CharSequenceUtil.replaceLast(it.key(),
+                                        CommonStr.SELECT_INNER_MARK, ""),
+                                tableInfo)));
 
         List<KeyValue> notRelButFormat = Optional.ofNullable(groupByIsRel.get(false)).orElse(List.of());
 
         if (!notRelButFormat.isEmpty()) {
-            throw MDbExManagers.UNDEFIDEND_COLUMN.reqEx(tableInfo.getTableName(), notRelButFormat.getFirst().key());
+            throw MDbExManagers.UNDEFIDEND_COLUMN.reqEx(tableInfo.getTableName(),
+                    notRelButFormat.getFirst().key());
         }
 
         this.subSelect = Optional.ofNullable(groupByIsRel.get(true))
                 .orElse(List.of()).stream()
                 .map(it -> {
-                    String needKey =
-                            CharSequenceUtil.replaceLast(it.key(), CommonStr.SELECT_INNER_MARK, "");
-
-                    AbstractRelation<?> realRelation =
-                            CacheTableInfoUtils.nNRealRelation(needKey, tableInfo);
-
+                    String needKey = CharSequenceUtil.replaceLast(it.key(),
+                            CommonStr.SELECT_INNER_MARK, "");
+                    AbstractRelation<?> realRelation = CacheTableInfoUtils.nNRealRelation(needKey,
+                            tableInfo);
                     return new Select(
                             it.value(),
                             realRelation.getTargetTableInfo(),
-                            preRel == null ? "%s".formatted(it.key()) : "%s.%s".formatted(preRel, it.key()),
+                            preRel == null ? "%s".formatted(it.key())
+                                    : "%s.%s".formatted(preRel, it.key()),
                             realRelation.getName(),
                             new RelParamKeyTableName(needKey, tableInfo.getTableName()),
-                            it.key().endsWith(CommonStr.SELECT_INNER_MARK)
-                    );
+                            it.key().endsWith(CommonStr.SELECT_INNER_MARK));
                 }).toList();
 
     }
@@ -150,7 +148,6 @@ public class Select {
         return allRelPres(new ArrayList<>()).stream().filter(Objects::nonNull).toList();
     }
 
-
     public RelQueryInfo tpRelQueryInfo() {
         Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = HashBasedTable.create();
 
@@ -159,13 +156,8 @@ public class Select {
 
         Table<Integer, String, Boolean> inners = HashBasedTable.create();
 
-        RelTree relTree = new RelTree(
-                CacheTableInfoUtils.nNRealTableInfo(this.tableName)
-                , null,
-                new ArrayList<>()
-        );
         List<Select> currentSelectList = List.of(this);
-        RelTree currentRelTree = relTree;
+
         int depth = -1;
         while (!currentSelectList.isEmpty()) {
             for (Select select : currentSelectList) {
@@ -173,33 +165,40 @@ public class Select {
                     depthRelQueryExtTable.put(
                             depth,
                             select.getRelName(),
-                            new DepthRelQueryExt(select.queryColumns, QueryCondition.createEmpty())
-                    );
+                            new DepthRelQueryExt(select.queryColumns,
+                                    QueryCondition.createEmpty()));
                     depthRelPre.put(
                             depth,
                             select.getRelName(),
-                            select.getRelPre()
-                    );
+                            select.getRelPre());
                     if (Objects.nonNull(select.relParamKeyTableName)) {
                         depthRelation.put(
                                 depth,
                                 select.getRelName(),
-                                select.relParamKeyTableName.toRelation()
-                        );
+                                select.relParamKeyTableName.toRelation());
                     }
                     inners.put(
                             depth,
                             select.getRelName(),
-                            select.isInner()
-                    );
+                            select.isInner());
                 }
             }
             depth += 1;
             currentSelectList = currentSelectList.stream().flatMap(it -> it.subSelect.stream()).toList();
 
         }
-        return new RelQueryInfo(depth, depthRelPre, depthRelQueryExtTable, depthRelation, inners, relTree);
-    }
+        List<RelInner> relInners = Optional.ofNullable(this.subSelect)
+                .orElse(List.of())
 
+                .stream()
+                .filter(it -> it.isInner())
+                .map(it -> it.relParamKeyTableName)
+                .filter(Objects::nonNull)
+
+                .map(it -> it.toRelInner())
+                .toList();
+
+        return new RelQueryInfo(depth, depthRelPre, depthRelQueryExtTable, depthRelation, relInners);
+    }
 
 }

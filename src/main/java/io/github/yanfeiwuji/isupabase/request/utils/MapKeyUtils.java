@@ -1,6 +1,5 @@
 package io.github.yanfeiwuji.isupabase.request.utils;
 
-
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
