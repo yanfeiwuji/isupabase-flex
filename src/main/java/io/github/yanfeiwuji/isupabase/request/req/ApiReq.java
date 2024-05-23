@@ -3,14 +3,16 @@ package io.github.yanfeiwuji.isupabase.request.req;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.text.StrPool;
+import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Table;
 import com.mybatisflex.core.BaseMapper;
-import com.mybatisflex.core.query.QueryChain;
-import com.mybatisflex.core.query.QueryColumn;
-import com.mybatisflex.core.query.QueryCondition;
-import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.query.*;
+import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.relation.RelationManager;
 import com.mybatisflex.core.table.TableInfo;
+import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.util.MapUtil;
 import com.mybatisflex.core.util.MapperUtil;
 import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
@@ -60,8 +62,8 @@ public class ApiReq {
 
 
     public ApiReq(ServerRequest request, String tableName) {
-
-        log.info("start time:{}", System.currentTimeMillis());
+        long s = System.currentTimeMillis();
+        log.info("start time:{}", s);
         MultiValueMap<String, String> params = request.params();
         HttpMethod method = request.method();
 
@@ -72,11 +74,11 @@ public class ApiReq {
         if (method.equals(HttpMethod.GET)) {
             this.subTables = this.select.allRelPres();
             this.relQueryInfo = this.select.tpRelQueryInfo();
-            this.handlerSubFilter();
+            this.handlerSubFilter(params);
         }
 
-
         this.filters = handlerHorizontalFilter(params, tableInfo);
+        log.info("finish to need time:{}", System.currentTimeMillis() - s);
     }
 
     private Select handlerSelect(MultiValueMap<String, String> params, TableInfo tableInfo) {
@@ -102,47 +104,63 @@ public class ApiReq {
                 .where(filtersToQueryCondition());
     }
 
-    public List<?> result(BaseMapper baseMapper) {
-        if (subFilters.isEmpty()) {
-            if (subTables.isEmpty()) {
-                return singleTableResult(baseMapper);
-            } else {
-                return singleTableWithRelResult(baseMapper);
-            }
+    public List<?> result(BaseMapper<?> baseMapper) {
+        if (subTables.isEmpty()) {
+            return singleTableResult(baseMapper);
         } else {
-
+            return singleTableWithRelResult(baseMapper);
         }
-
-        return List.of();
     }
 
-    private void handlerSubFilter() {
+    private void handlerSubFilter(MultiValueMap<String, String> params) {
         Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = this.relQueryInfo.depthRelQueryExt();
-        Table<Integer, String, String> integerStringStringTable = this.relQueryInfo.depthRelPre();
+        Table<Integer, String, String> depthRelPreTable = this.relQueryInfo.depthRelPre();
+        Table<Integer, String, AbstractRelation<?>> depthRelationTable = this.relQueryInfo.depthRelation();
 
         depthRelQueryExtTable.cellSet().forEach(it -> {
-            System.out.println(it.getRowKey() + ":" + it.getColumnKey() + "  "
-                    + integerStringStringTable.get(it.getRowKey(), it.getColumnKey())
-
-            );
-
+            String pre = depthRelPreTable.get(it.getRowKey(), it.getColumnKey());
+            if (Objects.isNull(pre)) {
+                return;
+            }
+            AbstractRelation<?> abstractRelation = depthRelationTable.get(it.getRowKey(), it.getColumnKey());
+            if (Objects.isNull(abstractRelation)) {
+                return;
+            }
+            Class<?> targetEntityClass = abstractRelation.getTargetEntityClass();
+            TableInfo tableInfo = TableInfoFactory.ofEntityClass(targetEntityClass);
+            if (Objects.isNull(tableInfo)) {
+                return;
+            }
+            QueryCondition queryCondition = params.entrySet()
+                    .stream()
+                    .filter(kv -> kv.getKey().startsWith(pre))
+                    .flatMap(kv -> kv.getValue().stream().map(v -> new Filter(
+                            CharSequenceUtil.removePrefix(kv.getKey(), pre + StrPool.DOT),
+                            v, tableInfo
+                    )))
+                    .map(Filter::toQueryCondition).reduce(QueryCondition::and)
+                    .orElse(QueryCondition.createEmpty());
+            it.getValue().setCondition(queryCondition);
         });
 
     }
 
-    private List<?> singleTableResult(BaseMapper baseMapper) {
+    private List<?> singleTableResult(BaseMapper<?> baseMapper) {
         QueryWrapper queryWrapper = QueryWrapper.create();
         queryWrapper.select(select.getQueryColumns());
         queryWrapper.where(filtersToQueryCondition());
         return baseMapper.selectListByQuery(queryWrapper);
     }
 
-    private List<?> singleTableWithRelResult(BaseMapper baseMapper) {
+    private List<?> singleTableWithRelResult(BaseMapper<?> baseMapper) {
         long start = System.currentTimeMillis();
         log.info("start time:{}", start);
         QueryWrapper queryWrapper = QueryWrapper.create();
+        relQueryInfo.inners().cellSet().forEach(it -> {
+            System.out.println("inner:" + it.getRowKey() + ":" + it.getColumnKey() + ":" + it.getValue());
+        });
         queryWrapper.select(select.getQueryColumns());
-        queryWrapper.where(filtersToQueryCondition());
+        queryWrapper.and(filtersToQueryCondition());
 
         log.info("pre query time:{}", System.currentTimeMillis() - start);
         List list = baseMapper.selectListByQuery(queryWrapper);
@@ -163,10 +181,14 @@ public class ApiReq {
 
     public void handler(QueryChain<?> queryChain) {
         queryChain.select(select.getQueryColumns());
-        queryChain.where(
-                        filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
-                                .orElse(QueryCondition.createEmpty()))
+        queryChain.where(filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
+                        .orElse(QueryCondition.createEmpty()))
                 .withRelations();
+    }
+
+    public void handlerInner(QueryWrapper queryWrapper) {
+        QueryCondition.createEmpty().and("EXIST ", QueryWrapper.create());
+        relQueryInfo.inners().cellSet();
     }
 
 }

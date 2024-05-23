@@ -1,5 +1,8 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
+import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.text.StrPool;
+import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.mybatisflex.core.query.QueryColumn;
@@ -37,24 +40,36 @@ public class Select {
     // users is roles.users
     private String relPre;
     private String relName;
+    private RelParamKeyTableName relParamKeyTableName;
 
     private String tableName;
+    /**
+     * is inner
+     */
+    private boolean inner;
     // sub select
     private List<Select> subSelect;
 
     public Select(String selectValue, TableInfo tableInfo) {
-        this(selectValue, tableInfo, null, null);
+        this(selectValue, tableInfo, null, null, null, false);
     }
 
-    public Select(String selectValue, TableInfo tableInfo, String preRel, String relName) {
+    public Select(String selectValue,
+                  TableInfo tableInfo,
+                  String preRel,
+                  String relName,
+                  RelParamKeyTableName relParamKeyTableName,
+                  boolean inner
+    ) {
+
         log.info("selectValue:{}", selectValue);
         this.selectValue = selectValue;
-        // this.relation = relation;
 
         this.tableName = tableInfo.getTableName();
         this.relPre = preRel;
         this.relName = relName;
-
+        this.relParamKeyTableName = relParamKeyTableName;
+        this.inner = inner;
         queryColumns = new ArrayList<>();
 
         List<String> selects = TokenUtils.splitByComma(selectValue);
@@ -90,7 +105,13 @@ public class Select {
                 .map(MTokens.SELECT_WITH_SUB::keyValue)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collect(Collectors.groupingBy(it -> CacheTableInfoUtils.relInTable(it.key(), tableInfo)));
+                .collect(Collectors.groupingBy(
+                                it -> CacheTableInfoUtils.relInTable(
+                                        CharSequenceUtil.replaceLast(it.key(), CommonStr.SELECT_INNER_MARK, ""),
+                                        tableInfo
+                                )
+                        )
+                );
 
         List<KeyValue> notRelButFormat = Optional.ofNullable(groupByIsRel.get(false)).orElse(List.of());
 
@@ -101,11 +122,20 @@ public class Select {
         this.subSelect = Optional.ofNullable(groupByIsRel.get(true))
                 .orElse(List.of()).stream()
                 .map(it -> {
-                    AbstractRelation<?> realRelation = CacheTableInfoUtils.nNRealRelation(it.key(), tableInfo);
+                    String needKey =
+                            CharSequenceUtil.replaceLast(it.key(), CommonStr.SELECT_INNER_MARK, "");
 
-                    return new Select(it.value(), realRelation.getTargetTableInfo(),
+                    AbstractRelation<?> realRelation =
+                            CacheTableInfoUtils.nNRealRelation(needKey, tableInfo);
+
+                    return new Select(
+                            it.value(),
+                            realRelation.getTargetTableInfo(),
                             preRel == null ? "%s".formatted(it.key()) : "%s.%s".formatted(preRel, it.key()),
-                            realRelation.getName());
+                            realRelation.getName(),
+                            new RelParamKeyTableName(needKey, tableInfo.getTableName()),
+                            it.key().endsWith(CommonStr.SELECT_INNER_MARK)
+                    );
                 }).toList();
 
     }
@@ -120,26 +150,22 @@ public class Select {
         return allRelPres(new ArrayList<>()).stream().filter(Objects::nonNull).toList();
     }
 
-    public List<List<String>> depthRels() {
-        List<List<String>> depthRelsList = new ArrayList<>();
-        List<Select> currentSelectList = List.of(this);
-        while (!currentSelectList.isEmpty()) {
-            List<String> list = currentSelectList.stream().flatMap(it -> it.subSelect.stream().map(Select::getRelPre))
-                    .toList();
-            if (!list.isEmpty()) {
-                depthRelsList.add(list);
-            }
-            currentSelectList = currentSelectList.stream().flatMap(it -> it.subSelect.stream()).toList();
-        }
-        return depthRelsList;
-
-    }
 
     public RelQueryInfo tpRelQueryInfo() {
         Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = HashBasedTable.create();
 
         Table<Integer, String, String> depthRelPre = HashBasedTable.create();
+        Table<Integer, String, AbstractRelation<?>> depthRelation = HashBasedTable.create();
+
+        Table<Integer, String, Boolean> inners = HashBasedTable.create();
+
+        RelTree relTree = new RelTree(
+                CacheTableInfoUtils.nNRealTableInfo(this.tableName)
+                , null,
+                new ArrayList<>()
+        );
         List<Select> currentSelectList = List.of(this);
+        RelTree currentRelTree = relTree;
         int depth = -1;
         while (!currentSelectList.isEmpty()) {
             for (Select select : currentSelectList) {
@@ -154,12 +180,25 @@ public class Select {
                             select.getRelName(),
                             select.getRelPre()
                     );
+                    if (Objects.nonNull(select.relParamKeyTableName)) {
+                        depthRelation.put(
+                                depth,
+                                select.getRelName(),
+                                select.relParamKeyTableName.toRelation()
+                        );
+                    }
+                    inners.put(
+                            depth,
+                            select.getRelName(),
+                            select.isInner()
+                    );
                 }
             }
             depth += 1;
             currentSelectList = currentSelectList.stream().flatMap(it -> it.subSelect.stream()).toList();
+
         }
-        return new RelQueryInfo(depth, depthRelPre, depthRelQueryExtTable);
+        return new RelQueryInfo(depth, depthRelPre, depthRelQueryExtTable, depthRelation, inners, relTree);
     }
 
 

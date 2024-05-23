@@ -40,13 +40,12 @@ public class IsupabaseApplication {
 
     @GetMapping
     public List<SysUser> user() {
-        List<SysUser> result = sysUserMapper.selectAll();
+        List<SysUser> result = sysUserMapper.selectAllWithRelations();
         return result;
     }
 
     @GetMapping("/role")
     public List<SysRole> roleList() {
-
         return sysRoleMapper.selectAllWithRelations();
     }
 
