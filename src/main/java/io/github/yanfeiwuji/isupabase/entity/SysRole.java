@@ -16,4 +16,7 @@ public class SysRole {
     @RelationManyToMany(joinTable = "sys_role_user", // 中间表
             selfField = "id", joinSelfColumn = "rid", targetField = "id", joinTargetColumn = "uid")
     private List<SysUser> users;
+
+    @RelationOneToOne(selfField = "id", targetField = "rid")
+    private SysRoleExt sysRoleExt;
 }

@@ -41,6 +41,7 @@ import com.mybatisflex.core.util.LambdaUtil;
 import com.mybatisflex.core.util.MapUtil;
 import com.mybatisflex.core.util.StringUtil;
 
+import io.github.yanfeiwuji.isupabase.request.req.RelInnerHandler;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.MapKeyUtils;
 
@@ -536,7 +537,16 @@ public class RelationManagerExt {
                     depthRelQueryExtOptional.ifPresent(ext -> {
                         queryWrapper.select(ext.addTargetColumn(relation));
                         queryWrapper.and(ext.getCondition());
+                        ext.getRelInners().forEach(innerRel -> {
+                            AbstractRelation<?> abstractRelation = innerRel.getAbstractRelation();
+                            Optional.ofNullable(depthRelQueryExtsThreadLocal)
+                                    .map(ThreadLocal::get)
+                                    .map(it -> it.get(currentDepth + 1, abstractRelation.getName()))
+                                    .ifPresent(it -> RelInnerHandler.handlerRelInner(abstractRelation, queryWrapper, it));
+                        });
+                        // RelInnerHandler.handlerRelInner(relation, queryWrapper, ext);
                     });
+
 
                     List<?> targetObjectList = mapper.selectListByQueryAs(queryWrapper,
                             relation.isOnlyQueryValueField() ? relation.getTargetEntityClass()

@@ -32,6 +32,7 @@ public class DepthRelQueryExt {
     ) {
         this.selects = selects;
         this.condition = condition;
+        this.relInners = relInners;
         this.selectsKeysMap = selects.stream().collect(Collectors.toMap(
                 QueryColumn::getName,
                 QueryColumn::getName
