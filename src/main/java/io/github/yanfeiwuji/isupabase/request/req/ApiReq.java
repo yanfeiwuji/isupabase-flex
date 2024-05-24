@@ -21,6 +21,7 @@ import io.github.yanfeiwuji.isupabase.entity.table.SysUserExtTableDef;
 import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
 import io.github.yanfeiwuji.isupabase.flex.RelationManagerExt;
 import io.github.yanfeiwuji.isupabase.request.filter.Filter;
+import io.github.yanfeiwuji.isupabase.request.order.Order;
 import io.github.yanfeiwuji.isupabase.request.range.Range;
 import io.github.yanfeiwuji.isupabase.request.select.RelInner;
 import io.github.yanfeiwuji.isupabase.request.select.RelQueryInfo;
@@ -64,8 +65,9 @@ public class ApiReq {
     private List<Filter> filters;
     private List<String> subTables;
     private Range range;
-    private Map<String, QueryCondition> subFilters = Map.of();
     private RelQueryInfo relQueryInfo;
+
+    private List<QueryOrderBy> rootSingleQueryOrders;
 
     public ApiReq(ServerRequest request, String tableName) {
         long s = System.currentTimeMillis();
@@ -98,6 +100,20 @@ public class ApiReq {
                 .ofNullable(params.getFirst(ParamKeyUtils.SELECT_KEY))
                 .orElse("*");
         return new Select(selectValue, tableInfo);
+    }
+
+    /**
+     * todo handler top leve orders
+     *
+     * @param params
+     * @param tableInfo
+     * @return
+     */
+    private List<QueryOrderBy> handlerOrders(MultiValueMap<String, String> params, TableInfo tableInfo) {
+        String orderValue = params.getFirst(ParamKeyUtils.ORDER_KEY);
+        return Optional.ofNullable(orderValue).map(it -> new Order(orderValue, tableInfo))
+                .map(Order::getOrders)
+                .orElse(List.of());
     }
 
     private List<Filter> handlerHorizontalFilter(MultiValueMap<String, String> params, TableInfo tableInfo) {

@@ -548,9 +548,9 @@ public class RelationManagerExt {
                         });
                         // handler range
                         Optional.ofNullable(ext.getRange())
-                                .ifPresent(range -> {
-                                    QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper);
-                                });
+                                .ifPresent(
+                                        range ->
+                                                QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper));
 
                         // RelInnerHandler.handlerRelInner(relation, queryWrapper, ext);
                     });

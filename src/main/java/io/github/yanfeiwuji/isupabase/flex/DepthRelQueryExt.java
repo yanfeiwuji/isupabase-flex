@@ -2,6 +2,7 @@ package io.github.yanfeiwuji.isupabase.flex;
 
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
+import com.mybatisflex.core.query.QueryOrderBy;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
@@ -28,6 +29,7 @@ public class DepthRelQueryExt {
     private boolean hasAll;
 
     private Range range;
+    private QueryOrderBy orderBy;
 
     public DepthRelQueryExt(List<QueryColumn> selects,
                             QueryCondition condition,
