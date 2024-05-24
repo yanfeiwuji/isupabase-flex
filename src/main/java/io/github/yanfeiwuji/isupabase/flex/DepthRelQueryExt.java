@@ -7,6 +7,7 @@ import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.request.range.Range;
 import io.github.yanfeiwuji.isupabase.request.select.RelInner;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.AllArgsConstructor;
@@ -25,6 +26,8 @@ public class DepthRelQueryExt {
 
     private Map<String, String> selectsKeysMap;
     private boolean hasAll;
+
+    private Range range;
 
     public DepthRelQueryExt(List<QueryColumn> selects,
                             QueryCondition condition,

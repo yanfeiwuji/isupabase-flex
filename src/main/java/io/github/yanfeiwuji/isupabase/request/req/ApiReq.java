@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
+import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Table;
 import com.mybatisflex.core.BaseMapper;
@@ -20,11 +21,13 @@ import io.github.yanfeiwuji.isupabase.entity.table.SysUserExtTableDef;
 import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
 import io.github.yanfeiwuji.isupabase.flex.RelationManagerExt;
 import io.github.yanfeiwuji.isupabase.request.filter.Filter;
+import io.github.yanfeiwuji.isupabase.request.range.Range;
 import io.github.yanfeiwuji.isupabase.request.select.RelInner;
 import io.github.yanfeiwuji.isupabase.request.select.RelQueryInfo;
 import io.github.yanfeiwuji.isupabase.request.select.Select;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ParamKeyUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.QueryWrapperUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
@@ -60,6 +63,7 @@ public class ApiReq {
     private String tableName;
     private List<Filter> filters;
     private List<String> subTables;
+    private Range range;
     private Map<String, QueryCondition> subFilters = Map.of();
     private RelQueryInfo relQueryInfo;
 
@@ -74,16 +78,20 @@ public class ApiReq {
         TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
         this.select = handlerSelect(params, tableInfo);
 
+        this.range = ParamKeyUtils.rootRange(params);
+
         if (method.equals(HttpMethod.GET)) {
             this.subTables = this.select.allRelPres();
             this.relQueryInfo = this.select.tpRelQueryInfo();
-            this.handlerSubFilter(params);
+            this.handlerSubFilterAndRange(params);
             log.info("finish to handler subquery time:{}", System.currentTimeMillis() - s);
         }
+
 
         this.filters = handlerHorizontalFilter(params, tableInfo);
         log.info("finish to need time:{}", System.currentTimeMillis() - s);
     }
+
 
     private Select handlerSelect(MultiValueMap<String, String> params, TableInfo tableInfo) {
         String selectValue = Optional
@@ -105,8 +113,11 @@ public class ApiReq {
     // single
     public QueryWrapper queryWrapper() {
         QueryWrapper queryWrapper = QueryWrapper.create();
-        return queryWrapper.select(select.getQueryColumns())
+        queryWrapper.select(select.getQueryColumns())
                 .where(filtersToQueryCondition());
+
+        QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper);
+        return queryWrapper;
     }
 
     public List<?> result(BaseMapper<?> baseMapper) {
@@ -117,13 +128,15 @@ public class ApiReq {
         }
     }
 
-    private void handlerSubFilter(MultiValueMap<String, String> params) {
+    private void handlerSubFilterAndRange(MultiValueMap<String, String> params) {
         Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = this.relQueryInfo.depthRelQueryExt();
         Table<Integer, String, String> depthRelPreTable = this.relQueryInfo.depthRelPre();
         Table<Integer, String, AbstractRelation<?>> depthRelationTable = this.relQueryInfo.depthRelation();
         Table<Integer, String, List<RelInner>> depthInnersTable = this.relQueryInfo.depthInners();
 
         depthRelQueryExtTable.cellSet().forEach(it -> {
+            DepthRelQueryExt depthRelQueryExt = it.getValue();
+
             String pre = depthRelPreTable.get(it.getRowKey(), it.getColumnKey());
             if (Objects.isNull(pre)) {
                 return;
@@ -139,17 +152,18 @@ public class ApiReq {
             }
             params.entrySet()
                     .stream()
-                    .filter(kv -> kv.getKey().startsWith(pre))
+                    .filter(kv -> ParamKeyUtils.canSubFilter(kv.getKey(), pre))
                     .flatMap(kv -> kv.getValue().stream().map(v -> new Filter(
                             CharSequenceUtil.removePrefix(kv.getKey(), pre + StrPool.DOT),
                             v, tableInfo)))
                     .map(Filter::toQueryCondition).reduce(QueryCondition::and)
-                    .ifPresent(it.getValue()::setCondition);
+                    .ifPresent(depthRelQueryExt::setCondition);
 
             Optional.ofNullable(depthInnersTable.get(it.getRowKey(), it.getColumnKey()))
-                    .ifPresent(it.getValue()::setRelInners);
+                    .ifPresent(depthRelQueryExt::setRelInners);
 
-
+            Optional.ofNullable(ParamKeyUtils.preRange(params, pre))
+                    .ifPresent(depthRelQueryExt::setRange);
         });
 
     }
@@ -158,27 +172,27 @@ public class ApiReq {
         QueryWrapper queryWrapper = QueryWrapper.create();
         queryWrapper.select(select.getQueryColumns());
         queryWrapper.where(filtersToQueryCondition());
+        QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper);
         return baseMapper.selectListByQuery(queryWrapper);
     }
 
-    @SuppressWarnings("unchecked")
+
     private List<?> singleTableWithRelResult(BaseMapper<?> baseMapper) {
-        long start = System.currentTimeMillis();
-        log.info("start time:{}", start);
+
         QueryWrapper queryWrapper = QueryWrapper.create();
 
         queryWrapper.select(select.getQueryColumns());
         handlerFirstInner(queryWrapper);
         queryWrapper.and(filtersToQueryCondition());
 
-        log.info("pre query time:{}", System.currentTimeMillis() - start);
-        List list = baseMapper.selectListByQuery(queryWrapper);
+        QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper);
+
+        List<?> list = baseMapper.selectListByQuery(queryWrapper);
 
         RelationManagerExt.setDepthRelQueryExts(this.relQueryInfo.depthRelQueryExt());
         RelationManagerExt.setMaxDepth(this.relQueryInfo.maxDepth());
 
         RelationManagerExt.queryRelationsWithDepthRelQuery(baseMapper, list);
-        log.info("total time:{}", System.currentTimeMillis() - start);
         return list;
     }
 
@@ -187,12 +201,6 @@ public class ApiReq {
                 .orElse(QueryCondition.createEmpty());
     }
 
-    public void handler(QueryChain<?> queryChain) {
-        queryChain.select(select.getQueryColumns());
-        queryChain.where(filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
-                        .orElse(QueryCondition.createEmpty()))
-                .withRelations();
-    }
 
     /**
      * only handler depth zero

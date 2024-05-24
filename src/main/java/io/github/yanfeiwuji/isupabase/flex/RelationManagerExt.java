@@ -44,6 +44,7 @@ import com.mybatisflex.core.util.StringUtil;
 import io.github.yanfeiwuji.isupabase.request.req.RelInnerHandler;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.MapKeyUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.QueryWrapperUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -543,7 +544,14 @@ public class RelationManagerExt {
                                     .map(ThreadLocal::get)
                                     .map(it -> it.get(currentDepth + 1, abstractRelation.getName()))
                                     .ifPresent(it -> RelInnerHandler.handlerRelInner(abstractRelation, queryWrapper, it));
+
                         });
+                        // handler range
+                        Optional.ofNullable(ext.getRange())
+                                .ifPresent(range -> {
+                                    QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper);
+                                });
+
                         // RelInnerHandler.handlerRelInner(relation, queryWrapper, ext);
                     });
 
