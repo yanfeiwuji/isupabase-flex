@@ -7,6 +7,7 @@ import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.request.select.RelInner;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,10 +21,15 @@ import java.util.stream.Collectors;
 public class DepthRelQueryExt {
     private List<QueryColumn> selects;
     private QueryCondition condition;
+    private List<RelInner> relInners;
+
     private Map<String, String> selectsKeysMap;
     private boolean hasAll;
 
-    public DepthRelQueryExt(List<QueryColumn> selects, QueryCondition condition) {
+    public DepthRelQueryExt(List<QueryColumn> selects,
+                            QueryCondition condition,
+                            List<RelInner> relInners
+    ) {
         this.selects = selects;
         this.condition = condition;
         this.selectsKeysMap = selects.stream().collect(Collectors.toMap(
@@ -51,7 +57,7 @@ public class DepthRelQueryExt {
     }
 
     public boolean needToClearTargetColumn(AbstractRelation<?> relation) {
-        if(isHasAll()){
+        if (isHasAll()) {
             return false;
         }
         String column = CacheTableInfoUtils.nNRelTargetQueryColumn(relation).getName();

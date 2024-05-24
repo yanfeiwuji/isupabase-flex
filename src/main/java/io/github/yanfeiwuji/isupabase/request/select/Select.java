@@ -57,11 +57,11 @@ public class Select {
     }
 
     public Select(String selectValue,
-            TableInfo tableInfo,
-            String preRel,
-            String relName,
-            RelParamKeyTableName relParamKeyTableName,
-            boolean inner) {
+                  TableInfo tableInfo,
+                  String preRel,
+                  String relName,
+                  RelParamKeyTableName relParamKeyTableName,
+                  boolean inner) {
 
         log.info("selectValue:{}", selectValue);
         this.selectValue = selectValue;
@@ -130,7 +130,7 @@ public class Select {
                             it.value(),
                             realRelation.getTargetTableInfo(),
                             preRel == null ? "%s".formatted(needKey)
-                                    : "%s.%s".formatted(preRel,needKey),
+                                    : "%s.%s".formatted(preRel, needKey),
                             realRelation.getName(),
                             new RelParamKeyTableName(needKey, tableInfo.getTableName()),
                             it.key().endsWith(CommonStr.SELECT_INNER_MARK));
@@ -150,12 +150,10 @@ public class Select {
 
     public RelQueryInfo tpRelQueryInfo() {
         Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = HashBasedTable.create();
-
         Table<Integer, String, String> depthRelPre = HashBasedTable.create();
         Table<Integer, String, AbstractRelation<?>> depthRelation = HashBasedTable.create();
-
         Table<Integer, String, Boolean> inners = HashBasedTable.create();
-
+        Table<Integer, String, List<RelInner>> depthInners = HashBasedTable.create();
         List<Select> currentSelectList = List.of(this);
 
         int depth = -1;
@@ -165,8 +163,11 @@ public class Select {
                     depthRelQueryExtTable.put(
                             depth,
                             select.getRelName(),
-                            new DepthRelQueryExt(select.queryColumns,
-                                    QueryCondition.createEmpty()));
+                            new DepthRelQueryExt(
+                                    select.queryColumns,
+                                    QueryCondition.createEmpty(),
+                                    List.of()
+                            ));
                     depthRelPre.put(
                             depth,
                             select.getRelName(),
@@ -181,23 +182,35 @@ public class Select {
                             depth,
                             select.getRelName(),
                             select.isInner());
+                    List<RelInner> relInners = select.relInners();
+                    if(!relInners.isEmpty()){
+                        depthInners.put(
+                                depth,
+                                select.getRelName(),
+                                relInners
+                        );
+                    }
+
                 }
             }
             depth += 1;
             currentSelectList = currentSelectList.stream().flatMap(it -> it.subSelect.stream()).toList();
 
         }
-        List<RelInner> relInners = Optional.ofNullable(this.subSelect)
-                .orElse(List.of())
+        List<RelInner> relInners = relInners();
 
+        return new RelQueryInfo(depth, depthRelPre, depthRelQueryExtTable, depthRelation, relInners, depthInners);
+    }
+
+    public List<RelInner> relInners() {
+        return Optional.ofNullable(this.subSelect)
+                .orElse(List.of())
                 .stream()
                 .filter(Select::isInner)
                 .map(it -> it.relParamKeyTableName)
                 .filter(Objects::nonNull)
                 .map(RelParamKeyTableName::toRelInner)
                 .toList();
-
-        return new RelQueryInfo(depth, depthRelPre, depthRelQueryExtTable, depthRelation, relInners);
     }
 
 }

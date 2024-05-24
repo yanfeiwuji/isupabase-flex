@@ -121,6 +121,7 @@ public class ApiReq {
         Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = this.relQueryInfo.depthRelQueryExt();
         Table<Integer, String, String> depthRelPreTable = this.relQueryInfo.depthRelPre();
         Table<Integer, String, AbstractRelation<?>> depthRelationTable = this.relQueryInfo.depthRelation();
+        Table<Integer, String, List<RelInner>> depthInnersTable = this.relQueryInfo.depthInners();
 
         depthRelQueryExtTable.cellSet().forEach(it -> {
             String pre = depthRelPreTable.get(it.getRowKey(), it.getColumnKey());
@@ -136,15 +137,19 @@ public class ApiReq {
             if (Objects.isNull(tableInfo)) {
                 return;
             }
-            QueryCondition queryCondition = params.entrySet()
+            params.entrySet()
                     .stream()
                     .filter(kv -> kv.getKey().startsWith(pre))
                     .flatMap(kv -> kv.getValue().stream().map(v -> new Filter(
                             CharSequenceUtil.removePrefix(kv.getKey(), pre + StrPool.DOT),
                             v, tableInfo)))
                     .map(Filter::toQueryCondition).reduce(QueryCondition::and)
-                    .orElse(QueryCondition.createEmpty());
-            it.getValue().setCondition(queryCondition);
+                    .ifPresent(it.getValue()::setCondition);
+
+            Optional.ofNullable(depthInnersTable.get(it.getRowKey(), it.getColumnKey()))
+                    .ifPresent(it.getValue()::setRelInners);
+
+
         });
 
     }
@@ -202,7 +207,7 @@ public class ApiReq {
             AbstractRelation<?> relation = rel.getAbstractRelation();
             String relName = relation.getName();
             DepthRelQueryExt depthRelQueryExt = depthRelQueryExtTable.get(0, relName);
-            //
+
             assert depthRelQueryExt != null;
             RelInnerHandler.handlerRelInner(relation, queryWrapper, depthRelQueryExt);
         });
