@@ -13,28 +13,47 @@ import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Data
-@AllArgsConstructor
 public class DepthRelQueryExt {
-    List<QueryColumn> selects;
-    QueryCondition condition;
+    private List<QueryColumn> selects;
+    private QueryCondition condition;
+    private Map<String, String> selectsKeysMap;
+    private boolean hasAll;
+
+    public DepthRelQueryExt(List<QueryColumn> selects, QueryCondition condition) {
+        this.selects = selects;
+        this.condition = condition;
+        this.selectsKeysMap = selects.stream().collect(Collectors.toMap(
+                QueryColumn::getName,
+                QueryColumn::getName
+        ));
+        this.hasAll = selects.stream().anyMatch(it -> it.getName().equals(CommonStr.STAR));
+
+    }
 
     public List<QueryColumn> addTargetColumn(AbstractRelation<?> relation) {
-
-        boolean hasAll = selects.stream().anyMatch(it -> it.getName().equals(CommonStr.STAR));
         TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
         if (hasAll) {
             return List.of(CacheTableInfoUtils.nNQueryAllColumns(tableInfo));
         } else {
             QueryColumn queryColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(relation);
-            List<QueryColumn> next = new ArrayList<>(selects);
-            next.add(queryColumn);
-            return next;
+            if (selectsKeysMap.containsKey(queryColumn.getName())) {
+                return selects;
+            } else {
+                List<QueryColumn> next = new ArrayList<>(selects);
+                next.add(queryColumn);
+                return next;
+            }
         }
     }
 
     public boolean needToClearTargetColumn(AbstractRelation<?> relation) {
+        if(isHasAll()){
+            return false;
+        }
         String column = CacheTableInfoUtils.nNRelTargetQueryColumn(relation).getName();
         return selects.stream().map(QueryColumn::getName).noneMatch(it -> it.equals(column));
     }

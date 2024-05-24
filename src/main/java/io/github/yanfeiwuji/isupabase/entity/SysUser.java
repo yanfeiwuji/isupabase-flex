@@ -27,8 +27,8 @@ public class SysUser {
 
     @RelationManyToMany(joinTable = "sys_role_user", // 中间表
             selfField = "id",
-            joinSelfColumn = "uid",
             targetField = "id",
+            joinSelfColumn = "uid",
             joinTargetColumn = "rid"
     )
     private List<SysRole> roles;

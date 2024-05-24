@@ -71,7 +71,7 @@ public class Select {
         this.relName = relName;
         this.relParamKeyTableName = relParamKeyTableName;
         this.inner = inner;
-        queryColumns = new ArrayList<>();
+        this.queryColumns = new ArrayList<>();
 
         List<String> selects = TokenUtils.splitByComma(selectValue);
 
@@ -129,8 +129,8 @@ public class Select {
                     return new Select(
                             it.value(),
                             realRelation.getTargetTableInfo(),
-                            preRel == null ? "%s".formatted(it.key())
-                                    : "%s.%s".formatted(preRel, it.key()),
+                            preRel == null ? "%s".formatted(needKey)
+                                    : "%s.%s".formatted(preRel,needKey),
                             realRelation.getName(),
                             new RelParamKeyTableName(needKey, tableInfo.getTableName()),
                             it.key().endsWith(CommonStr.SELECT_INNER_MARK));
@@ -191,11 +191,10 @@ public class Select {
                 .orElse(List.of())
 
                 .stream()
-                .filter(it -> it.isInner())
+                .filter(Select::isInner)
                 .map(it -> it.relParamKeyTableName)
                 .filter(Objects::nonNull)
-
-                .map(it -> it.toRelInner())
+                .map(RelParamKeyTableName::toRelInner)
                 .toList();
 
         return new RelQueryInfo(depth, depthRelPre, depthRelQueryExtTable, depthRelation, relInners);

@@ -56,7 +56,7 @@ public class ApiReq {
 
     //
     private Select select;
-    // root
+
     private String tableName;
     private List<Filter> filters;
     private List<String> subTables;
@@ -70,6 +70,7 @@ public class ApiReq {
         HttpMethod method = request.method();
 
         this.tableName = tableName;
+        log.info("finish to rela  subquery time:{}", System.currentTimeMillis() - s);
         TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
         this.select = handlerSelect(params, tableInfo);
 
@@ -77,6 +78,7 @@ public class ApiReq {
             this.subTables = this.select.allRelPres();
             this.relQueryInfo = this.select.tpRelQueryInfo();
             this.handlerSubFilter(params);
+            log.info("finish to handler subquery time:{}", System.currentTimeMillis() - s);
         }
 
         this.filters = handlerHorizontalFilter(params, tableInfo);
@@ -91,6 +93,7 @@ public class ApiReq {
     }
 
     private List<Filter> handlerHorizontalFilter(MultiValueMap<String, String> params, TableInfo tableInfo) {
+
         return params.entrySet()
                 .stream()
                 .filter(it -> subTables.stream().noneMatch(rel -> it.getKey().startsWith(rel)))
@@ -160,7 +163,7 @@ public class ApiReq {
         QueryWrapper queryWrapper = QueryWrapper.create();
 
         queryWrapper.select(select.getQueryColumns());
-        handlerInner(queryWrapper);
+        handlerFirstInner(queryWrapper);
         queryWrapper.and(filtersToQueryCondition());
 
         log.info("pre query time:{}", System.currentTimeMillis() - start);
@@ -182,40 +185,29 @@ public class ApiReq {
     public void handler(QueryChain<?> queryChain) {
         queryChain.select(select.getQueryColumns());
         queryChain.where(filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
-                .orElse(QueryCondition.createEmpty()))
+                        .orElse(QueryCondition.createEmpty()))
                 .withRelations();
     }
 
-    public void handlerInner(QueryWrapper queryWrapper) {
+    /**
+     * only handler depth zero
+     *
+     * @param queryWrapper
+     */
+    public void handlerFirstInner(QueryWrapper queryWrapper) {
         List<RelInner> relInners = relQueryInfo.inners();
-        Table<Integer, String, DepthRelQueryExt> dTable = relQueryInfo.depthRelQueryExt();
+        Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = relQueryInfo.depthRelQueryExt();
 
         relInners.forEach(rel -> {
             AbstractRelation<?> relation = rel.getAbstractRelation();
             String relName = relation.getName();
-
-            TableInfo subTableInfo = relation.getTargetTableInfo();
-            QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(subTableInfo);
-
-            QueryCondition queryCondition = dTable.get(0, relName).getCondition();
-
-            QueryColumn targetColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(relation);
-            QueryColumn selfColumn = CacheTableInfoUtils.nNRelSelfQueryColumn(relation);
-
-            String sql = QueryWrapper.create()
-                    .select("1")
-                    .from(queryTable)
-                    .where(targetColumn.eq(selfColumn))
-                    .and(queryCondition).toSQL();
-            System.out.println(sql);
-
-            // queryWrapper.and(
-            // new RawQueryCondition(" EXIST ",)
-
-            // );
-
+            DepthRelQueryExt depthRelQueryExt = depthRelQueryExtTable.get(0, relName);
+            //
+            assert depthRelQueryExt != null;
+            RelInnerHandler.handlerRelInner(relation, queryWrapper, depthRelQueryExt);
         });
-        // relQueryInfo.inners().cellSet();
+
     }
+
 
 }

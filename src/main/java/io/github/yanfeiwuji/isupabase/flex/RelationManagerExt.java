@@ -302,9 +302,9 @@ public class RelationManagerExt {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     static <Entity> void doQueryRelations(BaseMapper<?> mapper, List<Entity> entities, int currentDepth, int maxDepth,
-            Set<String> ignoreRelations, Set<String> queryRelations) {
+                                          Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -432,11 +432,11 @@ public class RelationManagerExt {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     static <Entity> void doQueryRelationsWithDepthRelQuery(BaseMapper<?> mapper, List<Entity> entities,
-            int currentDepth,
-            int maxDepth,
-            Set<String> ignoreRelations, Set<String> queryRelations) {
+                                                           int currentDepth,
+                                                           int maxDepth,
+                                                           Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -458,10 +458,10 @@ public class RelationManagerExt {
                         .ofNullable(depthRelQueryExtsThreadLocal)
                         .map(ThreadLocal::get)
                         .map(it -> it.get(currentDepth, relation.getName()));
+
                 if (depthRelQueryExtOptional.isEmpty()) {
                     return;
                 }
-                ;
 
                 // ignore
                 if (ignoreRelations != null && (ignoreRelations.contains(relation.getSimpleName())
