@@ -13,4 +13,7 @@ public final class CommonStr {
 
     public static final String ASC = "asc";
     public static final String DESC = "desc";
+
+    public static final String EMPTY_STRING = "";
+
 }

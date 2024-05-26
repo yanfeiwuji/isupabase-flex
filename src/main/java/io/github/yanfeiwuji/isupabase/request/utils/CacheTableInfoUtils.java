@@ -25,8 +25,6 @@ import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import lombok.experimental.UtilityClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * TableInfoUtils
@@ -48,10 +46,10 @@ public class CacheTableInfoUtils {
     private static final Map<String, QueryColumn> CACHE_REL_JOIN_TARGET_QUERY_COLUMN = new ConcurrentHashMap<>();
     private static final Map<String, QueryColumn> CACHE_REL_JOIN_SELF_QUERY_COLUMN = new ConcurrentHashMap<>();
 
-    private ObjectMapper mapper;
-    private Optional<NamingBase> namingBaseOptional;
+    private static ObjectMapper mapper;
+    private static Optional<NamingBase> namingBaseOptional;
 
-    public void init(ObjectMapper mapper) {
+    public static void init(ObjectMapper mapper) {
         CacheTableInfoUtils.mapper = mapper;
         CacheTableInfoUtils.namingBaseOptional = initNamingBaseOptional();
     }
@@ -244,7 +242,7 @@ public class CacheTableInfoUtils {
                 .map(PropertyNamingStrategies.NamingBase.class::cast);
     }
 
-    private String propertyToParamKey(String property) {
+    public String propertyToParamKey(String property) {
         return Optional.ofNullable(property)
                 .flatMap(it -> namingBaseOptional.map(naming -> naming.translate(it)))
                 .orElse(property);

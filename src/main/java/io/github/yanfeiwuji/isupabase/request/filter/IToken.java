@@ -1,14 +1,10 @@
 package io.github.yanfeiwuji.isupabase.request.filter;
 
-import cn.hutool.core.collection.ListUtil;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public interface IToken {
 

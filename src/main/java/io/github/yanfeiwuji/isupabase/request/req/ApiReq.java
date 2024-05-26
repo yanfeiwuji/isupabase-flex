@@ -20,6 +20,9 @@ import io.github.yanfeiwuji.isupabase.flex.RelationManagerExt;
 import io.github.yanfeiwuji.isupabase.request.filter.Filter;
 import io.github.yanfeiwuji.isupabase.request.order.Order;
 import io.github.yanfeiwuji.isupabase.request.range.Range;
+import io.github.yanfeiwuji.isupabase.request.select.QueryExec;
+import io.github.yanfeiwuji.isupabase.request.select.QueryExecFactory;
+import io.github.yanfeiwuji.isupabase.request.select.QueryExecStuff;
 import io.github.yanfeiwuji.isupabase.request.select.RelInner;
 import io.github.yanfeiwuji.isupabase.request.select.RelQueryInfo;
 import io.github.yanfeiwuji.isupabase.request.select.Select;
@@ -66,6 +69,8 @@ public class ApiReq {
 
     private List<Order> rootOrder;
 
+    private QueryExec queryExec;
+
     public ApiReq(ServerRequest request, String tableName) {
         long s = System.currentTimeMillis();
         log.info("start time:{}", s);
@@ -78,7 +83,6 @@ public class ApiReq {
         this.select = handlerSelect(params, tableInfo);
 
         this.range = ParamKeyUtils.rootRange(params);
-        // this.rootSingleQueryOrders = handlerOrders(params, tableInfo);
 
         if (method.equals(HttpMethod.GET)) {
             this.subTables = this.select.allRelPres();
@@ -95,6 +99,14 @@ public class ApiReq {
         String selectValue = Optional
                 .ofNullable(params.getFirst(ParamKeyUtils.SELECT_KEY))
                 .orElse("*");
+
+        QueryExec queryExec = QueryExecFactory.of(new QueryExecStuff(selectValue, tableInfo, false, null));
+        this.queryExec = queryExec;
+        Map<String, QueryExec> q = QueryExecFactory.toMap(queryExec, new HashMap<>(), "");
+        q.forEach((k, v) -> {
+            System.out.println(k + ":" + v.getRelation().getName());
+        });
+        System.out.println(queryExec + "==");
         return new Select(selectValue, tableInfo);
     }
 
@@ -141,11 +153,13 @@ public class ApiReq {
     }
 
     public List<?> result(BaseMapper<?> baseMapper) {
-        if (subTables.isEmpty()) {
-            return singleTableResult(baseMapper);
-        } else {
-            return singleTableWithRelResult(baseMapper);
-        }
+
+        return baseMapper.selectListByQuery(queryExec.handler(QueryWrapper.create()));
+        // if (subTables.isEmpty()) {
+        // return singleTableResult(baseMapper);
+        // } else {
+        // return singleTableWithRelResult(baseMapper);
+        // }
     }
 
     private void handlerSubFilterAndRange(MultiValueMap<String, String> params) {

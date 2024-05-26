@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
-@Slf4j
 @AllArgsConstructor
 public class ReqHandler implements IReqHandler {
     private final IReqQueryWrapperHandler reqQueryWrapperHandler;

@@ -1,7 +1,9 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
@@ -18,24 +20,26 @@ import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 import lombok.Data;
 
 @Data
-public class NewReq {
+public class QueryExec {
 
     AbstractRelation<?> relation; // sub
 
     QueryTable queryTable;
-    List<QueryColumn> queryColumns = List.of();
 
-    // use in roole
+    List<QueryColumn> queryColumns;
+
+    // use in order
     @SuppressWarnings("rawtypes")
-    List<AbstractRelation> joinRelations = List.of();
+    List<AbstractRelation> joins;
 
-    List<QueryOrderBy> orders = List.of();
+    List<QueryOrderBy> orders;
+
     QueryCondition queryCondition = QueryCondition.createEmpty();
+
+    List<QueryExec> subs;
 
     // up use
     boolean inner = false;
-
-    List<NewReq> subs = List.of();
 
     Number limit;
     Number offset;
@@ -62,13 +66,13 @@ public class NewReq {
     }
 
     private void inner(QueryWrapper queryWrapper) {
-        this.subs.stream().filter(it -> it.isInner())
-                .forEach(innerSubs -> {
-                    queryWrapper.and(QueryMethods.exists(RelationUtils
-                            .relationExistQueryWrapper(innerSubs.relation)
-                            .and(queryCondition))
-                            .and(innerSubs.queryCondition));
-                });
+        Optional.ofNullable(this.subs)
+                .orElse(List.of())
+                .stream().filter(it -> it.isInner())
+                .forEach(innerSubs -> queryWrapper.and(QueryMethods.exists(RelationUtils
+                        .relationExistQueryWrapper(innerSubs.relation)
+                        .and(queryCondition))
+                        .and(innerSubs.queryCondition)));
     }
 
     private void condition(QueryWrapper queryWrapper) {
@@ -76,17 +80,51 @@ public class NewReq {
     }
 
     private void join(QueryWrapper queryWrapper) {
-        joinRelations.stream()
+        Optional.ofNullable(joins)
+                .orElse(List.of())
+                .stream()
                 .filter(it -> it instanceof OneToOne || it instanceof ManyToOne)
                 .forEach(it -> RelationUtils.relationJoin(queryWrapper, it));
     }
 
     private void order(QueryWrapper queryWrapper) {
-        orders.forEach(queryWrapper::orderBy);
+        Optional.ofNullable(orders)
+                .orElse(List.of())
+                .forEach(queryWrapper::orderBy);
     }
 
     private void range(QueryWrapper queryWrapper) {
         queryWrapper.limit(limit);
         queryWrapper.offset(offset);
     }
+
+    public void addQuerycolum(QueryColumn queryColumn) {
+        if (queryColumns == null) {
+            queryColumns = new ArrayList<>();
+        }
+        queryColumns.add(queryColumn);
+    }
+
+    @SuppressWarnings("rawtypes")
+    public void addJoin(AbstractRelation relation) {
+        if (joins == null) {
+            joins = new ArrayList<>();
+        }
+        joins.add(relation);
+    }
+
+    public void addOrder(QueryOrderBy order) {
+        if (orders == null) {
+            orders = new ArrayList<>();
+        }
+        orders.add(order);
+    }
+
+    public void addSub(QueryExec sub) {
+        if (subs == null) {
+            subs = new ArrayList<>();
+        }
+        subs.add(sub);
+    }
+
 }
