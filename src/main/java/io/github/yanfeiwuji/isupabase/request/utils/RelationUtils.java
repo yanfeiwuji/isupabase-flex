@@ -57,4 +57,47 @@ public class RelationUtils {
                 .from(queryTable)
                 .where(targetColumn.eq(selfColumn));
     }
+
+    public void relationJoin(QueryWrapper queryWrapper, AbstractRelation relation) {
+        String joinTable = relation.getJoinTable();
+        if (CharSequenceUtil.isNotBlank(joinTable)) {
+            addJoinHasJoin(queryWrapper, relation);
+        } else {
+            addJoinNoJoin(queryWrapper, relation);
+        }
+    }
+
+    private void addJoinHasJoin(QueryWrapper queryWrapper, AbstractRelation<?> relation) {
+        TableInfo targetTableInfo = relation.getTargetTableInfo();
+        String joinTable = relation.getJoinTable();
+
+        TableInfo joinTableInfo = TableInfoFactory.ofTableName(joinTable);
+
+        QueryTable joinQueryTable = CacheTableInfoUtils.nNQueryTable(joinTableInfo);
+
+        QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(targetTableInfo);
+
+        QueryColumn targetColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(relation);
+        QueryColumn joinSelfQueryColumn = CacheTableInfoUtils.nNRelJoinSelfQueryColumn(relation);
+
+        QueryColumn joinTargetQueryColumn = CacheTableInfoUtils.nNRelJoinTargetQueryColumn(relation);
+        QueryColumn selfQueryColumn = CacheTableInfoUtils.nNRelSelfQueryColumn(relation);
+
+        queryWrapper.join(joinQueryTable)
+                .on(joinSelfQueryColumn.eq(selfQueryColumn))
+                .join(queryTable).on(joinTargetQueryColumn.eq(targetColumn));
+
+    }
+
+    private void addJoinNoJoin(QueryWrapper queryWrapper, AbstractRelation relation) {
+
+        TableInfo targetTableInfo = relation.getTargetTableInfo();
+        QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(targetTableInfo);
+
+        QueryColumn selfQueryColumn = CacheTableInfoUtils.nNRelSelfQueryColumn(relation);
+        QueryColumn targetQueryColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(relation);
+
+        queryWrapper.leftJoin(queryTable).on(targetQueryColumn.eq(selfQueryColumn));
+
+    }
 }

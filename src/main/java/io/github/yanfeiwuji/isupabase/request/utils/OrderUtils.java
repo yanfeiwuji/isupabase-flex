@@ -9,7 +9,6 @@ import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
-import cn.hutool.core.text.CharSequenceUtil;
 import io.github.yanfeiwuji.isupabase.request.order.Order;
 import lombok.experimental.UtilityClass;
 
