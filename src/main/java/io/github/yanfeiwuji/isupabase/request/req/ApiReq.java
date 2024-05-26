@@ -1,23 +1,20 @@
 package io.github.yanfeiwuji.isupabase.request.req;
 
+import static com.mybatisflex.core.query.QueryMethods.null_;
+
 import java.util.*;
-import java.util.stream.Collectors;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.StrUtil;
+
 import com.google.common.collect.Table;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.relation.AbstractRelation;
-import com.mybatisflex.core.relation.RelationManager;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
-import com.mybatisflex.core.util.MapUtil;
-import com.mybatisflex.core.util.MapperUtil;
 
-import io.github.yanfeiwuji.isupabase.entity.table.SysUserExtTableDef;
 import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
 import io.github.yanfeiwuji.isupabase.flex.RelationManagerExt;
 import io.github.yanfeiwuji.isupabase.request.filter.Filter;
@@ -67,7 +64,7 @@ public class ApiReq {
     private Range range;
     private RelQueryInfo relQueryInfo;
 
-    private List<QueryOrderBy> rootSingleQueryOrders;
+    private List<Order> rootOrder;
 
     public ApiReq(ServerRequest request, String tableName) {
         long s = System.currentTimeMillis();
@@ -81,6 +78,7 @@ public class ApiReq {
         this.select = handlerSelect(params, tableInfo);
 
         this.range = ParamKeyUtils.rootRange(params);
+        // this.rootSingleQueryOrders = handlerOrders(params, tableInfo);
 
         if (method.equals(HttpMethod.GET)) {
             this.subTables = this.select.allRelPres();
@@ -89,11 +87,9 @@ public class ApiReq {
             log.info("finish to handler subquery time:{}", System.currentTimeMillis() - s);
         }
 
-
         this.filters = handlerHorizontalFilter(params, tableInfo);
         log.info("finish to need time:{}", System.currentTimeMillis() - s);
     }
-
 
     private Select handlerSelect(MultiValueMap<String, String> params, TableInfo tableInfo) {
         String selectValue = Optional
@@ -103,17 +99,25 @@ public class ApiReq {
     }
 
     /**
-     * todo handler top leve orders
      *
      * @param params
      * @param tableInfo
      * @return
      */
-    private List<QueryOrderBy> handlerOrders(MultiValueMap<String, String> params, TableInfo tableInfo) {
+    private List<Order> handlerRootOrder(MultiValueMap<String, String> params, TableInfo tableInfo) {
         String orderValue = params.getFirst(ParamKeyUtils.ORDER_KEY);
-        return Optional.ofNullable(orderValue).map(it -> new Order(orderValue, tableInfo))
-                .map(Order::getOrders)
-                .orElse(List.of());
+        Table<Integer, String, String> depthRelPreTable = this.relQueryInfo.depthRelPre();
+        Table<Integer, String, AbstractRelation<?>> depthRelationTable = this.relQueryInfo.depthRelation();
+        this.relQueryInfo.depthRelPre();
+        this.select.getSubSelect().stream().map(it -> it.getRelParamKeyTableName())
+                .map(it -> it.toRelInner())
+                .forEach(relInner -> {
+
+                });
+
+        ;
+
+        return List.of();
     }
 
     private List<Filter> handlerHorizontalFilter(MultiValueMap<String, String> params, TableInfo tableInfo) {
@@ -180,6 +184,7 @@ public class ApiReq {
 
             Optional.ofNullable(ParamKeyUtils.preRange(params, pre))
                     .ifPresent(depthRelQueryExt::setRange);
+
         });
 
     }
@@ -189,9 +194,9 @@ public class ApiReq {
         queryWrapper.select(select.getQueryColumns());
         queryWrapper.where(filtersToQueryCondition());
         QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper);
+        // this.rootOrder.forEach(queryWrapper::orderBy);
         return baseMapper.selectListByQuery(queryWrapper);
     }
-
 
     private List<?> singleTableWithRelResult(BaseMapper<?> baseMapper) {
 
@@ -202,6 +207,7 @@ public class ApiReq {
         queryWrapper.and(filtersToQueryCondition());
 
         QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper);
+        // this.rootSingleQueryOrders.forEach(queryWrapper::orderBy);
 
         List<?> list = baseMapper.selectListByQuery(queryWrapper);
 
@@ -213,10 +219,11 @@ public class ApiReq {
     }
 
     private QueryCondition filtersToQueryCondition() {
-        return filters.stream().map(Filter::toQueryCondition).reduce(QueryCondition::and)
+        return filters.stream()
+                .map(Filter::toQueryCondition)
+                .reduce(QueryCondition::and)
                 .orElse(QueryCondition.createEmpty());
     }
-
 
     /**
      * only handler depth zero
@@ -235,8 +242,10 @@ public class ApiReq {
             assert depthRelQueryExt != null;
             RelInnerHandler.handlerRelInner(relation, queryWrapper, depthRelQueryExt);
         });
-
     }
 
+    public void applyOrder(QueryWrapper queryWrapper) {
+
+    }
 
 }

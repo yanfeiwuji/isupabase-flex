@@ -24,7 +24,6 @@ import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.FlexConsts;
 import com.mybatisflex.core.FlexGlobalConfig;
 import com.mybatisflex.core.datasource.DataSourceKey;
-import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.relation.ManyToMany;
@@ -32,8 +31,6 @@ import com.mybatisflex.core.relation.ManyToOne;
 import com.mybatisflex.core.relation.OneToMany;
 import com.mybatisflex.core.relation.OneToOne;
 import com.mybatisflex.core.row.Row;
-import com.mybatisflex.core.table.TableInfo;
-import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.util.ClassUtil;
 import com.mybatisflex.core.util.CollectionUtil;
 import com.mybatisflex.core.util.LambdaGetter;
@@ -42,13 +39,12 @@ import com.mybatisflex.core.util.MapUtil;
 import com.mybatisflex.core.util.StringUtil;
 
 import io.github.yanfeiwuji.isupabase.request.req.RelInnerHandler;
-import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
-import io.github.yanfeiwuji.isupabase.request.utils.MapKeyUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.QueryWrapperUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 import static com.mybatisflex.core.query.QueryMethods.column;
 
@@ -100,6 +96,8 @@ public class RelationManagerExt {
      * deepth:
      */
     private static ThreadLocal<Table<Integer, String, DepthRelQueryExt>> depthRelQueryExtsThreadLocal = new ThreadLocal<>();
+
+    private static ThreadLocal<Table<Integer, String, BiConsumer<AbstractRelation, QueryWrapper>>> depthQueryWrapperCustomizerThreadLocal = new ThreadLocal<>();
 
     public static int getDefaultQueryDepth() {
         return defaultQueryDepth;
@@ -304,9 +302,9 @@ public class RelationManagerExt {
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     static <Entity> void doQueryRelations(BaseMapper<?> mapper, List<Entity> entities, int currentDepth, int maxDepth,
-                                          Set<String> ignoreRelations, Set<String> queryRelations) {
+            Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -434,11 +432,11 @@ public class RelationManagerExt {
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     static <Entity> void doQueryRelationsWithDepthRelQuery(BaseMapper<?> mapper, List<Entity> entities,
-                                                           int currentDepth,
-                                                           int maxDepth,
-                                                           Set<String> ignoreRelations, Set<String> queryRelations) {
+            int currentDepth,
+            int maxDepth,
+            Set<String> ignoreRelations, Set<String> queryRelations) {
         if (CollectionUtil.isEmpty(entities)) {
             return;
         }
@@ -543,18 +541,17 @@ public class RelationManagerExt {
                             Optional.ofNullable(depthRelQueryExtsThreadLocal)
                                     .map(ThreadLocal::get)
                                     .map(it -> it.get(currentDepth + 1, abstractRelation.getName()))
-                                    .ifPresent(it -> RelInnerHandler.handlerRelInner(abstractRelation, queryWrapper, it));
+                                    .ifPresent(
+                                            it -> RelInnerHandler.handlerRelInner(abstractRelation, queryWrapper, it));
 
                         });
                         // handler range
                         Optional.ofNullable(ext.getRange())
                                 .ifPresent(
-                                        range ->
-                                                QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper));
+                                        range -> QueryWrapperUtils.handlerQueryWrapperRange(range, queryWrapper));
 
                         // RelInnerHandler.handlerRelInner(relation, queryWrapper, ext);
                     });
-
 
                     List<?> targetObjectList = mapper.selectListByQueryAs(queryWrapper,
                             relation.isOnlyQueryValueField() ? relation.getTargetEntityClass()

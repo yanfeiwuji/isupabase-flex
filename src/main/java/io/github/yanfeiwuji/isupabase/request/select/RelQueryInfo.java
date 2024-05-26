@@ -12,7 +12,8 @@ public record RelQueryInfo(
         Table<Integer, String, DepthRelQueryExt> depthRelQueryExt,
         Table<Integer, String, AbstractRelation<?>> depthRelation,
         List<RelInner> inners, // top inner
-        Table<Integer, String, List<RelInner>> depthInners
-) {
+        Table<Integer, String, List<RelInner>> depthInners,
+        // sub rels
+        Table<Integer, String, List<AbstractRelation>> depthSubRel) {
 
 }

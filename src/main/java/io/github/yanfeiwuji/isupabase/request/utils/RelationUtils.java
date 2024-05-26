@@ -1,9 +1,7 @@
 package io.github.yanfeiwuji.isupabase.request.utils;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryColumn;
-import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryTable;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
@@ -18,7 +16,6 @@ public class RelationUtils {
     public QueryWrapper relationExistQueryWrapper(AbstractRelation<?> relation) {
 
         String joinTable = relation.getJoinTable();
-        System.out.println(joinTable);
         if (CharSequenceUtil.isNotBlank(joinTable)) {
             return relationExistJoin(relation);
         } else {

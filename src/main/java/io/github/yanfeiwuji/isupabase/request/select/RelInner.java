@@ -6,9 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
-// TODO remove change to list use pid to get tree
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

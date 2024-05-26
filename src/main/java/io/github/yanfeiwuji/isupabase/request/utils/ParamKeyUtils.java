@@ -24,11 +24,11 @@ public class ParamKeyUtils {
     private static final Map<String, String> IGNORE_FILTER = Stream.of(
             SELECT_KEY,
             LIMIT_KEY,
-            OFFSET_KEY
-    ).collect(Collectors.toMap(it -> it, it -> it));
+            OFFSET_KEY,
+            ORDER_KEY).collect(Collectors.toMap(it -> it, it -> it));
 
     public boolean canSubFilter(String key, String pre) {
-        Map<String, String> collect = Stream.of(LIMIT_KEY, OFFSET_KEY,ORDER_KEY)
+        Map<String, String> collect = Stream.of(LIMIT_KEY, OFFSET_KEY, ORDER_KEY)
                 .map(it -> pre + StrPool.DOT + it)
                 .collect(Collectors.toMap(it -> it, it -> it));
         return key.startsWith(pre) && !collect.containsKey(key);
@@ -39,15 +39,7 @@ public class ParamKeyUtils {
     }
 
     public Range rootRange(MultiValueMap<String, String> params) {
-        Integer limit = Optional.ofNullable(params.getFirst(ParamKeyUtils.LIMIT_KEY))
-                .filter(NumberUtil::isNumber)
-                .map(Integer::valueOf)
-                .orElse(null);
-        Integer offset = Optional.ofNullable(params.getFirst(ParamKeyUtils.OFFSET_KEY))
-                .filter(NumberUtil::isNumber)
-                .map(Integer::valueOf)
-                .orElse(null);
-        return new Range(limit, offset);
+        return preRange(params, "");
     }
 
     public Range preRange(MultiValueMap<String, String> params, String pre) {

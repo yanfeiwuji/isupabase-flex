@@ -1,23 +1,21 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
-import com.mybatisflex.core.table.TableInfoFactory;
 
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.flex.DepthRelQueryExt;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import io.github.yanfeiwuji.isupabase.request.filter.KeyValue;
+import io.github.yanfeiwuji.isupabase.request.order.Order;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
-import io.github.yanfeiwuji.isupabase.request.utils.MapKeyUtils;
+
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -57,11 +55,11 @@ public class Select {
     }
 
     public Select(String selectValue,
-                  TableInfo tableInfo,
-                  String preRel,
-                  String relName,
-                  RelParamKeyTableName relParamKeyTableName,
-                  boolean inner) {
+            TableInfo tableInfo,
+            String preRel,
+            String relName,
+            RelParamKeyTableName relParamKeyTableName,
+            boolean inner) {
 
         log.info("selectValue:{}", selectValue);
         this.selectValue = selectValue;
@@ -148,12 +146,16 @@ public class Select {
         return allRelPres(new ArrayList<>()).stream().filter(Objects::nonNull).toList();
     }
 
+    @SuppressWarnings("rawtypes")
     public RelQueryInfo tpRelQueryInfo() {
         Table<Integer, String, DepthRelQueryExt> depthRelQueryExtTable = HashBasedTable.create();
         Table<Integer, String, String> depthRelPre = HashBasedTable.create();
         Table<Integer, String, AbstractRelation<?>> depthRelation = HashBasedTable.create();
         Table<Integer, String, Boolean> inners = HashBasedTable.create();
         Table<Integer, String, List<RelInner>> depthInners = HashBasedTable.create();
+
+        Table<Integer, String, List<AbstractRelation>> depthSubRel = HashBasedTable.create();
+
         List<Select> currentSelectList = List.of(this);
 
         int depth = -1;
@@ -166,8 +168,7 @@ public class Select {
                             new DepthRelQueryExt(
                                     select.queryColumns,
                                     QueryCondition.createEmpty(),
-                                    List.of()
-                            ));
+                                    List.of()));
                     depthRelPre.put(
                             depth,
                             select.getRelName(),
@@ -178,17 +179,24 @@ public class Select {
                                 select.getRelName(),
                                 select.relParamKeyTableName.toRelation());
                     }
+                    List<AbstractRelation> rls = select.subSelect.stream()
+                            .map(it -> (AbstractRelation) it.getRelParamKeyTableName()
+                                    .toRelation())
+                            .toList();
+
+                    depthSubRel.put(depth,
+                            select.getRelName(),
+                            rls);
                     inners.put(
                             depth,
                             select.getRelName(),
                             select.isInner());
                     List<RelInner> relInners = select.relInners();
-                    if(!relInners.isEmpty()){
+                    if (!relInners.isEmpty()) {
                         depthInners.put(
                                 depth,
                                 select.getRelName(),
-                                relInners
-                        );
+                                relInners);
                     }
 
                 }
@@ -199,7 +207,13 @@ public class Select {
         }
         List<RelInner> relInners = relInners();
 
-        return new RelQueryInfo(depth, depthRelPre, depthRelQueryExtTable, depthRelation, relInners, depthInners);
+        return new RelQueryInfo(
+                depth,
+                depthRelPre,
+                depthRelQueryExtTable,
+                depthRelation, relInners,
+                depthInners,
+                depthSubRel);
     }
 
     public List<RelInner> relInners() {

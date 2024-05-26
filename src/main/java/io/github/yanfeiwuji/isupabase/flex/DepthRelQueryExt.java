@@ -3,15 +3,17 @@ package io.github.yanfeiwuji.isupabase.flex;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryOrderBy;
+import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.request.order.Order;
 import io.github.yanfeiwuji.isupabase.request.range.Range;
 import io.github.yanfeiwuji.isupabase.request.select.RelInner;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
-import lombok.AllArgsConstructor;
+
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -29,19 +31,17 @@ public class DepthRelQueryExt {
     private boolean hasAll;
 
     private Range range;
-    private QueryOrderBy orderBy;
+    private List<Order> orderBy;
 
     public DepthRelQueryExt(List<QueryColumn> selects,
-                            QueryCondition condition,
-                            List<RelInner> relInners
-    ) {
+            QueryCondition condition,
+            List<RelInner> relInners) {
         this.selects = selects;
         this.condition = condition;
         this.relInners = relInners;
         this.selectsKeysMap = selects.stream().collect(Collectors.toMap(
                 QueryColumn::getName,
-                QueryColumn::getName
-        ));
+                QueryColumn::getName));
         this.hasAll = selects.stream().anyMatch(it -> it.getName().equals(CommonStr.STAR));
 
     }
@@ -69,4 +69,5 @@ public class DepthRelQueryExt {
         String column = CacheTableInfoUtils.nNRelTargetQueryColumn(relation).getName();
         return selects.stream().map(QueryColumn::getName).noneMatch(it -> it.equals(column));
     }
+
 }

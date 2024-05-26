@@ -2,9 +2,6 @@ package io.github.yanfeiwuji.isupabase.request.impl;
 
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.mybatis.Mappers;
-import com.mybatisflex.core.query.QueryChain;
-import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.core.relation.RelationManager;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
@@ -41,7 +38,6 @@ public class ReqHandler implements IReqHandler {
                 .orElseThrow(MDbExManagers.UNDEFINED_TABLE.supplierReqEx(tableName));
 
         BaseMapper<?> baseMapper = Mappers.ofEntityClass(tableInfo.getEntityClass());
-
 
         ApiReq apiReq = reqQueryWrapperHandler.handler(request, tableName);
 
@@ -128,7 +124,6 @@ public class ReqHandler implements IReqHandler {
                 .map(TableInfo.class::cast)
                 .orElseThrow();
     }
-
 
     @SuppressWarnings("unchecked")
     private <T> BaseMapper<T> mapper(ServerRequest request) {

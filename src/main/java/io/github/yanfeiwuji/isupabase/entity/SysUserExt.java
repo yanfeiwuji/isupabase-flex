@@ -14,5 +14,4 @@ public class SysUserExt {
     private Long uid;
     private String avatar;
 
-
 }

@@ -17,6 +17,9 @@ public final class MTokens {
             Pattern.compile("^(.*?)\\((.*)\\)$"));
 
     public final Token ORDER_BY = new Token("order_by",
-            Pattern.compile("(.+?)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));
+            Pattern.compile("([a-zA-Z1-9_]*)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));
+
+    public final Token TOP_ORDER_BY = new Token("top_order_by",
+            Pattern.compile("([a-zA-Z1-9_.]*)\\(([a-zA-Z1-9_]*)\\)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));
 
 }

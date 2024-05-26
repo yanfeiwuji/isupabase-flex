@@ -8,7 +8,8 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class RelInnerHandler {
-    public void handlerRelInner(AbstractRelation<?> relation, QueryWrapper queryWrapper, DepthRelQueryExt depthRelQueryExt) {
+    public void handlerRelInner(AbstractRelation<?> relation, QueryWrapper queryWrapper,
+            DepthRelQueryExt depthRelQueryExt) {
 
         QueryWrapper existQueryWrapper = RelationUtils.relationExistQueryWrapper(relation);
         existQueryWrapper.and(depthRelQueryExt.getCondition());
