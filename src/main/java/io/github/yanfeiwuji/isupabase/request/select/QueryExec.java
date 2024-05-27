@@ -21,6 +21,7 @@ import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 
 import lombok.Data;
 
+// TODO add pre use in order
 @Data
 public class QueryExec {
 
