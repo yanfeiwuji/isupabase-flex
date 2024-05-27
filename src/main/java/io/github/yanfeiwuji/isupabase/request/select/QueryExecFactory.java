@@ -9,6 +9,7 @@ import com.mybatisflex.core.table.TableInfo;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.request.filter.KeyValue;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ParamKeyUtils;
@@ -54,14 +55,15 @@ public class QueryExecFactory {
                 .map(next -> CharSequenceUtil.isEmpty(pre) ? next : pre + StrPool.DOT + next)
                 .map(CacheTableInfoUtils::propertyToParamKey)
                 .orElse(CommonStr.EMPTY_STRING);
+
         if (Objects.nonNull(queryExec.getRelation())) {
             indexed.put(needPre, queryExec);
         }
 
-
         TokenUtils.splitByComma(stuff.select()).forEach(selectItem -> {
             if (MTokens.SELECT_WITH_SUB.find(selectItem)) {
-                QueryExec subQueryExec = QueryExecFactory.of(SelectUtils.queryExecStuff(selectItem, tableInfo), indexed, needPre);
+                QueryExec subQueryExec = QueryExecFactory.of(SelectUtils.queryExecStuff(selectItem, tableInfo), indexed,
+                        needPre);
                 queryExec.addSub(subQueryExec);
             } else {
                 queryExec.addQueryColumn(SelectUtils.queryColumn(selectItem, tableInfo));
@@ -71,10 +73,17 @@ public class QueryExecFactory {
         return queryExec;
     }
 
-
     public void rig(QueryExecLookup queryExecLookup, MultiValueMap<String, List<String>> params) {
         Map<String, QueryExec> indexed = queryExecLookup.indexed();
+
         params.forEach((k, values) -> {
+
+            Optional<KeyValue> kv = MTokens.WITH_SUB_KEY.keyValue(k);
+            if (kv.isPresent()) {
+                KeyValue keyValue = kv.get();
+                Optional.ofNullable(indexed.get(keyValue.key())).orElseThrow();
+
+            }
 
             /**
              * k xx.xx
@@ -83,8 +92,14 @@ public class QueryExecFactory {
              * limit
              * offset
              * order
-             *
+             * 
              */
         });
     }
+
+    public void rigSingle(QueryExec queryExec, String key, List<String> values) {
+        // TableInfo tableInfo = queryExec.getTableInfo();
+
+    }
+
 }

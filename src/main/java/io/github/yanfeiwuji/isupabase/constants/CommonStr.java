@@ -16,4 +16,12 @@ public final class CommonStr {
 
     public static final String EMPTY_STRING = "";
 
+    public static final String ORDER = "order";
+    public static final String LIMIT = "limit";
+    public static final String OFFSET = "order";
+
+    public static final String DOT_ORDER = ".order";
+    public static final String DOT_LIMIT = ".limit";
+    public static final String DOT_OFFSET = ".offset";
+
 }

@@ -63,7 +63,9 @@ public class QueryExec {
     }
 
     private void select(QueryWrapper queryWrapper) {
-        queryWrapper.select(queryColumns);
+        if (Objects.nonNull(queryColumns)) {
+            queryWrapper.select(queryColumns);
+        }
     }
 
     private void from(QueryWrapper queryWrapper) {
@@ -77,8 +79,8 @@ public class QueryExec {
                 .orElse(List.of())
                 .stream().filter(QueryExec::isInner)
                 .forEach(innerSubs -> queryWrapper.and(QueryMethods.exists(RelationUtils
-                                .relationExistQueryWrapper(innerSubs.relation)
-                                .and(queryCondition))
+                        .relationExistQueryWrapper(innerSubs.relation)
+                        .and(queryCondition))
                         .and(innerSubs.queryCondition)));
     }
 

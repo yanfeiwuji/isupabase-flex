@@ -24,6 +24,7 @@ import cn.hutool.core.map.MapUtil;
 import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
+import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -82,7 +83,8 @@ public class CacheTableInfoUtils {
     }
 
     public AbstractRelation<?> nNRealRelation(String paramKey, TableInfo tableInfo) {
-        return realRelation(paramKey, tableInfo).orElseThrow(MDbExManagers.COLUMN_NOT_FOUND.supplierReqEx(paramKey));
+        return realRelation(paramKey, tableInfo)
+                .orElseThrow(MReqExManagers.COULD_NOT_FIND_REL.supplierReqEx(tableInfo.getTableName(), paramKey));
     }
 
     public Optional<String> realColumn(String paramKey, TableInfo tableInfo) {

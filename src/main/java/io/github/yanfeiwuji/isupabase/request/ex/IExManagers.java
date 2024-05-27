@@ -9,6 +9,10 @@ public interface IExManagers {
         return () -> new ReqEx(getExResTemp(), args);
     }
 
+    default Supplier<ReqEx> supplierReqExWith(Object... args) {
+        return () -> new ReqEx(getExResTemp(), args);
+    }
+
     default ReqEx reqEx(Object... args) {
         return new ReqEx(getExResTemp(), args);
     }

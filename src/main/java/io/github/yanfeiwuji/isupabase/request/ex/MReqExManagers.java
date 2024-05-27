@@ -34,6 +34,12 @@ public enum MReqExManagers implements IExManagers {
                     null,
                     null,
                     "A related order on '%s' is not possible",
+                    HttpStatus.BAD_REQUEST)),
+    COULD_NOT_FIND_REL(
+            new ExResTemp("PGRST200",
+                    "Searched relationship between '%s' and '%s' in database ,but no matches were found.",
+                    null,
+                    "Could not find a relationship between '%s' and '%s' in the schema cache",
                     HttpStatus.BAD_REQUEST));
 
     private ExResTemp exResTemp;
