@@ -40,7 +40,22 @@ public enum MReqExManagers implements IExManagers {
                     "Searched relationship between '%s' and '%s' in database ,but no matches were found.",
                     null,
                     "Could not find a relationship between '%s' and '%s' in the schema cache",
-                    HttpStatus.BAD_REQUEST));
+                    HttpStatus.BAD_REQUEST)),
+    NOT_EMBEDDED(
+            new ExResTemp("PGRST108",
+                    null,
+                    "Verify that '%s' is included in the 'select' query",
+                    "'%s' is not an embedded resource in this request",
+                    HttpStatus.BAD_REQUEST))
 
+    ;
+
+    // {
+    // "code": "",
+    // "details": null,
+    // "hint": "Verify that 'sys_usert_ext' is included in the 'select' query
+    // parameter.",
+    // "message": "'sys_usert_ext' is not an embedded resource in this request"
+    // }
     private ExResTemp exResTemp;
 }

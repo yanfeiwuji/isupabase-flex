@@ -77,16 +77,17 @@ public class ApiReq {
         TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
         this.select = handlerSelect(params, tableInfo);
 
-        this.range = ParamKeyUtils.rootRange(params);
+        // this.range = ParamKeyUtils.rootRange(params);
 
-        if (method.equals(HttpMethod.GET)) {
-            this.subTables = this.select.allRelPres();
-            this.relQueryInfo = this.select.tpRelQueryInfo();
-            this.handlerSubFilterAndRange(params);
-            log.info("finish to handler subquery time:{}", System.currentTimeMillis() - s);
-        }
+        // if (method.equals(HttpMethod.GET)) {
+        // this.subTables = this.select.allRelPres();
+        // this.relQueryInfo = this.select.tpRelQueryInfo();
+        // this.handlerSubFilterAndRange(params);
+        // log.info("finish to handler subquery time:{}", System.currentTimeMillis() -
+        // s);
+        // }
 
-        this.filters = handlerHorizontalFilter(params, tableInfo);
+        // this.filters = handlerHorizontalFilter(params, tableInfo);
         log.info("finish to need time:{}", System.currentTimeMillis() - s);
     }
 
@@ -97,9 +98,7 @@ public class ApiReq {
 
         QueryExecLookup queryExecLookup = QueryExecFactory.of(params, tableInfo);
         this.queryExec = queryExecLookup.queryExec();
-        queryExecLookup.indexed().forEach((k, v) -> {
-            System.out.println(k + "    " + v.getRelation().getName());
-        });
+        QueryExecFactory.assembly(queryExecLookup, params);
         return new Select(selectValue, tableInfo);
     }
 

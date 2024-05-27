@@ -1,15 +1,12 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
 import java.util.*;
-
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
 import com.mybatisflex.core.table.TableInfo;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
-import io.github.yanfeiwuji.isupabase.request.filter.KeyValue;
+import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ParamKeyUtils;
@@ -73,32 +70,23 @@ public class QueryExecFactory {
         return queryExec;
     }
 
-    public void rig(QueryExecLookup queryExecLookup, MultiValueMap<String, List<String>> params) {
+    public void assembly(QueryExecLookup queryExecLookup, MultiValueMap<String, String> params) {
+        QueryExec rootQueryExec = queryExecLookup.queryExec();
         Map<String, QueryExec> indexed = queryExecLookup.indexed();
 
         params.forEach((k, values) -> {
-
-            Optional<KeyValue> kv = MTokens.WITH_SUB_KEY.keyValue(k);
-            if (kv.isPresent()) {
-                KeyValue keyValue = kv.get();
-                Optional.ofNullable(indexed.get(keyValue.key())).orElseThrow();
-
-            }
-
-            /**
-             * k xx.xx
-             *
-             * value
-             * limit
-             * offset
-             * order
-             * 
-             */
+            MTokens.WITH_SUB_KEY.keyValue(k).ifPresentOrElse(kv -> {
+                QueryExec queryExec = Optional.ofNullable(indexed.get(kv.key()))
+                        .orElseThrow(MReqExManagers.NOT_EMBEDDED.supplierReqEx(kv.key()));
+                assemblySingle(queryExec, kv.value(), values);
+            }, () -> assemblySingle(rootQueryExec, k, values));
         });
     }
 
-    public void rigSingle(QueryExec queryExec, String key, List<String> values) {
-        // TableInfo tableInfo = queryExec.getTableInfo();
+    private void assemblySingle(QueryExec queryExec, String key, List<String> values) {
+        QueryExecAssemblyManager.assembleLimitOffsetOrder(key)
+                .ifPresentOrElse(it -> it.accept(queryExec, values),
+                        () -> QueryExecAssemblyManager.assembleFilter(queryExec, key, values));
 
     }
 

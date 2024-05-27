@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.google.common.collect.Table;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryMethods;
@@ -48,7 +47,7 @@ public class QueryExec {
     private Number limit;
     private Number offset;
 
-    // temp has * ;
+    // temp has all ;
     private boolean all;
 
     public QueryWrapper handler(QueryWrapper queryWrapper) {
