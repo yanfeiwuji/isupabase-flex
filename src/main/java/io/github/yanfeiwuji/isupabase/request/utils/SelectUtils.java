@@ -30,14 +30,15 @@ public class SelectUtils {
     public QueryExecStuff queryExecStuff(String selectItem, TableInfo tableInfo) {
         return MTokens.SELECT_WITH_SUB.keyValue(selectItem)
                 .map(keyValue -> {
-                    Boolean inner = keyValue.key().endsWith(CommonStr.SELECT_INNER_MARK);
+                    boolean inner = keyValue.key().endsWith(CommonStr.SELECT_INNER_MARK);
                     String key = CharSequenceUtil.replace(keyValue.key(), CommonStr.SELECT_INNER_MARK,
                             CommonStr.EMPTY_STRING);
-                    System.out.println(tableInfo + "==");
                     AbstractRelation<?> relation = CacheTableInfoUtils.nNRealRelation(key, tableInfo);
                     TableInfo innerTableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
                     return new QueryExecStuff(keyValue.value(), innerTableInfo, inner, relation);
-                }).orElseThrow();
+                })
+                // not
+                .orElseThrow();
 
     }
 

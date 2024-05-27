@@ -5,6 +5,7 @@ import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 @UtilityClass
 public final class MTokens {
@@ -21,5 +22,16 @@ public final class MTokens {
 
     public final Token TOP_ORDER_BY = new Token("top_order_by",
             Pattern.compile("([a-zA-Z1-9_.]*)\\(([a-zA-Z1-9_]*)\\)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));
+
+    public final Token PRE_KEY =
+            new Token("", Pattern.compile("([a-zA-Z1-9_.]*)\\(([a-zA-Z1-9_]*)\\)"));
+
+    public static void main(String[] args) {
+        Stream.of("a1","a.b","a.b.c").map(
+                PRE_KEY::keyValue
+        ).forEach(System.out::println);
+
+    }
+
 
 }

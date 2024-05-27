@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.google.common.collect.Table;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryMethods;
@@ -15,6 +16,8 @@ import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.relation.ManyToOne;
 import com.mybatisflex.core.relation.OneToOne;
 
+import com.mybatisflex.core.table.TableInfo;
+import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 
 import lombok.Data;
@@ -22,27 +25,31 @@ import lombok.Data;
 @Data
 public class QueryExec {
 
-    AbstractRelation<?> relation; // sub
+    private AbstractRelation<?> relation; // sub
 
-    QueryTable queryTable;
+    private QueryTable queryTable;
 
-    List<QueryColumn> queryColumns;
+    private TableInfo tableInfo;
+
+    private List<QueryColumn> queryColumns;
 
     // use in order
     @SuppressWarnings("rawtypes")
-    List<AbstractRelation> joins;
+    private List<AbstractRelation> joins;
 
-    List<QueryOrderBy> orders;
+    private List<QueryOrderBy> orders;
 
-    QueryCondition queryCondition = QueryCondition.createEmpty();
+    private QueryCondition queryCondition = QueryCondition.createEmpty();
 
-    List<QueryExec> subs;
+    private List<QueryExec> subs;
 
     // up use
-    boolean inner = false;
+    private boolean inner = false;
+    private Number limit;
+    private Number offset;
 
-    Number limit;
-    Number offset;
+    // temp has * ;
+    private boolean all;
 
     public QueryWrapper handler(QueryWrapper queryWrapper) {
         select(queryWrapper);
@@ -68,10 +75,10 @@ public class QueryExec {
     private void inner(QueryWrapper queryWrapper) {
         Optional.ofNullable(this.subs)
                 .orElse(List.of())
-                .stream().filter(it -> it.isInner())
+                .stream().filter(QueryExec::isInner)
                 .forEach(innerSubs -> queryWrapper.and(QueryMethods.exists(RelationUtils
-                        .relationExistQueryWrapper(innerSubs.relation)
-                        .and(queryCondition))
+                                .relationExistQueryWrapper(innerSubs.relation)
+                                .and(queryCondition))
                         .and(innerSubs.queryCondition)));
     }
 
@@ -98,11 +105,19 @@ public class QueryExec {
         queryWrapper.offset(offset);
     }
 
-    public void addQuerycolum(QueryColumn queryColumn) {
+    public void addQueryColumn(QueryColumn queryColumn) {
         if (queryColumns == null) {
             queryColumns = new ArrayList<>();
         }
-        queryColumns.add(queryColumn);
+        if (all) {
+            return;
+        }
+        if (CommonStr.STAR.equals(queryColumn.getName())) {
+            queryColumns = List.of(queryColumn);
+            this.all = true;
+        } else {
+            queryColumns.add(queryColumn);
+        }
     }
 
     @SuppressWarnings("rawtypes")

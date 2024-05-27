@@ -20,12 +20,7 @@ import io.github.yanfeiwuji.isupabase.flex.RelationManagerExt;
 import io.github.yanfeiwuji.isupabase.request.filter.Filter;
 import io.github.yanfeiwuji.isupabase.request.order.Order;
 import io.github.yanfeiwuji.isupabase.request.range.Range;
-import io.github.yanfeiwuji.isupabase.request.select.QueryExec;
-import io.github.yanfeiwuji.isupabase.request.select.QueryExecFactory;
-import io.github.yanfeiwuji.isupabase.request.select.QueryExecStuff;
-import io.github.yanfeiwuji.isupabase.request.select.RelInner;
-import io.github.yanfeiwuji.isupabase.request.select.RelQueryInfo;
-import io.github.yanfeiwuji.isupabase.request.select.Select;
+import io.github.yanfeiwuji.isupabase.request.select.*;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ParamKeyUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.QueryWrapperUtils;
@@ -100,18 +95,15 @@ public class ApiReq {
                 .ofNullable(params.getFirst(ParamKeyUtils.SELECT_KEY))
                 .orElse("*");
 
-        QueryExec queryExec = QueryExecFactory.of(new QueryExecStuff(selectValue, tableInfo, false, null));
-        this.queryExec = queryExec;
-        Map<String, QueryExec> q = QueryExecFactory.toMap(queryExec, new HashMap<>(), "");
-        q.forEach((k, v) -> {
-            System.out.println(k + ":" + v.getRelation().getName());
+        QueryExecLookup queryExecLookup = QueryExecFactory.of(params, tableInfo);
+        this.queryExec = queryExecLookup.queryExec();
+        queryExecLookup.indexed().forEach((k, v) -> {
+            System.out.println(k + "    " + v.getRelation().getName());
         });
-        System.out.println(queryExec + "==");
         return new Select(selectValue, tableInfo);
     }
 
     /**
-     *
      * @param params
      * @param tableInfo
      * @return
