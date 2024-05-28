@@ -13,6 +13,7 @@ import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
 import io.github.yanfeiwuji.isupabase.request.utils.ExchangeUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import org.apache.ibatis.logging.stdout.StdOutImpl;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -46,6 +47,7 @@ public class ISupaConfig implements ConfigurationCustomizer {
         return arg -> {
             CacheTableInfoUtils.init(mapper);
             ExchangeUtils.init(mapper);
+            ValueUtils.init(mapper);
         };
     }
 

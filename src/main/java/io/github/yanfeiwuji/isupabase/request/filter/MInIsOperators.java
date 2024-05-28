@@ -11,7 +11,8 @@ public class MInIsOperators {
             f -> f.isNegative() ? f.getQueryColumn().notIn(f.getQuantValue())
                     : f.getQueryColumn().in(f.getQuantValue()));
 
-    public final Operator IS = new Operator("is", Pattern.compile("^is\\.(null|true|false|unknown)$"),
+    public final Operator IS = new Operator("is",
+            Pattern.compile("^is\\.(null|true|false|unknown)$"),
             MInIsOperators::handlerIs);
 
     private QueryCondition handlerIs(Filter f) {

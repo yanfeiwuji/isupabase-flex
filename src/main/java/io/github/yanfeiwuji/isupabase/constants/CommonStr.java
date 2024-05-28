@@ -1,5 +1,7 @@
 package io.github.yanfeiwuji.isupabase.constants;
 
+import io.github.yanfeiwuji.isupabase.request.select.QueryConditionFactory;
+
 public final class CommonStr {
     private CommonStr() {
     }
@@ -31,5 +33,31 @@ public final class CommonStr {
     public static final String OR = "or";
     public static final String NOT_AND = "not.and";
     public static final String NOT_OR = "not.or";
+
+    public static final String NOT_DOT = "not.";
+
+    public static final String MODIFIER_ALL = "(all)";
+    public static final String MODIFIER_ANY = "(any)";
+    // ext op
+    public static final String IS_SQL_OP = " IS ";
+    public static final String MATCH_SQL_OP = " ~ ";
+
+    public static final String IMATCH_SQL_OP = " ~* ";
+    public static final String ISDISTINCT_SQL_OP = " IS DISTINCT FROM ";
+
+    public static final String FTS_SQL_OP = " @@ ";
+    public static final String PLFTS_SQL_OP = " @@ ";
+    public static final String PHFTS_SQL_OP = " @@ ";
+    public static final String WFTS_SQL_OP = " @@ ";
+
+    public static final String CS_SQL_OP = " @> ";
+    public static final String CD_SQL_OP = " <@ ";
+    public static final String OV_SQL_OP = " && ";
+    public static final String SL_SQL_OP = " << ";
+    public static final String SR_SQL_OP = " >> ";
+    public static final String NXR_SQL_OP = " &< ";
+    public static final String NXL_SQL_OP = " &> ";
+    public static final String ADJ_SQL_OP = " -|- ";
+
 
 }
