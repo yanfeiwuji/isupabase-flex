@@ -3,37 +3,33 @@ package io.github.yanfeiwuji.isupabase.request.select;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
-import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
-import com.mybatisflex.core.query.QueryMethods;
 import com.mybatisflex.core.table.TableInfo;
 
-import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.NumberUtil;
+import io.github.yanfeiwuji.isupabase.constants.CommonLambda;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class QueryExecAssemblyManager {
+public class QueryExecAssembleManager {
 
-    private static final Map<String, BiConsumer<QueryExec, List<String>>> map = MapUtil
-            .<String, BiConsumer<QueryExec, List<String>>>builder(new ConcurrentHashMap<>())
-            .put(CommonStr.LIMIT, QueryExecAssemblyManager::assembleLimit)
-            .put(CommonStr.OFFSET, QueryExecAssemblyManager::assembleOffset)
-            .put(CommonStr.ORDER, QueryExecAssemblyManager::assembleOrder)
-            // empty cache select but not any operator
-            .put(CommonStr.SELECT,
-                    (exec, values) -> {
-                    })
-            .build();
+    private static final Map<String, BiConsumer<QueryExec, List<String>>>
+            LIMIT_OFFSET_ORDER_MAP =
+            Map.of(
+                    CommonStr.LIMIT, QueryExecAssembleManager::assembleLimit,
+                    CommonStr.OFFSET, QueryExecAssembleManager::assembleOffset,
+                    CommonStr.ORDER, QueryExecAssembleManager::assembleOrder,
+                    CommonStr.SELECT, CommonLambda::emptyQueryExecAssembly
+            );
+
 
     public Optional<BiConsumer<QueryExec, List<String>>> assembleLimitOffsetOrder(String key) {
-        return Optional.ofNullable(map.get(key));
+        return Optional.ofNullable(LIMIT_OFFSET_ORDER_MAP.get(key));
     }
 
     private void assembleLimit(QueryExec queryExec, List<String> values) {
@@ -52,12 +48,21 @@ public class QueryExecAssemblyManager {
 
     public void assembleFilter(QueryExec queryExec, String key, List<String> values) {
         TableInfo tableInfo = queryExec.getTableInfo();
+        queryExec.setQueryCondition(QueryConditionFactory.of(tableInfo, key, values));
+    }
 
-        QueryColumn queryColumn = CacheTableInfoUtils.nNRealQueryColumn(key, tableInfo);
-        // TODO handler sub
-        QueryMethods.not(QueryCondition.create(queryColumn, SqlOperator.EQUALS, ""));
+    private QueryCondition assembleSingleFilter(QueryColumn queryColumn, String value) {
+        //
+        return QueryCondition.create(queryColumn, value);
+    }
 
-        // System.out.println(key + "=" + queryExec.getTableInfo().getTableName());
-        // // queryExec.setOffset(NumberUtil.parseNumber(values.getFirst()));
+
+    private void handler(QueryExec queryExec, String key, String value) {
+
+
+    }
+
+    private void assembleOr(QueryCondition queryCondition, List<String> values) {
+
     }
 }

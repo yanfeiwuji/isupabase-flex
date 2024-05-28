@@ -78,10 +78,13 @@ public class QueryExec {
         Optional.ofNullable(this.subs)
                 .orElse(List.of())
                 .stream().filter(QueryExec::isInner)
-                .forEach(innerSubs -> queryWrapper.and(QueryMethods.exists(RelationUtils
-                        .relationExistQueryWrapper(innerSubs.relation)
-                        .and(queryCondition))
-                        .and(innerSubs.queryCondition)));
+                .forEach(innerSubs -> queryWrapper.and(QueryMethods.exists(
+                                RelationUtils
+                                        .relationExistQueryWrapper(innerSubs.relation)
+                                       // .and(queryCondition)
+                                        .and(innerSubs.queryCondition)
+                        )
+                ));
     }
 
     private void condition(QueryWrapper queryWrapper) {

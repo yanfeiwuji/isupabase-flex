@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.utils;
 
+import cn.hutool.core.text.CharSequenceUtil;
 import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
@@ -15,6 +16,11 @@ public class TokenUtils {
 
     public Pattern quantOp(String op) {
         return Pattern.compile("^%s(\\((any|all)\\))?\\.(.*)".formatted(op));
+    }
+
+    public String removeRoundBrackets(String input) {
+        String next = CharSequenceUtil.removePrefix(input, "(");
+        return CharSequenceUtil.removeSuffix(next, ")");
     }
 
     public List<String> splitByComma(String input) {

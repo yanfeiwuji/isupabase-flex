@@ -25,4 +25,11 @@ public final class CommonStr {
     public static final String DOT_LIMIT = ".limit";
     public static final String DOT_OFFSET = ".offset";
 
+
+    //
+    public static final String AND = "and";
+    public static final String OR = "or";
+    public static final String NOT_AND = "not.and";
+    public static final String NOT_OR = "not.or";
+
 }
