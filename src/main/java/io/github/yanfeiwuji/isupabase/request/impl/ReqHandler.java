@@ -9,6 +9,7 @@ import io.github.yanfeiwuji.isupabase.request.BodyInfo;
 import io.github.yanfeiwuji.isupabase.request.IBodyHandler;
 import io.github.yanfeiwuji.isupabase.request.IReqHandler;
 import io.github.yanfeiwuji.isupabase.request.IReqQueryWrapperHandler;
+import io.github.yanfeiwuji.isupabase.request.ex.ExResArgs;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import io.github.yanfeiwuji.isupabase.request.ex.ReqEx;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
@@ -34,7 +35,8 @@ public class ReqHandler implements IReqHandler {
 
         TableInfo tableInfo = Optional.of(request.pathVariable(PATH_PARAM))
                 .map(TableInfoFactory::ofTableName)
-                .orElseThrow(MDbExManagers.UNDEFINED_TABLE.supplierReqEx(tableName));
+                .orElseThrow(MDbExManagers.UNDEFINED_TABLE.supplierReqEx(
+                        new ExResArgs(List.of(), List.of(), List.of(tableName))));
 
         BaseMapper<?> baseMapper = Mappers.ofEntityClass(tableInfo.getEntityClass());
 

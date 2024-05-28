@@ -66,21 +66,21 @@ public class Filter {
         Optional<Operator> logicOp = OperationUtils.markToOperator(nextKey)
                 .filter(OperationUtils::isLogicOperator);
 
-        if (logicOp.isPresent()) {
-            this.operator = logicOp.get();
-            String need = CharSequenceUtil.strip(paramValue, "(", ")");
+        // if (logicOp.isPresent()) {
+        // this.operator = logicOp.get();
+        // String need = CharSequenceUtil.strip(paramValue, "(", ")");
 
-            this.filters = TokenUtils.splitByComma(need)
-                    .stream()
+        // this.filters = TokenUtils.splitByComma(need)
+        // .stream()
 
-                    .map(it -> MTokens.LOGIC_KV.keyValue(it).orElse(MTokens.DOT.keyValue(it)
-                            .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(it))))
+        // .map(it -> MTokens.LOGIC_KV.keyValue(it).orElse(MTokens.DOT.keyValue(it)
+        // .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(it))))
 
-                    .map(it -> new Filter(it.key(), it.value(), tableInfo))
-                    .toList();
-        } else {
-            handlerSingle(tableInfo);
-        }
+        // .map(it -> new Filter(it.key(), it.value(), tableInfo))
+        // .toList();
+        // } else {
+        // handlerSingle(tableInfo);
+        // }
     }
 
     private void handlerSingle(TableInfo tableInfo) {
@@ -97,7 +97,7 @@ public class Filter {
         log.info("nextVal:{}", nextVal);
         operator = MTokens.DOT.first(nextVal)
                 .flatMap(OperationUtils::markToOperator)
-                .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(paramValue));
+                .orElseThrow();
 
         if (OperationUtils.isQuantOperator(operator)) {
             modifier = operator.first(nextVal)
@@ -133,7 +133,7 @@ public class Filter {
     }
 
     private void handlerIn(TableInfo tableInfo) throws JsonProcessingException {
-        quantValue = ExchangeUtils.parenthesesWrapListValue(this,tableInfo);
+        quantValue = ExchangeUtils.parenthesesWrapListValue(this, tableInfo);
     }
 
     private void handlerIs(TableInfo tableInfo) {
@@ -145,7 +145,7 @@ public class Filter {
                 !CacheTableInfoUtils.nNRealColumnInfo(paramKey, tableInfo).getPropertyType()
                         .equals(Boolean.class)) {
             throw MDbExManagers.DATATYPE_MISMATCH.reqEx("IS %s %s".formatted(
-                            negative ? "NOT" : "", strValue),
+                    negative ? "NOT" : "", strValue),
                     "boolean",
                     CacheTableInfoUtils.realDbType(paramKey, tableInfo));
         }

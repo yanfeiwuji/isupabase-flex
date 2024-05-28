@@ -49,7 +49,6 @@ public class TokenUtils {
         return result;
     }
 
-
     public List<String> splitByComma(String input) {
         List<String> result = new ArrayList<>();
         int start = 0;

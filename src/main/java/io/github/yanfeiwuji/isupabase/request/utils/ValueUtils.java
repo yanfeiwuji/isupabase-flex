@@ -2,10 +2,8 @@ package io.github.yanfeiwuji.isupabase.request.utils;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,11 +11,12 @@ import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
+
+import io.github.yanfeiwuji.isupabase.request.ex.ExResArgsFactory;
 import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @UtilityClass
 public class ValueUtils {
@@ -71,9 +70,8 @@ public class ValueUtils {
         } catch (JsonProcessingException e) {
             ColumnInfo columnInfo = CacheTableInfoUtils.nNRealColumnInfo(realParam, tableInfo);
             throw MDbExManagers.INVALID_INPUT
-                    .reqEx(columnInfo.getPropertyType().getSimpleName(), value);
+                    .reqEx(ExResArgsFactory.ofMessageArgs(columnInfo.getPropertyType().getSimpleName(), value));
         }
-
 
     }
 }

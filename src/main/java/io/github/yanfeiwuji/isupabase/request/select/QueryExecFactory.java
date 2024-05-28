@@ -7,6 +7,7 @@ import com.mybatisflex.core.table.TableInfo;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.request.ex.ExResArgs;
 import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
@@ -60,12 +61,10 @@ public class QueryExecFactory {
 
         TokenUtils.splitByComma(stuff.select()).forEach(selectItem -> {
             if (MTokens.SELECT_WITH_SUB.find(selectItem)) {
-                QueryExec subQueryExec =
-                        QueryExecFactory.of(
-                                SelectUtils.queryExecStuff(selectItem, tableInfo),
-                                indexed,
-                                needPre
-                        );
+                QueryExec subQueryExec = QueryExecFactory.of(
+                        SelectUtils.queryExecStuff(selectItem, tableInfo),
+                        indexed,
+                        needPre);
                 queryExec.addSub(subQueryExec);
             } else {
                 queryExec.addQueryColumn(SelectUtils.queryColumn(selectItem, tableInfo));
@@ -79,13 +78,12 @@ public class QueryExecFactory {
         QueryExec rootQueryExec = queryExecLookup.queryExec();
         Map<String, QueryExec> indexed = queryExecLookup.indexed();
 
-        params.forEach((k, values) ->
-                MTokens.WITH_SUB_KEY.keyValue(k).ifPresentOrElse(kv -> {
-                    QueryExec queryExec = Optional.ofNullable(indexed.get(kv.key()))
-                            .orElseThrow(MReqExManagers.NOT_EMBEDDED.supplierReqEx(kv.key()));
-                    assemblySingle(queryExec, kv.value(), values);
-                }, () -> assemblySingle(rootQueryExec, k, values))
-        );
+        params.forEach((k, values) -> MTokens.WITH_SUB_KEY.keyValue(k).ifPresentOrElse(kv -> {
+            QueryExec queryExec = Optional.ofNullable(indexed.get(kv.key()))
+                    .orElseThrow(MReqExManagers.NOT_EMBEDDED.supplierReqEx(
+                            new ExResArgs(List.of(), List.of(kv.key()), List.of(kv.key()))));
+            assemblySingle(queryExec, kv.value(), values);
+        }, () -> assemblySingle(rootQueryExec, k, values)));
     }
 
     private void assemblySingle(QueryExec queryExec, String key, List<String> values) {

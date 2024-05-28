@@ -58,7 +58,7 @@ public class RelationUtils {
                 .where(targetColumn.eq(selfColumn));
     }
 
-    public void relationJoin(QueryWrapper queryWrapper, AbstractRelation relation) {
+    public void relationJoin(QueryWrapper queryWrapper, AbstractRelation<?> relation) {
         String joinTable = relation.getJoinTable();
         if (CharSequenceUtil.isNotBlank(joinTable)) {
             addJoinHasJoin(queryWrapper, relation);
@@ -89,7 +89,7 @@ public class RelationUtils {
 
     }
 
-    private void addJoinNoJoin(QueryWrapper queryWrapper, AbstractRelation relation) {
+    private void addJoinNoJoin(QueryWrapper queryWrapper, AbstractRelation<?> relation) {
 
         TableInfo targetTableInfo = relation.getTargetTableInfo();
         QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(targetTableInfo);

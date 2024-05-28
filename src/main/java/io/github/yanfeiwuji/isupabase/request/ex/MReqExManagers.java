@@ -24,9 +24,9 @@ import org.springframework.http.HttpStatus;
 public enum MReqExManagers implements IExManagers {
     FAILED_TO_PARSE(
             new ExResTemp("PGRST100",
+                    "unexpected \\\"%s\\\" expecting operator (eq, gt, ...)",
                     null,
-                    null,
-                    "\"failed to parse filter (%s)\"",
+                    "\"failed to parse %s (%s)\"",
                     HttpStatus.BAD_REQUEST)),
 
     ORDER_NO_APPLY(
