@@ -8,7 +8,7 @@ import java.io.Serializable;
 
 @AllArgsConstructor
 @Getter
-public class PgrstException extends RuntimeException implements Serializable {
+public class PgrstEx extends RuntimeException implements Serializable {
     private static final long serialVersionUID = 1L;
     private ExCodeStatus codeStatus;
     private ExInfo info;

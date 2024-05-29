@@ -9,12 +9,9 @@ import io.github.yanfeiwuji.isupabase.request.BodyInfo;
 import io.github.yanfeiwuji.isupabase.request.IBodyHandler;
 import io.github.yanfeiwuji.isupabase.request.IReqHandler;
 import io.github.yanfeiwuji.isupabase.request.IReqQueryWrapperHandler;
-import io.github.yanfeiwuji.isupabase.request.ex.ExResArgs;
-import io.github.yanfeiwuji.isupabase.request.ex.MDbExManagers;
-import io.github.yanfeiwuji.isupabase.request.ex.ReqEx;
+import io.github.yanfeiwuji.isupabase.request.ex.*;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -35,8 +32,12 @@ public class ReqHandler implements IReqHandler {
 
         TableInfo tableInfo = Optional.of(request.pathVariable(PATH_PARAM))
                 .map(TableInfoFactory::ofTableName)
-                .orElseThrow(MDbExManagers.UNDEFINED_TABLE.supplierReqEx(
-                        new ExResArgs(List.of(), List.of(), List.of(tableName))));
+                .orElseThrow(
+                        ExCodeStatus
+                                .DB_UNDEFINED_TABLE
+                                .toSupplierEx(new ExInfo(null, null, ExInfo.TABLE_NOT_FOUND_TEMP.formatted(tableName))
+                                )
+                );
 
         BaseMapper<?> baseMapper = Mappers.ofEntityClass(tableInfo.getEntityClass());
 
@@ -112,9 +113,9 @@ public class ReqHandler implements IReqHandler {
     public ServerResponse onError(Throwable throwable, ServerRequest request) {
 
         return Optional.of(throwable)
-                .filter(ReqEx.class::isInstance)
-                .map(ReqEx.class::cast)
-                .map(ReqEx::toResponse)
+                .filter(PgrstEx.class::isInstance)
+                .map(PgrstEx.class::cast)
+                .map(PgrstEx::toResponse)
                 .orElse(ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
 
     }

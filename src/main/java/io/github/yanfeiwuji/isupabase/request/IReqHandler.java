@@ -1,11 +1,11 @@
 package io.github.yanfeiwuji.isupabase.request;
 
+import io.github.yanfeiwuji.isupabase.request.ex.PgrstEx;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
-import io.github.yanfeiwuji.isupabase.request.ex.ReqEx;
 
 public interface IReqHandler {
 
@@ -43,7 +43,7 @@ public interface IReqHandler {
                                 .PATCH(this::patch)
                                 .DELETE(this::delete)
                                 .after(this::after))
-                .onError(ReqEx.class, this::onError)
+                .onError(PgrstEx.class, this::onError)
                 .build();
 
     }
