@@ -27,6 +27,12 @@ public final class CommonStr {
     public static final String DOT_LIMIT = ".limit";
     public static final String DOT_OFFSET = ".offset";
 
+    public static final String PERCENT = "%";
+
+    public static final String IS_VALUE_NULL = "null";
+    public static final String IS_VALUE_UNKNOWN = "unknown";
+    public static final String IS_VALUE_TRUE = "true";
+    public static final String IS_VALUE_FALSE = "false";
 
     //
     public static final String AND = "and";

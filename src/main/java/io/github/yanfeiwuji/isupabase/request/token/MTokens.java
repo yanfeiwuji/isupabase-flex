@@ -1,9 +1,11 @@
 package io.github.yanfeiwuji.isupabase.request.token;
 
+import io.github.yanfeiwuji.isupabase.request.filter.KeyValue;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -30,14 +32,12 @@ public final class MTokens {
 
     public final Token KEY_DOT_VALUE = new Token("key_dot_value", Pattern.compile("^([a-zA-Z1-9_]*)\\.(.*)"));
 
-    public final Token OP_VALUE = new Token("op_value", Pattern.compile("^(?:not.)?([a-zA-Z1-9_]*)\\.(.*)"));
+    public final Token OP_VALUE = new Token("op_value", Pattern.compile("^(?:not.)?([a-zA-Z1-9_]*(?:\\(any\\)|\\(all\\))?)\\.(.*)"));
 
-    public final Token IN_VALUE = new Token("in_value",
-            Pattern.compile("\\((?:\"[^\"]*\"|[^,)]+)\\)(?:,\s*(?:\"[^\"]*\"|[^,)]+))*")
-    );
 
     public static void main(String[] args) {
-
+        Optional<KeyValue> keyValue = OP_VALUE.keyValue("not.like(any).%7B1%2C2%7D");
+        System.out.println(keyValue);
     }
 
 

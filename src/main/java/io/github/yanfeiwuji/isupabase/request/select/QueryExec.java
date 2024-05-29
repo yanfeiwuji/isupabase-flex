@@ -81,7 +81,6 @@ public class QueryExec {
                 .forEach(innerSubs -> queryWrapper.and(QueryMethods.exists(
                                 RelationUtils
                                         .relationExistQueryWrapper(innerSubs.relation)
-                                       // .and(queryCondition)
                                         .and(innerSubs.queryCondition)
                         )
                 ));

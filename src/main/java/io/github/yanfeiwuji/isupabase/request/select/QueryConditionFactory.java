@@ -3,7 +3,6 @@ package io.github.yanfeiwuji.isupabase.request.select;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
-import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.table.TableInfo;
@@ -12,10 +11,8 @@ import io.github.yanfeiwuji.isupabase.request.ex.ExResArgs;
 import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
-import io.github.yanfeiwuji.isupabase.request.utils.MapKeyUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
-import lombok.val;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
@@ -89,7 +86,7 @@ public class QueryConditionFactory {
                         return handler(queryColumn, kv.value(), op, CommonStr.MODIFIER_ALL);
                     } else if (kv.key().endsWith(CommonStr.MODIFIER_ANY)) {
                         String op = CharSequenceUtil.removeSuffix(kv.key(), CommonStr.MODIFIER_ANY);
-                        return handler(queryColumn, kv.value(), op, CommonStr.MODIFIER_ALL);
+                        return handler(queryColumn, kv.value(), op, CommonStr.MODIFIER_ANY);
                     } else {
                         return handler(queryColumn, kv.value(), kv.key(), null);
                     }
@@ -97,7 +94,7 @@ public class QueryConditionFactory {
                         new ExResArgs(
                                 List.of(value),
                                 List.of(),
-                                List.of("filter", value))));
+                                List.of(ExResArgs.FILTER, value))));
         return value.startsWith(CommonStr.NOT_DOT) ? QueryMethods.not(queryCondition) : queryCondition;
     }
 
@@ -124,7 +121,7 @@ public class QueryConditionFactory {
                                                             new ExResArgs(
                                                                     List.of(value),
                                                                     List.of(),
-                                                                    List.of("logic tree", value))))))
+                                                                    List.of(ExResArgs.LOGIC_TREE, value))))))
                             .toList();
                     return op.apply(list);
                 }).orElseGet(() -> QueryConditionFactory.ofNoLogic(tableInfo, key, value));
@@ -137,7 +134,7 @@ public class QueryConditionFactory {
                         new ExResArgs(
                                 List.of(op),
                                 List.of(),
-                                List.of("filter", op))));
+                                List.of(ExResArgs.FILTER, op))));
 
         if (Objects.nonNull(modifier)) {
             if (!ALLOW_MODIFIERS.containsKey(op)) {
@@ -145,7 +142,7 @@ public class QueryConditionFactory {
                         new ExResArgs(
                                 List.of(op),
                                 List.of(),
-                                List.of("filter", op)));
+                                List.of(ExResArgs.FILTER, op)));
             } else {
                 if (CharSequenceUtil.equals(CommonStr.MODIFIER_ALL, modifier)) {
                     return TokenUtils.splitByCommaQuoted(TokenUtils.removeDelim(value))
@@ -156,7 +153,7 @@ public class QueryConditionFactory {
                             .stream().map(v -> biFunction.apply(queryColumn, v))
                             .reduce(QueryCondition.createEmpty(), QueryCondition::or);
                 } else {
-                    // not
+                    // not handler
                     return QueryCondition.createEmpty();
                 }
             }
@@ -189,14 +186,12 @@ public class QueryConditionFactory {
         return queryColumn.ne(ValueUtils.singleValue(queryColumn, value));
     }
 
-    // todo handler *
     private QueryCondition like(QueryColumn queryColumn, String value) {
-        return queryColumn.like(ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, SqlOperator.LIKE, ValueUtils.likeValue(queryColumn, value));
     }
 
-    // todo handler *
     private static QueryCondition ilike(QueryColumn queryColumn, String value) {
-        return queryColumn.notLike(ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, SqlOperator.NOT_LIKE, ValueUtils.likeValue(queryColumn, value));
     }
 
     private static QueryCondition in(QueryColumn queryColumn, String value) {
@@ -204,7 +199,6 @@ public class QueryConditionFactory {
     }
 
     private static QueryCondition is(QueryColumn queryColumn, String value) {
-        // queryColumn.isNull();
 
         return QueryCondition.create(queryColumn, CommonStr.IS_SQL_OP, new RawQueryColumn(""));
     }
