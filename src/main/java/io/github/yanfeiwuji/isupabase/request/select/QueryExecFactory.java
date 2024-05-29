@@ -30,8 +30,8 @@ public class QueryExecFactory {
         long start = System.currentTimeMillis();
 
         log.info("start: time:{}", start);
-        QueryExec queryExec = QueryExecFactory
-                .of(new QueryExecStuff(selectValue, tableInfo), lookup, CommonStr.EMPTY_STRING);
+        QueryExec queryExec = QueryExecFactory.of(new QueryExecStuff(selectValue, tableInfo), lookup,
+                CommonStr.EMPTY_STRING);
 
         log.info("duration: time:{}", System.currentTimeMillis() - start);
         return new QueryExecLookup(queryExec, lookup);
@@ -70,7 +70,6 @@ public class QueryExecFactory {
                 queryExec.addSub(subQueryExec);
                 Optional.ofNullable(subQueryExec.getRelation())
                         .ifPresent(rel -> queryExec.putSubRelMap(subQueryExec.getRelEnd(), rel));
-
 
             } else {
                 queryExec.addQueryColumn(SelectUtils.queryColumn(selectItem, tableInfo));
