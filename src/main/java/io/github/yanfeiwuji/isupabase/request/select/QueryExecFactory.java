@@ -21,14 +21,15 @@ import org.springframework.util.MultiValueMap;
 public class QueryExecFactory {
 
     public QueryExecLookup of(MultiValueMap<String, String> params, TableInfo tableInfo) {
-        long start = System.currentTimeMillis();
 
-        log.info("start: time:{}", start);
         String selectValue = Optional
                 .ofNullable(params.getFirst(CommonStr.SELECT))
                 .orElse(CommonStr.STAR);
 
         Map<String, QueryExec> lookup = new HashMap<>();
+        long start = System.currentTimeMillis();
+
+        log.info("start: time:{}", start);
         QueryExec queryExec = QueryExecFactory
                 .of(new QueryExecStuff(selectValue, tableInfo), lookup, CommonStr.EMPTY_STRING);
 
@@ -47,9 +48,12 @@ public class QueryExecFactory {
         queryExec.setRelation(stuff.relation());
         queryExec.setInner(stuff.inner());
 
-        String needPre = Optional.ofNullable(queryExec.getRelation())
+        Optional<String> relEndOpt = Optional.ofNullable(queryExec.getRelation())
                 .map(rel -> CharSequenceUtil.split(rel.getName(), StrPool.DOT).getLast())
-                .map(next -> CharSequenceUtil.isEmpty(pre) ? next : pre + StrPool.DOT + next)
+                .map(CacheTableInfoUtils::propertyToParamKey);
+        relEndOpt.ifPresent(queryExec::setRelEnd);
+
+        String needPre = relEndOpt.map(next -> CharSequenceUtil.isEmpty(pre) ? next : pre + StrPool.DOT + next)
                 .map(CacheTableInfoUtils::propertyToParamKey)
                 .orElse(CommonStr.EMPTY_STRING);
 
@@ -64,6 +68,10 @@ public class QueryExecFactory {
                         indexed,
                         needPre);
                 queryExec.addSub(subQueryExec);
+                Optional.ofNullable(subQueryExec.getRelation())
+                        .ifPresent(rel -> queryExec.putSubRelMap(subQueryExec.getRelEnd(), rel));
+
+
             } else {
                 queryExec.addQueryColumn(SelectUtils.queryColumn(selectItem, tableInfo));
             }
@@ -77,7 +85,7 @@ public class QueryExecFactory {
         Map<String, QueryExec> indexed = queryExecLookup.indexed();
         params.forEach((k, values) -> MTokens.WITH_SUB_KEY.keyValue(k).ifPresentOrElse(kv -> {
             QueryExec queryExec = Optional.ofNullable(indexed.get(kv.key()))
-                    .orElseThrow(PgrstExFactory.exFilterApplyButNotInSelect(kv.key()));
+                    .orElseThrow(PgrstExFactory.exEmbeddedApplyButNotInSelect(kv.key()));
             assemblySingle(queryExec, kv.value(), values);
         }, () -> assemblySingle(rootQueryExec, k, values)));
     }

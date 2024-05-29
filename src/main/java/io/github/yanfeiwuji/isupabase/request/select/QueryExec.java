@@ -1,9 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
@@ -21,11 +18,13 @@ import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 
 import lombok.Data;
 
-// TODO add pre use in order
+
 @Data
 public class QueryExec {
 
     private AbstractRelation<?> relation; // sub
+
+    private String relEnd;
 
     private QueryTable queryTable;
 
@@ -34,8 +33,7 @@ public class QueryExec {
     private List<QueryColumn> queryColumns;
 
     // use in order
-    @SuppressWarnings("rawtypes")
-    private List<AbstractRelation> joins;
+    private List<AbstractRelation<?>> joins;
 
     private List<QueryOrderBy> orders;
 
@@ -48,7 +46,10 @@ public class QueryExec {
     private Number limit;
     private Number offset;
 
-    // temp has all ;
+    private Map<String, AbstractRelation<?>> subRelMap;
+
+
+
     private boolean all;
 
     public QueryWrapper handler(QueryWrapper queryWrapper) {
@@ -144,6 +145,13 @@ public class QueryExec {
             subs = new ArrayList<>();
         }
         subs.add(sub);
+    }
+
+    public void putSubRelMap(String key, AbstractRelation<?> relation) {
+        if (subRelMap == null) {
+            subRelMap = new HashMap<>();
+        }
+        subRelMap.put(key, relation);
     }
 
 }

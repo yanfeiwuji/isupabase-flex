@@ -10,8 +10,8 @@ public final class CommonStr {
     public static final String SELECT_INNER_MARK = "!inner";
     public static final String ONE = "1";
 
-    public static final String NULL_FIRST = "nullsfirst";
-    public static final String NULL_LAST = "nullslast";
+    public static final String NULLS_FIRST = "nullsfirst";
+    public static final String NULLS_LAST = "nullslast";
 
     public static final String ASC = "asc";
     public static final String DESC = "desc";

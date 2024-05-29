@@ -77,7 +77,6 @@ public class QueryConditionFactory {
     // has column then handler value
     public QueryCondition ofNoLogic(QueryColumn queryColumn, String value) {
         // not.op(op).value
-
         QueryCondition queryCondition = MTokens.OP_VALUE.keyValue(value)
                 .map(kv -> {
                     if (kv.key().endsWith(CommonStr.MODIFIER_ALL)) {

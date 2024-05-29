@@ -27,7 +27,17 @@ public class PgrstExFactory {
                         "argument of IS %s must be type boolean, not type %s".formatted(sqlBool, columnType)));
     }
 
-    public Supplier<PgrstEx> exFilterApplyButNotInSelect(String embedded) {
+    public Supplier<PgrstEx> exCanNotOrderRelForManyEnd(String root, String embedded) {
+        return ExCodeStatus.PGRST_CAN_NOT_ORDER_REL_FOR_MANY_END.toSupplierEx(
+                new ExInfo(
+                        "'%s' and '%s' do not from a many-to-one or one-to-one relationship".formatted(root, embedded),
+                        null,
+                        "A related order on '%s' is not possible".formatted(embedded)
+                )
+        );
+    }
+
+    public Supplier<PgrstEx> exEmbeddedApplyButNotInSelect(String embedded) {
         return ExCodeStatus.PGRST_FILTER_APPLY_EMBEDDED_NOT_IN_SELECT
                 .toSupplierEx(
                         new ExInfo(
@@ -44,6 +54,14 @@ public class PgrstExFactory {
                         "unexpected \\\"%s\\\" expecting operator (eq, gt, ...)".formatted(value),
                         "",
                         "\"failed to parse filter (%s)\"".formatted(value)));
+    }
+
+    public Supplier<PgrstEx> exParseOrderError(String value) {
+        return ExCodeStatus.PGRST_PARSE_ERROR
+                .toSupplierEx(new ExInfo(
+                        "unexpected \\\"%s\\\" expecting".formatted(value),
+                        "",
+                        "\"failed to parse order (%s)\"".formatted(value)));
     }
 
     public Supplier<PgrstEx> exParseLogicTreeError(String value) {

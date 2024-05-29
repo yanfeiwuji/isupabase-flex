@@ -15,11 +15,11 @@ public final class MTokens {
     public final Token SELECT_WITH_SUB = new Token("select_with_sub",
             Pattern.compile("^(.*?)\\((.*)\\)$"));
 
-    public final Token ORDER_BY = new Token("order_by",
-            Pattern.compile("([a-zA-Z1-9_]*)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));
+//    public final Token ORDER_BY = new Token("order_by",
+//            Pattern.compile("^([a-zA-Z1-9_]*)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));
 
-    public final Token TOP_ORDER_BY = new Token("top_order_by",
-            Pattern.compile("([a-zA-Z1-9_.]*)\\(([a-zA-Z1-9_]*)\\)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));
+    public final Token ORDER_BY = new Token("top_order_by",
+            Pattern.compile("^([a-zA-Z1-9_]*)(?:\\(([a-zA-Z1-9_]*)\\))?(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?$"));
 
     public final Token WITH_SUB_KEY = new Token("with_sub_key", Pattern.compile("^([a-zA-Z1-9_.]*)\\.([a-zA-Z1-9_]*)"));
 
@@ -29,8 +29,11 @@ public final class MTokens {
 
     public final Token OP_VALUE = new Token("op_value", Pattern.compile("^(?:not.)?([a-zA-Z1-9_]*(?:\\(any\\)|\\(all\\))?)\\.(.*)"));
 
-
-
+    public static void main(String[] args) {
+        boolean b = ORDER_BY.find("dds5s(ds%");
+        ORDER_BY.groups("dds5s(ds%").forEach(System.out::println);
+        System.out.println(b);
+    }
 
 
 }
