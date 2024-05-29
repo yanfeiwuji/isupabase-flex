@@ -1,7 +1,5 @@
 package io.github.yanfeiwuji.isupabase.constants;
 
-import io.github.yanfeiwuji.isupabase.request.select.QueryConditionFactory;
-
 public final class CommonStr {
     private CommonStr() {
     }
@@ -68,6 +66,5 @@ public final class CommonStr {
     public static final String NXR_SQL_OP = " &< ";
     public static final String NXL_SQL_OP = " &> ";
     public static final String ADJ_SQL_OP = " -|- ";
-
 
 }

@@ -2,14 +2,12 @@ package io.github.yanfeiwuji.isupabase.request.utils;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
@@ -22,7 +20,6 @@ import lombok.experimental.UtilityClass;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 @UtilityClass
 public class ValueUtils {
@@ -32,16 +29,13 @@ public class ValueUtils {
         ValueUtils.mapper = mapper;
     }
 
-    private static final Map<String, String> IS_VALUE_MAP =
-            Map.of(CommonStr.IS_VALUE_NULL, CommonStr.SQL_NULL,
-                    CommonStr.IS_VALUE_UNKNOWN, CommonStr.SQL_UNKNOWN,
-                    CommonStr.IS_VALUE_TRUE, CommonStr.SQL_TRUE,
-                    CommonStr.IS_VALUE_FALSE, CommonStr.SQL_FALSE);
+    private static final Map<String, String> IS_VALUE_MAP = Map.of(CommonStr.IS_VALUE_NULL, CommonStr.SQL_NULL,
+            CommonStr.IS_VALUE_UNKNOWN, CommonStr.SQL_UNKNOWN,
+            CommonStr.IS_VALUE_TRUE, CommonStr.SQL_TRUE,
+            CommonStr.IS_VALUE_FALSE, CommonStr.SQL_FALSE);
 
-    private static final Map<String, String> IS_BOOLEAN_VALUE =
-            Map.of(CommonStr.IS_VALUE_TRUE, CommonStr.SQL_TRUE,
-                    CommonStr.IS_VALUE_FALSE, CommonStr.SQL_FALSE
-            );
+    private static final Map<String, String> IS_BOOLEAN_VALUE = Map.of(CommonStr.IS_VALUE_TRUE, CommonStr.SQL_TRUE,
+            CommonStr.IS_VALUE_FALSE, CommonStr.SQL_FALSE);
 
     public String isValue(QueryColumn queryColumn, String value) {
         String sqlIsValue = IS_VALUE_MAP.get(value);

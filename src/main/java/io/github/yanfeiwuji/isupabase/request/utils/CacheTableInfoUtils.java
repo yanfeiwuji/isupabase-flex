@@ -128,7 +128,6 @@ public class CacheTableInfoUtils {
         });
     }
 
-
     public Optional<QueryColumn> realQueryColumn(String paramKey, TableInfo tableInfo) {
         QueryTable queryTable = nNQueryTable(tableInfo);
         return pickReal(paramKey, tableInfo, CACHE_CLAZZ_PARAM_NAME_QUERY_COLUMN,
@@ -163,31 +162,31 @@ public class CacheTableInfoUtils {
 
     public QueryColumn nNRelSelfQueryColumn(AbstractRelation<?> relation) {
         return Optional.of(CACHE_REL_SELF_QUERY_COLUMN.computeIfAbsent(relation.getName(),
-                        name -> {
-                            TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getSelfEntityClass());
-                            String column = tableInfo.getPropertyColumnMapping().get(relation.getSelfField().getName());
-                            return new QueryColumn(nNQueryTable(tableInfo), column);
-                        }))
+                name -> {
+                    TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getSelfEntityClass());
+                    String column = tableInfo.getPropertyColumnMapping().get(relation.getSelfField().getName());
+                    return new QueryColumn(nNQueryTable(tableInfo), column);
+                }))
                 .orElseThrow(PgrstExFactory.exColumnNotFound(relation));
     }
 
     public QueryColumn nNRelJoinTargetQueryColumn(AbstractRelation<?> relation) {
         return Optional.of(CACHE_REL_JOIN_TARGET_QUERY_COLUMN.computeIfAbsent(relation.getName(),
-                        name -> {
-                            TableInfo tableInfo = TableInfoFactory.ofTableName(relation.getJoinTable());
-                            String column = relation.getJoinTargetColumn();
-                            return new QueryColumn(nNQueryTable(tableInfo), column);
-                        }))
+                name -> {
+                    TableInfo tableInfo = TableInfoFactory.ofTableName(relation.getJoinTable());
+                    String column = relation.getJoinTargetColumn();
+                    return new QueryColumn(nNQueryTable(tableInfo), column);
+                }))
                 .orElseThrow(PgrstExFactory.exColumnNotFound(relation));
     }
 
     public QueryColumn nNRelJoinSelfQueryColumn(AbstractRelation<?> relation) {
         return Optional.of(CACHE_REL_JOIN_SELF_QUERY_COLUMN.computeIfAbsent(relation.getName(),
-                        name -> {
-                            TableInfo tableInfo = TableInfoFactory.ofTableName(relation.getJoinTable());
-                            String column = relation.getJoinSelfColumn();
-                            return new QueryColumn(nNQueryTable(tableInfo), column);
-                        }))
+                name -> {
+                    TableInfo tableInfo = TableInfoFactory.ofTableName(relation.getJoinTable());
+                    String column = relation.getJoinSelfColumn();
+                    return new QueryColumn(nNQueryTable(tableInfo), column);
+                }))
                 .orElseThrow(PgrstExFactory.exColumnNotFound(relation));
     }
 
@@ -203,7 +202,7 @@ public class CacheTableInfoUtils {
     public String[] clazzRels(TableInfo tableInfo) {
         return CACHE_CLAZZ_RELS.computeIfAbsent(tableInfo.getEntityClass(),
                 clazz -> RelationManager.getRelations(clazz).stream().map(it -> it.getRelationField().getName())
-                        .toList().toArray(new String[]{}));
+                        .toList().toArray(new String[] {}));
     }
 
     public QueryColumn nNQueryAllColumns(TableInfo tableInfo) {
@@ -212,7 +211,6 @@ public class CacheTableInfoUtils {
                 it -> new QueryColumn(nNQueryTable(tableInfo), CommonStr.STAR));
     }
 
-    // TODO to get real dbType
     public String realDbType(String paramKey, TableInfo tableInfo) {
         ColumnInfo columnInfo = nNRealColumnInfo(paramKey, tableInfo);
         return Optional.of(columnInfo)
@@ -230,7 +228,7 @@ public class CacheTableInfoUtils {
     }
 
     private <T> Optional<T> pickReal(String paramKey, TableInfo tableInfo, Map<Class<?>, Map<String, T>> cacheMap,
-                                     Supplier<Map<String, T>> func) {
+            Supplier<Map<String, T>> func) {
         return Optional.ofNullable(
                 cacheMap.computeIfAbsent(tableInfo.getEntityClass(), it -> func.get())
                         .get(paramKey));
@@ -248,6 +246,5 @@ public class CacheTableInfoUtils {
                 .flatMap(it -> namingBaseOptional.map(naming -> naming.translate(it)))
                 .orElse(property);
     }
-
 
 }

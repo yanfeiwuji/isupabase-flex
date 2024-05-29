@@ -2,7 +2,6 @@ package io.github.yanfeiwuji.isupabase.request.select;
 
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.table.TableInfo;
@@ -181,8 +180,7 @@ public class QueryConditionFactory {
 
     private static QueryCondition is(QueryColumn queryColumn, String value) {
         return QueryCondition.create(queryColumn, CommonStr.IS_SQL_OP,
-                new RawQueryColumn(ValueUtils.isValue(queryColumn, value))
-        );
+                new RawQueryColumn(ValueUtils.isValue(queryColumn, value)));
     }
 
     private QueryCondition match(QueryColumn queryColumn, String value) {

@@ -33,8 +33,7 @@ public class ReqHandler implements IReqHandler {
         TableInfo tableInfo = Optional.of(request.pathVariable(PATH_PARAM))
                 .map(TableInfoFactory::ofTableName)
                 .orElseThrow(
-                        PgrstExFactory.exTableNotFound(tableName)
-                );
+                        PgrstExFactory.exTableNotFound(tableName));
 
         BaseMapper<?> baseMapper = Mappers.ofEntityClass(tableInfo.getEntityClass());
 
@@ -53,9 +52,9 @@ public class ReqHandler implements IReqHandler {
         return ServerResponse.ok().body(apiReq.result(baseMapper));
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public ServerResponse post(ServerRequest request) {
-
         TableInfo tableInfo = tableInfo(request);
         BodyInfo<?> bodyInfo = bodyHandler.handler(request, tableInfo.getEntityClass());
 
