@@ -1,4 +1,4 @@
-package io.github.yanfeiwuji.isupabase.request.filter;
+package io.github.yanfeiwuji.isupabase.request.token;
 
 import java.util.List;
 import java.util.Optional;
@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 public interface IToken {
-
     String mark();
 
     Pattern pattern();
@@ -54,5 +53,4 @@ public interface IToken {
                 .filter(it -> it.groupCount() >= 1)
                 .map(it -> new KeyValue(it.group(1), it.group(it.groupCount())));
     }
-
 }

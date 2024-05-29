@@ -7,8 +7,7 @@ import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.table.TableInfo;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
-import io.github.yanfeiwuji.isupabase.request.ex.ExResArgs;
-import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
+import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
@@ -90,11 +89,7 @@ public class QueryConditionFactory {
                     } else {
                         return handler(queryColumn, kv.value(), kv.key(), null);
                     }
-                }).orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(
-                        new ExResArgs(
-                                List.of(value),
-                                List.of(),
-                                List.of(ExResArgs.FILTER, value))));
+                }).orElseThrow(PgrstExFactory.exParseFilterError(value));
         return value.startsWith(CommonStr.NOT_DOT) ? QueryMethods.not(queryCondition) : queryCondition;
     }
 
@@ -116,12 +111,7 @@ public class QueryConditionFactory {
                                     .map(kv -> QueryConditionFactory.of(tableInfo, kv.key(), kv.value()))
                                     .orElseGet(() -> MTokens.KEY_DOT_VALUE.keyValue(it)
                                             .map(kv -> QueryConditionFactory.ofNoLogic(tableInfo, kv.key(), kv.value()))
-                                            .orElseThrow(
-                                                    MReqExManagers.FAILED_TO_PARSE.supplierReqEx(
-                                                            new ExResArgs(
-                                                                    List.of(value),
-                                                                    List.of(),
-                                                                    List.of(ExResArgs.LOGIC_TREE, value))))))
+                                            .orElseThrow(PgrstExFactory.exParseLogicTreeError(value))))
                             .toList();
                     return op.apply(list);
                 }).orElseGet(() -> QueryConditionFactory.ofNoLogic(tableInfo, key, value));
@@ -130,19 +120,11 @@ public class QueryConditionFactory {
     private QueryCondition handler(QueryColumn queryColumn, String value, String op, String modifier) {
 
         BiFunction<QueryColumn, String, QueryCondition> biFunction = Optional.ofNullable(OP_BIFUNC_MAP.get(op))
-                .orElseThrow(MReqExManagers.FAILED_TO_PARSE.supplierReqEx(
-                        new ExResArgs(
-                                List.of(op),
-                                List.of(),
-                                List.of(ExResArgs.FILTER, op))));
+                .orElseThrow(PgrstExFactory.exParseFilterError(value));
 
         if (Objects.nonNull(modifier)) {
             if (!ALLOW_MODIFIERS.containsKey(op)) {
-                throw MReqExManagers.FAILED_TO_PARSE.reqEx(
-                        new ExResArgs(
-                                List.of(op),
-                                List.of(),
-                                List.of(ExResArgs.FILTER, op)));
+                throw PgrstExFactory.exParseFilterError(op).get();
             } else {
                 if (CharSequenceUtil.equals(CommonStr.MODIFIER_ALL, modifier)) {
                     return TokenUtils.splitByCommaQuoted(TokenUtils.removeDelim(value))
@@ -199,8 +181,9 @@ public class QueryConditionFactory {
     }
 
     private static QueryCondition is(QueryColumn queryColumn, String value) {
-
-        return QueryCondition.create(queryColumn, CommonStr.IS_SQL_OP, new RawQueryColumn(""));
+        return QueryCondition.create(queryColumn, CommonStr.IS_SQL_OP,
+                new RawQueryColumn(ValueUtils.isValue(queryColumn, value))
+        );
     }
 
     private QueryCondition match(QueryColumn queryColumn, String value) {

@@ -33,10 +33,7 @@ public class ReqHandler implements IReqHandler {
         TableInfo tableInfo = Optional.of(request.pathVariable(PATH_PARAM))
                 .map(TableInfoFactory::ofTableName)
                 .orElseThrow(
-                        ExCodeStatus
-                                .DB_UNDEFINED_TABLE
-                                .toSupplierEx(new ExInfo(null, null, ExInfo.TABLE_NOT_FOUND_TEMP.formatted(tableName))
-                                )
+                        PgrstExFactory.exTableNotFound(tableName)
                 );
 
         BaseMapper<?> baseMapper = Mappers.ofEntityClass(tableInfo.getEntityClass());

@@ -7,11 +7,9 @@ import com.mybatisflex.core.table.TableInfo;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
-import io.github.yanfeiwuji.isupabase.request.ex.ExResArgs;
-import io.github.yanfeiwuji.isupabase.request.ex.MReqExManagers;
+import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
-import io.github.yanfeiwuji.isupabase.request.utils.ParamKeyUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.SelectUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import lombok.experimental.UtilityClass;
@@ -27,7 +25,7 @@ public class QueryExecFactory {
 
         log.info("start: time:{}", start);
         String selectValue = Optional
-                .ofNullable(params.getFirst(ParamKeyUtils.SELECT_KEY))
+                .ofNullable(params.getFirst(CommonStr.SELECT))
                 .orElse(CommonStr.STAR);
 
         Map<String, QueryExec> lookup = new HashMap<>();
@@ -77,11 +75,9 @@ public class QueryExecFactory {
     public void assembly(QueryExecLookup queryExecLookup, MultiValueMap<String, String> params) {
         QueryExec rootQueryExec = queryExecLookup.queryExec();
         Map<String, QueryExec> indexed = queryExecLookup.indexed();
-
         params.forEach((k, values) -> MTokens.WITH_SUB_KEY.keyValue(k).ifPresentOrElse(kv -> {
             QueryExec queryExec = Optional.ofNullable(indexed.get(kv.key()))
-                    .orElseThrow(MReqExManagers.NOT_EMBEDDED.supplierReqEx(
-                            new ExResArgs(List.of(), List.of(kv.key()), List.of(kv.key()))));
+                    .orElseThrow(PgrstExFactory.exFilterApplyButNotInSelect(kv.key()));
             assemblySingle(queryExec, kv.value(), values);
         }, () -> assemblySingle(rootQueryExec, k, values)));
     }

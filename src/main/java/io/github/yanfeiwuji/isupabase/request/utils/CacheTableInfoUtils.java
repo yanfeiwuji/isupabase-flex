@@ -90,9 +90,7 @@ public class CacheTableInfoUtils {
 
     public AbstractRelation<?> nNRealRelation(String paramKey, TableInfo tableInfo) {
         return realRelation(paramKey, tableInfo)
-                .orElseThrow(MReqExManagers.COULD_NOT_FIND_REL
-                        .supplierReqEx(ExResArgsFactory.ofMessageArgs(
-                                tableInfo.getTableName(), paramKey)));
+                .orElseThrow(PgrstExFactory.exRelNotExist(tableInfo.getTableName(), paramKey));
     }
 
     public Optional<String> realColumn(String paramKey, TableInfo tableInfo) {
@@ -123,13 +121,13 @@ public class CacheTableInfoUtils {
             columnInfos.forEach(info -> builder.put(
                     CacheTableInfoUtils.propertyToParamKey(info.getProperty()),
                     info));
-
             idInfos.forEach(info -> builder.put(
                     CacheTableInfoUtils.propertyToParamKey(info.getProperty()),
                     info));
             return builder.build();
         });
     }
+
 
     public Optional<QueryColumn> realQueryColumn(String paramKey, TableInfo tableInfo) {
         QueryTable queryTable = nNQueryTable(tableInfo);

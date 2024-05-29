@@ -34,6 +34,10 @@ public final class CommonStr {
     public static final String IS_VALUE_TRUE = "true";
     public static final String IS_VALUE_FALSE = "false";
 
+    public static final String SQL_NULL = " NULL ";
+    public static final String SQL_UNKNOWN = " UNKNOWN ";
+    public static final String SQL_TRUE = " TRUE ";
+    public static final String SQL_FALSE = " FALSE ";
     //
     public static final String AND = "and";
     public static final String OR = "or";

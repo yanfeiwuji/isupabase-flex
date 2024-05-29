@@ -10,8 +10,8 @@ import java.io.Serializable;
 @Getter
 public class PgrstEx extends RuntimeException implements Serializable {
     private static final long serialVersionUID = 1L;
-    private ExCodeStatus codeStatus;
-    private ExInfo info;
+    private final ExCodeStatus codeStatus;
+    private final ExInfo info;
 
     public ServerResponse toResponse() {
         return ServerResponse.status(codeStatus.status())
