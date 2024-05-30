@@ -2,6 +2,7 @@ package io.github.yanfeiwuji.isupabase.request.select;
 
 import cn.hutool.core.lang.Pair;
 import cn.hutool.core.util.StrUtil;
+
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.datasource.DataSourceKey;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -23,13 +24,14 @@ public class QueryExecInvoke {
     }
 
     public List<?> invoke(QueryExec queryExec, BaseMapper<?> baseMapper) {
-//        // only from root
-//        if (Objects.nonNull(queryExec.getRelation())) {
-//            return List.of();
-//        }
-//        QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
-//        List<?> preList = baseMapper.selectListByQuery(queryWrapper);
-//        Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec -> embeddedList(exec, baseMapper, preList));
+        // // only from root
+        // if (Objects.nonNull(queryExec.getRelation())) {
+        // return List.of();
+        // }
+        // QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
+        // List<?> preList = baseMapper.selectListByQuery(queryWrapper);
+        // Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec
+        // -> embeddedList(exec, baseMapper, preList));
         return embeddedList(queryExec, baseMapper, null);
     }
 
@@ -51,14 +53,16 @@ public class QueryExecInvoke {
             }
             QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
             queryExec.handler(queryWrapper);
-            Class<?> clazz = relation.isOnlyQueryValueField() ? relation.getTargetEntityClass() : relation.getMappingType();
+            Class<?> clazz = relation.isOnlyQueryValueField() ? relation.getTargetEntityClass()
+                    : relation.getMappingType();
             targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, clazz);
             relation.join(preList, targetObjectList, targetValues.mappingRows());
 
         }
         List<?> finalTargetObjectList = targetObjectList;
 
-        Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec -> embeddedList(exec, baseMapper, finalTargetObjectList));
+        Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream()
+                .forEach(exec -> embeddedList(exec, baseMapper, finalTargetObjectList));
         QueryExecInvoke.removeProperties(queryExec, targetObjectList);
         return targetObjectList;
     }
@@ -87,8 +91,8 @@ public class QueryExecInvoke {
         }
 
         QueryWrapper queryWrapper = QueryWrapper.create()
-                .select(column(relation.getJoinSelfColumn()), column(relation.getJoinTargetColumn())
-                ).from(relation.getJoinTable());
+                .select(column(relation.getJoinSelfColumn()), column(relation.getJoinTargetColumn()))
+                .from(relation.getJoinTable());
         if (selfFieldValues.size() > 1) {
             queryWrapper.where(column(relation.getJoinSelfColumn()).in(selfFieldValues));
         } else {
@@ -105,7 +109,9 @@ public class QueryExecInvoke {
     }
 
     private void removeProperties(QueryExec queryExec, List<?> targetObjectList) {
-        targetObjectList.parallelStream().forEach(obj -> queryExec.getNeedRemoves().parallelStream().forEach(it -> it.set(null, obj)));
+
+        targetObjectList.parallelStream().forEach(obj -> Optional.ofNullable(
+                queryExec.getNeedRemoves()).orElse(List.of()).parallelStream().forEach(it -> it.set(null, obj)));
     }
 
 }

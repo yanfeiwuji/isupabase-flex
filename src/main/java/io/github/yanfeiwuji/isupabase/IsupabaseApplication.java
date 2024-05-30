@@ -1,10 +1,8 @@
 package io.github.yanfeiwuji.isupabase;
 
-import com.mybatisflex.core.query.QueryWrapper;
 import io.github.yanfeiwuji.isupabase.entity.SysRole;
 import io.github.yanfeiwuji.isupabase.entity.SysRoleUser;
 import io.github.yanfeiwuji.isupabase.entity.SysUser;
-import io.github.yanfeiwuji.isupabase.entity.table.SysUserTableDef;
 import io.github.yanfeiwuji.isupabase.mapper.SysRoleMapper;
 import io.github.yanfeiwuji.isupabase.mapper.SysRoleUserMapper;
 import io.github.yanfeiwuji.isupabase.mapper.SysUserMapper;
@@ -18,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.function.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @SpringBootApplication

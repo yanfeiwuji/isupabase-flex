@@ -3,7 +3,6 @@ package io.github.yanfeiwuji.isupabase.request.select;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryMethods;
@@ -54,7 +53,6 @@ public class QueryExec {
     private boolean all;
     private List<FieldWrapper> needRemoves;
 
-
     public QueryWrapper handler(QueryWrapper queryWrapper) {
         select(queryWrapper);
         from(queryWrapper);
@@ -73,14 +71,11 @@ public class QueryExec {
 
     private void select(QueryWrapper queryWrapper) {
 
-        if (Objects.isNull(queryColumns)) {
-            return;
-        }
         if (all) {
             queryWrapper.select(queryColumns);
         } else {
-            Map<String, QueryColumn> map =
-                    queryColumns.stream().collect(Collectors.toMap(QueryColumn::getName, qc -> qc));
+            Map<String, QueryColumn> map = Optional.ofNullable(queryColumns).orElse(List.of()).stream()
+                    .collect(Collectors.toMap(QueryColumn::getName, qc -> qc));
             // handler sub
             Optional.ofNullable(this.getSubs()).orElse(List.of())
                     .stream().map(QueryExec::getRelation)
@@ -101,8 +96,6 @@ public class QueryExec {
             }
             queryWrapper.select(map.values().toArray(new QueryColumn[0]));
         }
-
-
     }
 
     private void from(QueryWrapper queryWrapper) {
@@ -116,11 +109,9 @@ public class QueryExec {
                 .orElse(List.of())
                 .stream().filter(QueryExec::isInner)
                 .forEach(innerSubs -> queryWrapper.and(QueryMethods.exists(
-                                RelationUtils
-                                        .relationExistQueryWrapper(innerSubs.relation)
-                                        .and(innerSubs.queryCondition)
-                        )
-                ));
+                        RelationUtils
+                                .relationExistQueryWrapper(innerSubs.relation)
+                                .and(innerSubs.queryCondition))));
     }
 
     private void condition(QueryWrapper queryWrapper) {
