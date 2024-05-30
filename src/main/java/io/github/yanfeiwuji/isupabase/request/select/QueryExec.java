@@ -1,7 +1,9 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryMethods;
@@ -13,7 +15,9 @@ import com.mybatisflex.core.relation.ManyToOne;
 import com.mybatisflex.core.relation.OneToOne;
 
 import com.mybatisflex.core.table.TableInfo;
+import com.mybatisflex.core.util.FieldWrapper;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 
 import lombok.Data;
@@ -48,11 +52,10 @@ public class QueryExec {
     private Map<String, AbstractRelation<?>> subRelMap;
 
     private boolean all;
+    private List<FieldWrapper> needRemoves;
 
 
     public QueryWrapper handler(QueryWrapper queryWrapper) {
-
-
         select(queryWrapper);
         from(queryWrapper);
         inner(queryWrapper);
@@ -69,9 +72,37 @@ public class QueryExec {
     }
 
     private void select(QueryWrapper queryWrapper) {
-        if (Objects.nonNull(queryColumns)) {
-            queryWrapper.select(queryColumns);
+
+        if (Objects.isNull(queryColumns)) {
+            return;
         }
+        if (all) {
+            queryWrapper.select(queryColumns);
+        } else {
+            Map<String, QueryColumn> map =
+                    queryColumns.stream().collect(Collectors.toMap(QueryColumn::getName, qc -> qc));
+            // handler sub
+            Optional.ofNullable(this.getSubs()).orElse(List.of())
+                    .stream().map(QueryExec::getRelation)
+                    .forEach(rel -> {
+                        QueryColumn queryColumn = CacheTableInfoUtils.nNRelSelfQueryColumn(rel);
+                        if (!map.containsKey(queryColumn.getName())) {
+                            map.put(queryColumn.getName(), queryColumn);
+                            this.addNeedRemove(rel.getSelfFieldWrapper());
+                        }
+                    });
+            // handler queryinfo
+            if (Objects.nonNull(relation)) {
+                QueryColumn queryColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(this.relation);
+                if (!map.containsKey(queryColumn.getName())) {
+                    map.put(queryColumn.getName(), queryColumn);
+                    this.addNeedRemove(relation.getTargetFieldWrapper());
+                }
+            }
+            queryWrapper.select(map.values().toArray(new QueryColumn[0]));
+        }
+
+
     }
 
     private void from(QueryWrapper queryWrapper) {
@@ -122,6 +153,7 @@ public class QueryExec {
         if (all) {
             return;
         }
+
         if (CommonStr.STAR.equals(queryColumn.getName())) {
             queryColumns = List.of(queryColumn);
             this.all = true;
@@ -159,4 +191,10 @@ public class QueryExec {
         subRelMap.put(key, relation);
     }
 
+    public void addNeedRemove(FieldWrapper wrapper) {
+        if (needRemoves == null) {
+            needRemoves = new ArrayList<>();
+        }
+        needRemoves.add(wrapper);
+    }
 }

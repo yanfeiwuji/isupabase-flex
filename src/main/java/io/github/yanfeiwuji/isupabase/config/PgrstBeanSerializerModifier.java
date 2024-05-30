@@ -12,18 +12,20 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
 @Slf4j
-public class JsS extends BeanSerializerModifier {
+public class PgrstBeanSerializerModifier extends BeanSerializerModifier {
+
 
     @Override
     public List<BeanPropertyWriter> orderProperties(SerializationConfig config, BeanDescription beanDesc, List<BeanPropertyWriter> beanProperties) {
-        beanProperties.stream().map(it->it.getName()).forEach(System.out::println);
+        System.out.println("herssdse");
+        beanProperties.stream().map(it -> it.getName());
         return beanProperties;
     }
 
     @Override
-    public List<BeanPropertyWriter>
-    changeProperties(SerializationConfig config, BeanDescription beanDesc, List<BeanPropertyWriter> beanProperties) {
-        beanProperties.stream().map(it->it.getName()).forEach(System.out::println);
+    public List<BeanPropertyWriter>  changeProperties(SerializationConfig config, BeanDescription beanDesc, List<BeanPropertyWriter> beanProperties) {
+        System.out.println("herssdse");
+        beanProperties.stream().map(it -> it.getName()).forEach(System.out::println);
         return beanProperties;
     }
 }

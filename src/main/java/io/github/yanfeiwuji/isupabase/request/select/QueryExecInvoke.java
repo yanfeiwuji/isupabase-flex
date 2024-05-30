@@ -23,35 +23,44 @@ public class QueryExecInvoke {
     }
 
     public List<?> invoke(QueryExec queryExec, BaseMapper<?> baseMapper) {
-        // only from root
-        if (Objects.nonNull(queryExec.getRelation())) {
-            return List.of();
-        }
-        QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
-        List<?> preList = baseMapper.selectListByQuery(queryWrapper);
-        Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec -> embeddedList(exec, baseMapper, preList));
-        return preList;
+//        // only from root
+//        if (Objects.nonNull(queryExec.getRelation())) {
+//            return List.of();
+//        }
+//        QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
+//        List<?> preList = baseMapper.selectListByQuery(queryWrapper);
+//        Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec -> embeddedList(exec, baseMapper, preList));
+        return embeddedList(queryExec, baseMapper, null);
     }
 
     @SuppressWarnings("rawtypes")
-    private void embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
-        if (preList.isEmpty()) {
-            return;
+    private List<?> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
+        List<?> targetObjectList;
+        if (Objects.isNull(queryExec.getRelation())) {
+            QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
+            targetObjectList = baseMapper.selectListByQuery(queryWrapper);
+        } else {
+            AbstractRelation<?> relation = queryExec.getRelation();
+            choiceDs(relation);
+            TargetValues targetValues = Optional.of(relation.getJoinTable()).filter(StrUtil::isNotBlank)
+                    .map(it -> embeddedJoinTargetValues(baseMapper, relation, preList))
+                    .orElseGet(() -> embeddedTargetValues(relation, preList));
+
+            if (targetValues.targetValues().isEmpty()) {
+                return preList;
+            }
+            QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
+            queryExec.handler(queryWrapper);
+            Class<?> clazz = relation.isOnlyQueryValueField() ? relation.getTargetEntityClass() : relation.getMappingType();
+            targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, clazz);
+            relation.join(preList, targetObjectList, targetValues.mappingRows());
+
         }
-        AbstractRelation<?> relation = queryExec.getRelation();
-        choiceDs(relation);
-        TargetValues targetValues = Optional.of(relation.getJoinTable()).filter(StrUtil::isNotBlank)
-                .map(it -> embeddedJoinTargetValues(baseMapper, relation, preList))
-                .orElseGet(() -> embeddedTargetValues(relation, preList));
+        List<?> finalTargetObjectList = targetObjectList;
 
-        QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
-        queryExec.handler(queryWrapper);
-        Class<?> clazz = relation.isOnlyQueryValueField() ? relation.getTargetEntityClass() : relation.getMappingType();
-        List<?> targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, clazz);
-
-        relation.join(preList, targetObjectList, targetValues.mappingRows());
-
-        Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec -> embeddedList(exec, baseMapper, targetObjectList));
+        Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec -> embeddedList(exec, baseMapper, finalTargetObjectList));
+        QueryExecInvoke.removeProperties(queryExec, targetObjectList);
+        return targetObjectList;
     }
 
     private void choiceDs(AbstractRelation<?> relation) {
@@ -67,7 +76,6 @@ public class QueryExecInvoke {
 
     @SuppressWarnings("rawtypes")
     private TargetValues embeddedTargetValues(AbstractRelation relation, List preList) {
-
         return new TargetValues(relation.getSelfFieldValues(preList), null);
     }
 
@@ -88,7 +96,6 @@ public class QueryExecInvoke {
         }
         List<Row> mappingRows = baseMapper.selectListByQueryAs(queryWrapper, Row.class);
 
-
         Set<Object> targetValues = mappingRows
                 .stream()
                 .map(it -> it.getIgnoreCase(relation.getJoinTargetColumn()))
@@ -97,5 +104,8 @@ public class QueryExecInvoke {
         return new TargetValues(targetValues, mappingRows);
     }
 
+    private void removeProperties(QueryExec queryExec, List<?> targetObjectList) {
+        targetObjectList.parallelStream().forEach(obj -> queryExec.getNeedRemoves().parallelStream().forEach(it -> it.set(null, obj)));
+    }
 
 }

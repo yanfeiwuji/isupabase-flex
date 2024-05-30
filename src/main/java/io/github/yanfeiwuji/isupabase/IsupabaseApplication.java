@@ -38,10 +38,7 @@ public class IsupabaseApplication {
 
     @GetMapping
     public List user() {
-        return sysUserMapper.selectListByQueryAs(
-                QueryWrapper.create().select(SysUserTableDef.SYS_USER.ID.as("ID"))
-                , Map.class
-        );
+        return sysUserMapper.selectAll();
 
     }
 

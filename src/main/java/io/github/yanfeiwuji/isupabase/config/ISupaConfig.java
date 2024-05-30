@@ -1,8 +1,13 @@
 package io.github.yanfeiwuji.isupabase.config;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.SerializerFactory;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.mybatisflex.core.audit.AuditManager;
 import com.mybatisflex.core.audit.ConsoleMessageCollector;
 import com.mybatisflex.core.audit.MessageCollector;
@@ -12,6 +17,7 @@ import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 
+import io.github.yanfeiwuji.isupabase.entity.SysRole;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
@@ -19,6 +25,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
 @Configuration
 public class ISupaConfig implements ConfigurationCustomizer {
@@ -41,19 +48,20 @@ public class ISupaConfig implements ConfigurationCustomizer {
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer() {
         return builder -> {
+
+
         };
     }
 
     @Bean
     CommandLineRunner commandLineRunner(ObjectMapper mapper) {
         return arg -> {
-            SimpleFilterProvider filters = new SimpleFilterProvider();
-            mapper.getSerializerFactory().withSerializerModifier(new JsS());
-            filters.addFilter("myFilter", SimpleBeanPropertyFilter.serializeAll());
             CacheTableInfoUtils.init(mapper);
             ValueUtils.init(mapper);
+
         };
     }
+
 
 
 }

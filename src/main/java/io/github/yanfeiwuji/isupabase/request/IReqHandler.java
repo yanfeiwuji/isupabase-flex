@@ -42,7 +42,8 @@ public interface IReqHandler {
                                 .PUT(this::put)
                                 .PATCH(this::patch)
                                 .DELETE(this::delete)
-                                .after(this::after))
+                                .after(this::after)
+                )
                 .onError(PgrstEx.class, this::onError)
                 .build();
 
