@@ -35,8 +35,8 @@ public class IsupabaseApplication {
 
     @GetMapping
     public List<SysUser> user() {
+         return sysUserMapper.selectAllWithRelations();
 
-        return List.of();
     }
 
     @GetMapping("/role")

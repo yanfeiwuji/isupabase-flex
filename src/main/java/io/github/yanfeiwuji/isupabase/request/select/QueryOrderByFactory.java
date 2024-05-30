@@ -9,8 +9,9 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class QueryOrderByFactory {
     public QueryOrderBy of(QueryColumn queryColumn, String orderType, String nullsType) {
-        QueryOrderBy queryOrderBy = CharSequenceUtil.equals(CommonStr.DESC, orderType) ? queryColumn.desc()
-                : queryColumn.asc();
+        QueryOrderBy queryOrderBy =
+                CharSequenceUtil.equals(CommonStr.DESC, orderType) ? queryColumn.desc()
+                        : queryColumn.asc();
         if (CharSequenceUtil.equals(CommonStr.NULLS_FIRST, nullsType)) {
             queryOrderBy.nullsFirst();
         } else if (CharSequenceUtil.equals(CommonStr.NULLS_LAST, nullsType)) {

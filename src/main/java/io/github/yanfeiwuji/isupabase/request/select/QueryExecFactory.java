@@ -61,7 +61,7 @@ public class QueryExecFactory {
             indexed.put(needPre, queryExec);
         }
 
-        TokenUtils.splitByComma(stuff.select()).forEach(selectItem -> {
+        TokenUtils.splitByComma(stuff.select()).parallelStream().forEach(selectItem -> {
             if (MTokens.SELECT_WITH_SUB.find(selectItem)) {
                 QueryExec subQueryExec = QueryExecFactory.of(
                         SelectUtils.queryExecStuff(selectItem, tableInfo),

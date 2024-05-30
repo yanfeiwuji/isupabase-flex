@@ -18,7 +18,6 @@ import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 
 import lombok.Data;
 
-
 @Data
 public class QueryExec {
 
@@ -48,11 +47,12 @@ public class QueryExec {
 
     private Map<String, AbstractRelation<?>> subRelMap;
 
-
-
     private boolean all;
 
+
     public QueryWrapper handler(QueryWrapper queryWrapper) {
+
+
         select(queryWrapper);
         from(queryWrapper);
         inner(queryWrapper);
@@ -61,6 +61,11 @@ public class QueryExec {
         order(queryWrapper);
         range(queryWrapper);
         return queryWrapper;
+    }
+
+    private QueryWrapper createQueryWrapper() {
+
+        return QueryWrapper.create();
     }
 
     private void select(QueryWrapper queryWrapper) {

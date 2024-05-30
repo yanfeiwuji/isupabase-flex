@@ -52,7 +52,7 @@ public class ApiReq {
     }
 
     public List<?> result(BaseMapper<?> baseMapper) {
-        return baseMapper.selectListByQuery(queryExec.handler(QueryWrapper.create()));
+        return QueryExecInvoke.invoke(queryExec, baseMapper);
     }
 
     public QueryWrapper queryWrapper() {

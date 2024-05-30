@@ -1,6 +1,7 @@
 package io.github.yanfeiwuji.isupabase.request.utils;
 
 import cn.hutool.core.text.CharSequenceUtil;
+import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryTable;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -9,6 +10,8 @@ import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import lombok.experimental.UtilityClass;
+
+import java.util.List;
 
 @UtilityClass
 public class RelationUtils {
@@ -98,6 +101,7 @@ public class RelationUtils {
         QueryColumn targetQueryColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(relation);
 
         queryWrapper.leftJoin(queryTable).on(targetQueryColumn.eq(selfQueryColumn));
-
     }
+
+
 }
