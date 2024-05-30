@@ -30,12 +30,7 @@ public class ISupaConfig implements ConfigurationCustomizer {
 
     @Override
     public void customize(FlexConfiguration flexConfiguration) {
-        //  flexConfiguration.setLogImpl(StdOutImpl.class);
-        // flexConfiguration.setDo
-
         AuditManager.setAuditEnable(true);
-
-        //设置 SQL 审计收集器
         MessageCollector collector = new ConsoleMessageCollector();
         AuditManager.setMessageCollector(collector);
     }
@@ -44,7 +39,6 @@ public class ISupaConfig implements ConfigurationCustomizer {
     CommandLineRunner commandLineRunner(ObjectMapper mapper) {
         return arg -> {
             CacheTableInfoUtils.init(mapper);
-
             ValueUtils.init(mapper);
         };
     }
