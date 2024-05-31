@@ -59,6 +59,7 @@ public class ISupaConfig implements ConfigurationCustomizer {
             ObjectMapper objectMapper = new ObjectMapper();
             builder.configure(objectMapper);
 
+
             // before use a old objectMapper that  don't  use Object ser handler
             // then  builder gen ObjectMapper use Object gen to handler cycle ser object
             builder.serializerByType(Object.class, new PgrstJsonSerializer(objectMapper));
