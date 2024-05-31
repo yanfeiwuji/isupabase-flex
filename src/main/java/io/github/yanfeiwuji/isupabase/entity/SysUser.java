@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.RelationManyToMany;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @Data
 @Table("sys_user")
+@JsonIgnoreProperties(value = "id")
 public class SysUser {
 
     @Id(keyType = KeyType.Generator, value = KeyGenerators.flexId)
