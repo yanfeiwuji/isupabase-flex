@@ -32,8 +32,6 @@ public class IsupabaseApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(IsupabaseApplication.class, args);
-        Enhancer enhancer = new Enhancer();
-
     }
 
     @GetMapping

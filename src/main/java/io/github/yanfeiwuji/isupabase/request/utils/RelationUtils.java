@@ -11,7 +11,9 @@ import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import lombok.experimental.UtilityClass;
 
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Set;
 
 @UtilityClass
 public class RelationUtils {
@@ -102,6 +104,7 @@ public class RelationUtils {
 
         queryWrapper.leftJoin(queryTable).on(targetQueryColumn.eq(selfQueryColumn));
     }
+
 
 
 }

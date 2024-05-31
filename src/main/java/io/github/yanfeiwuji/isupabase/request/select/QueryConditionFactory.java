@@ -138,6 +138,9 @@ public class QueryConditionFactory {
                 }
             }
         } else {
+            QueryCondition apply = biFunction.apply(queryColumn, value);
+
+
             return biFunction.apply(queryColumn, value);
         }
     }

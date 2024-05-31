@@ -2,8 +2,11 @@ package io.github.yanfeiwuji.isupabase.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.BeanSerializer;
 import com.fasterxml.jackson.databind.ser.SerializerFactory;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
@@ -55,6 +58,7 @@ public class ISupaConfig implements ConfigurationCustomizer {
         return builder -> {
             ObjectMapper objectMapper = new ObjectMapper();
             builder.configure(objectMapper);
+
             // before use a old objectMapper that  don't  use Object ser handler
             // then  builder gen ObjectMapper use Object gen to handler cycle ser object
             builder.serializerByType(Object.class, new PgrstJsonSerializer(objectMapper));
@@ -64,11 +68,8 @@ public class ISupaConfig implements ConfigurationCustomizer {
     @Bean
     CommandLineRunner commandLineRunner(ObjectMapper mapper) {
         return arg -> {
-
             CacheTableInfoUtils.init(mapper);
             ValueUtils.init(mapper);
-
-
         };
     }
 

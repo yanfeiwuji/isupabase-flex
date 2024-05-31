@@ -2,7 +2,7 @@ spring:
   application:
     name: isupabase
   datasource:
-    url: jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:6543/postgres?user=postgres.vxguqjxsufwgzhcnojsc&password=hOPnavWk3gZIOn6N
-    # url: jdbc:postgresql://192.168.0.78:5432/app_db?user=app_user&password=password
+   url: jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:6543/postgres?user=postgres.vxguqjxsufwgzhcnojsc&password=hOPnavWk3gZIOn6N
+    #url: jdbc:postgresql://192.168.0.78:5432/app_db?user=app_user&password=password
   jackson:
     property-naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy

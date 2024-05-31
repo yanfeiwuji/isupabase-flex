@@ -8,6 +8,7 @@ import java.util.function.BiConsumer;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
 import com.mybatisflex.core.query.QueryColumn;
+import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.query.QueryOrderBy;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.relation.ManyToMany;
@@ -45,7 +46,8 @@ public class QueryExecAssembleManager {
 
     public void assembleFilter(QueryExec queryExec, String key, List<String> values) {
         TableInfo tableInfo = queryExec.getTableInfo();
-        queryExec.setQueryCondition(QueryConditionFactory.of(tableInfo, key, values));
+        queryExec.getQueryCondition().and(QueryConditionFactory.of(tableInfo, key, values));
+
     }
 
     private void assembleOrder(QueryExec queryExec, List<String> values) {

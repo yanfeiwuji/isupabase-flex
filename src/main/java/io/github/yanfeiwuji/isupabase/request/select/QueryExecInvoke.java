@@ -1,5 +1,7 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.Pair;
 import cn.hutool.core.util.StrUtil;
 
@@ -32,7 +34,12 @@ public class QueryExecInvoke {
         // List<?> preList = baseMapper.selectListByQuery(queryWrapper);
         // Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec
         // -> embeddedList(exec, baseMapper, preList));
-        return embeddedList(queryExec, baseMapper, null);
+
+
+
+
+      return embeddedList(queryExec, baseMapper, null);
+
     }
 
     @SuppressWarnings("rawtypes")
@@ -60,7 +67,6 @@ public class QueryExecInvoke {
 
         }
         List<?> finalTargetObjectList = targetObjectList;
-
         Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream()
                 .forEach(exec -> embeddedList(exec, baseMapper, finalTargetObjectList));
         QueryExecInvoke.removeProperties(queryExec, targetObjectList);

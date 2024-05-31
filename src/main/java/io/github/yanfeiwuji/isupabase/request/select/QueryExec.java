@@ -115,7 +115,8 @@ public class QueryExec {
     }
 
     private void condition(QueryWrapper queryWrapper) {
-        queryWrapper.and(queryCondition);
+
+        queryWrapper.where(queryCondition);
     }
 
     private void join(QueryWrapper queryWrapper) {

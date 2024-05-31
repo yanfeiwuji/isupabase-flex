@@ -74,6 +74,7 @@ public class ValueUtils {
 
         try {
             Object bean = mapper.readValue(jsonStr, tableInfo.getEntityClass());
+
             return BeanUtil.getProperty(bean, propertyName);
         } catch (JsonProcessingException e) {
             String dbType = CacheTableInfoUtils.realDbType(realParam, tableInfo);

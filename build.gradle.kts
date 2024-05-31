@@ -25,7 +25,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("cn.hutool:hutool-all:$hutoolVersion")
     implementation("com.mybatis-flex:mybatis-flex-spring-boot3-starter:$mybatisFlexVersion")
-    implementation("com.google.guava:guava:$guavaVersion")
+    // implementation("com.google.guava:guava:$guavaVersion")
 
     implementation("org.projectlombok:lombok")
 
