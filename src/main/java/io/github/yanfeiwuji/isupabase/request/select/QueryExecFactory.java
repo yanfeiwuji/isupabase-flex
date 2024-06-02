@@ -1,7 +1,10 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
+import com.mybatisflex.core.query.QueryColumn;
+import com.mybatisflex.core.query.QueryTable;
 import com.mybatisflex.core.table.TableInfo;
 
 import cn.hutool.core.text.CharSequenceUtil;
@@ -30,15 +33,21 @@ public class QueryExecFactory {
         long start = System.currentTimeMillis();
 
         log.info("start: time:{}", start);
+        List<String> removeJsonPaths = new ArrayList<>();
+        List<ResultMapping> renameJsonPaths = new ArrayList<>();
         QueryExec queryExec = QueryExecFactory.of(new QueryExecStuff(selectValue, tableInfo), lookup,
-                CommonStr.EMPTY_STRING);
+                CommonStr.EMPTY_STRING,
+                "$.*.",
+                removeJsonPaths, renameJsonPaths);
 
         log.info("duration: time:{}", System.currentTimeMillis() - start);
-        return new QueryExecLookup(queryExec, lookup);
+        return new QueryExecLookup(queryExec, lookup, removeJsonPaths, renameJsonPaths);
     }
 
     // one time to get indexed and
-    private QueryExec of(QueryExecStuff stuff, Map<String, QueryExec> indexed, String pre) {
+    private QueryExec of(QueryExecStuff stuff, Map<String, QueryExec> indexed, String pre,
+                         String preJsonPath,
+                         List<String> removeJsonPaths, List<ResultMapping> renameJsonPaths) {
 
         QueryExec queryExec = new QueryExec();
         TableInfo tableInfo = stuff.tableInfo();
@@ -61,20 +70,32 @@ public class QueryExecFactory {
             indexed.put(needPre, queryExec);
         }
 
-        TokenUtils.splitByComma(stuff.select()).parallelStream().forEach(selectItem -> {
-            if (MTokens.SELECT_WITH_SUB.find(selectItem)) {
-                QueryExec subQueryExec = QueryExecFactory.of(
-                        SelectUtils.queryExecStuff(selectItem, tableInfo),
-                        indexed,
-                        needPre);
-                queryExec.addSub(subQueryExec);
-                Optional.ofNullable(subQueryExec.getRelation())
-                        .ifPresent(rel -> queryExec.putSubRelMap(subQueryExec.getRelEnd(), rel));
 
-            } else {
-                queryExec.addQueryColumn(SelectUtils.queryColumn(selectItem, tableInfo));
-            }
+        TokenUtils.splitByComma(stuff.select()).parallelStream().forEach(selectItem -> {
+            MTokens.SELECT_WITH_SUB.keyValue(selectItem)
+                    .ifPresentOrElse(it -> {
+                        QueryExec subQueryExec = QueryExecFactory.of(
+                                SelectUtils.queryExecStuff(it, tableInfo),
+                                indexed, needPre,
+                                preJsonPath + it.key() + ".*."
+                                , removeJsonPaths, renameJsonPaths);
+                        queryExec.addSub(subQueryExec);
+                        Optional.ofNullable(subQueryExec.getRelation())
+                                .ifPresent(rel -> queryExec.putSubRelMap(subQueryExec.getRelEnd(), rel));
+                    }, () -> {
+                        queryExec.addQueryColumn(SelectUtils.queryColumn(selectItem, tableInfo));
+                    });
+
+
         });
+
+        final Set<String> allKeys = CacheTableInfoUtils.allColumnsWithRel(queryExec.getQueryTable());
+        final Set<String> pickKey = queryExec.getPickKey();
+
+        final Set<String> collect = allKeys.stream().filter(e -> !pickKey.contains(e))
+                .map(it -> preJsonPath + it)
+                .collect(Collectors.toSet());
+        removeJsonPaths.addAll(collect);
 
         return queryExec;
     }
@@ -93,7 +114,6 @@ public class QueryExecFactory {
         QueryExecAssembleManager.assembleLimitOffsetOrder(key)
                 .ifPresentOrElse(it -> it.accept(queryExec, values),
                         () -> QueryExecAssembleManager.assembleFilter(queryExec, key, values));
-
     }
 
 }

@@ -1,8 +1,5 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
-import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.bean.copier.CopyOptions;
-import cn.hutool.core.lang.Pair;
 import cn.hutool.core.util.StrUtil;
 
 import com.mybatisflex.core.BaseMapper;
@@ -11,6 +8,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.util.StringUtil;
+import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.experimental.UtilityClass;
 
 import java.util.*;
@@ -22,7 +20,10 @@ import static com.mybatisflex.core.query.QueryMethods.column;
 public class QueryExecInvoke {
 
     private record TargetValues(Set<Object> targetValues, List<Row> mappingRows) {
+    }
 
+    public String filter() {
+        return "";
     }
 
     public List<?> invoke(QueryExec queryExec, BaseMapper<?> baseMapper) {
@@ -35,14 +36,11 @@ public class QueryExecInvoke {
         // Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec
         // -> embeddedList(exec, baseMapper, preList));
 
-
-
-
-      return embeddedList(queryExec, baseMapper, null);
+        return embeddedList(queryExec, baseMapper, null);
 
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private List<?> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
         List<?> targetObjectList;
         if (Objects.isNull(queryExec.getRelation())) {
@@ -62,6 +60,7 @@ public class QueryExecInvoke {
             queryExec.handler(queryWrapper);
             Class<?> clazz = relation.isOnlyQueryValueField() ? relation.getTargetEntityClass()
                     : relation.getMappingType();
+
             targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, clazz);
             relation.join(preList, targetObjectList, targetValues.mappingRows());
 
@@ -69,7 +68,7 @@ public class QueryExecInvoke {
         List<?> finalTargetObjectList = targetObjectList;
         Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream()
                 .forEach(exec -> embeddedList(exec, baseMapper, finalTargetObjectList));
-        QueryExecInvoke.removeProperties(queryExec, targetObjectList);
+
         return targetObjectList;
     }
 
@@ -84,13 +83,14 @@ public class QueryExecInvoke {
         }
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private TargetValues embeddedTargetValues(AbstractRelation relation, List preList) {
         return new TargetValues(relation.getSelfFieldValues(preList), null);
     }
 
     @SuppressWarnings("rawtypes")
     private TargetValues embeddedJoinTargetValues(BaseMapper<?> baseMapper, AbstractRelation relation, List preList) {
+        @SuppressWarnings("unchecked")
         Set selfFieldValues = relation.getSelfFieldValues(preList);
         if (selfFieldValues.isEmpty()) {
             return new TargetValues(Set.of(), List.of());
@@ -100,9 +100,10 @@ public class QueryExecInvoke {
                 .select(column(relation.getJoinSelfColumn()), column(relation.getJoinTargetColumn()))
                 .from(relation.getJoinTable());
         if (selfFieldValues.size() > 1) {
-            queryWrapper.where(column(relation.getJoinSelfColumn()).in(selfFieldValues));
+
+            queryWrapper.where(CacheTableInfoUtils.nNRelJoinSelfQueryColumn(relation).in(selfFieldValues));
         } else {
-            queryWrapper.where(column(relation.getJoinSelfColumn()).eq(selfFieldValues.iterator().next()));
+            queryWrapper.where(CacheTableInfoUtils.nNRelJoinSelfQueryColumn(relation).eq(selfFieldValues.iterator().next()));
         }
         List<Row> mappingRows = baseMapper.selectListByQueryAs(queryWrapper, Row.class);
 
@@ -114,10 +115,6 @@ public class QueryExecInvoke {
         return new TargetValues(targetValues, mappingRows);
     }
 
-    private void removeProperties(QueryExec queryExec, List<?> targetObjectList) {
 
-        targetObjectList.parallelStream().forEach(obj -> Optional.ofNullable(
-                queryExec.getNeedRemoves()).orElse(List.of()).parallelStream().forEach(it -> it.set(null, obj)));
-    }
 
 }

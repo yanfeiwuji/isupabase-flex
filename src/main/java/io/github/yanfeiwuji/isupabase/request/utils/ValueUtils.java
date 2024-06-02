@@ -7,7 +7,10 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
@@ -62,7 +65,6 @@ public class ValueUtils {
     public Object likeValue(QueryColumn queryColumn, String value) {
         Object o = ValueUtils.singleValue(queryColumn, value);
         return CharSequenceUtil.replace(StrUtil.toString(o), CommonStr.STAR, CommonStr.PERCENT);
-
     }
 
     public Object singleValue(QueryColumn queryColumn, String value) {
@@ -71,6 +73,7 @@ public class ValueUtils {
         String realParam = CacheTableInfoUtils.nNRealParam(queryColumn.getName(), tableInfo);
         String propertyName = CacheTableInfoUtils.nNRealProperty(realParam, tableInfo);
         String jsonStr = new JSONObject().set(realParam, value).toString();
+
 
         try {
             Object bean = mapper.readValue(jsonStr, tableInfo.getEntityClass());

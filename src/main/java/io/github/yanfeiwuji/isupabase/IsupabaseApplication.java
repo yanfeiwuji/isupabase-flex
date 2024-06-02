@@ -11,8 +11,9 @@ import lombok.AllArgsConstructor;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cglib.proxy.Enhancer;
+
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.function.*;
 
@@ -22,6 +23,7 @@ import java.util.List;
 @SpringBootApplication
 @AllArgsConstructor
 @MapperScan("io.github.yanfeiwuji.isupabase.mapper")
+@EnableAspectJAutoProxy
 public class IsupabaseApplication {
 
     private final SysUserMapper sysUserMapper;
@@ -35,7 +37,7 @@ public class IsupabaseApplication {
     }
 
     @GetMapping
-    public List user() {
+    public List<SysUser> user() {
         return sysUserMapper.selectAll();
 
     }

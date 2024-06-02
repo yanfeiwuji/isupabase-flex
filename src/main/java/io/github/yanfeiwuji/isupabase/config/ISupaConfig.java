@@ -1,15 +1,8 @@
 package io.github.yanfeiwuji.isupabase.config;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.BeanSerializer;
 import com.fasterxml.jackson.databind.ser.SerializerFactory;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.mybatisflex.core.audit.AuditManager;
 import com.mybatisflex.core.audit.ConsoleMessageCollector;
 import com.mybatisflex.core.audit.MessageCollector;
@@ -19,23 +12,25 @@ import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 
-import io.github.yanfeiwuji.isupabase.entity.SysUser;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
-import org.springframework.cglib.beans.BeanCopier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.Set;
+import java.util.List;
 
 @Configuration
-public class ISupaConfig implements ConfigurationCustomizer {
+public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
 
     @Bean
     public MyBatisFlexCustomizer myBatisFlexCustomizer() {
@@ -52,17 +47,9 @@ public class ISupaConfig implements ConfigurationCustomizer {
         AuditManager.setMessageCollector(collector);
     }
 
-
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer() {
         return builder -> {
-            ObjectMapper objectMapper = new ObjectMapper();
-            builder.configure(objectMapper);
-
-
-            // before use a old objectMapper that  don't  use Object ser handler
-            // then  builder gen ObjectMapper use Object gen to handler cycle ser object
-            builder.serializerByType(Object.class, new PgrstJsonSerializer(objectMapper));
         };
     }
 
@@ -71,7 +58,12 @@ public class ISupaConfig implements ConfigurationCustomizer {
         return arg -> {
             CacheTableInfoUtils.init(mapper);
             ValueUtils.init(mapper);
+
         };
     }
 
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+      //  registry.addInterceptor();
+    }
 }

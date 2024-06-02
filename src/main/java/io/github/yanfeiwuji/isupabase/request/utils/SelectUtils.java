@@ -9,6 +9,7 @@ import com.mybatisflex.core.table.TableInfoFactory;
 import cn.hutool.core.text.CharSequenceUtil;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.select.QueryExecStuff;
+import io.github.yanfeiwuji.isupabase.request.token.KeyValue;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import lombok.experimental.UtilityClass;
 
@@ -23,19 +24,13 @@ public class SelectUtils {
         }
     }
 
-    public QueryExecStuff queryExecStuff(String selectItem, TableInfo tableInfo) {
-        return MTokens.SELECT_WITH_SUB.keyValue(selectItem)
-                .map(keyValue -> {
-                    boolean inner = keyValue.key().endsWith(CommonStr.SELECT_INNER_MARK);
-                    String key = CharSequenceUtil.replace(keyValue.key(), CommonStr.SELECT_INNER_MARK,
-                            CommonStr.EMPTY_STRING);
-                    AbstractRelation<?> relation = CacheTableInfoUtils.nNRealRelation(key, tableInfo);
-                    TableInfo innerTableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
-                    return new QueryExecStuff(keyValue.value(), innerTableInfo, inner, relation);
-                })
-                // not
-                .orElseThrow();
-
+    public QueryExecStuff queryExecStuff(KeyValue keyValue, TableInfo tableInfo) {
+        boolean inner = keyValue.key().endsWith(CommonStr.SELECT_INNER_MARK);
+        String key = CharSequenceUtil.replace(keyValue.key(), CommonStr.SELECT_INNER_MARK,
+                CommonStr.EMPTY_STRING);
+        AbstractRelation<?> relation = CacheTableInfoUtils.nNRealRelation(key, tableInfo);
+        TableInfo innerTableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
+        return new QueryExecStuff(keyValue.value(), innerTableInfo, inner, relation);
     }
 
 }

@@ -1,5 +1,12 @@
 package io.github.yanfeiwuji.isupabase.request.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.spi.json.JsonSmartJsonProvider;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.mybatis.Mappers;
 import com.mybatisflex.core.table.TableInfo;
@@ -11,8 +18,13 @@ import io.github.yanfeiwuji.isupabase.request.IReqHandler;
 import io.github.yanfeiwuji.isupabase.request.IReqQueryWrapperHandler;
 import io.github.yanfeiwuji.isupabase.request.ex.*;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
+import io.github.yanfeiwuji.isupabase.request.select.ResultMapping;
+import io.github.yanfeiwuji.isupabase.request.select.ResultMappingFactory;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -23,8 +35,10 @@ import java.util.Optional;
 @Component
 @AllArgsConstructor
 public class ReqHandler implements IReqHandler {
+    private static final Logger log = LoggerFactory.getLogger(ReqHandler.class);
     private final IReqQueryWrapperHandler reqQueryWrapperHandler;
     private final IBodyHandler bodyHandler;
+    private final ObjectMapper objectMapper;
 
     @Override
     public ServerRequest before(ServerRequest request) {
@@ -32,8 +46,7 @@ public class ReqHandler implements IReqHandler {
 
         TableInfo tableInfo = Optional.of(request.pathVariable(PATH_PARAM))
                 .map(TableInfoFactory::ofTableName)
-                .orElseThrow(
-                        PgrstExFactory.exTableNotFound(tableName));
+                .orElseThrow(PgrstExFactory.exTableNotFound(tableName));
 
         BaseMapper<?> baseMapper = Mappers.ofEntityClass(tableInfo.getEntityClass());
 
@@ -49,10 +62,12 @@ public class ReqHandler implements IReqHandler {
     public ServerResponse get(ServerRequest request) {
         ApiReq apiReq = apiReq(request);
         BaseMapper<?> baseMapper = mapper(request);
-        return ServerResponse.ok().body(apiReq.result(baseMapper));
+
+
+        return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(apiReq.result(baseMapper, objectMapper));
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public ServerResponse post(ServerRequest request) {
         TableInfo tableInfo = tableInfo(request);
@@ -102,18 +117,17 @@ public class ReqHandler implements IReqHandler {
 
     @Override
     public ServerResponse after(ServerRequest request, ServerResponse response) {
+
         return response;
     }
 
     @Override
     public ServerResponse onError(Throwable throwable, ServerRequest request) {
-
         return Optional.of(throwable)
                 .filter(PgrstEx.class::isInstance)
                 .map(PgrstEx.class::cast)
                 .map(PgrstEx::toResponse)
                 .orElse(ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
-
     }
 
     private TableInfo tableInfo(ServerRequest request) {

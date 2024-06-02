@@ -37,6 +37,7 @@ public interface IReqHandler {
                 .route()
                 .path(ROUTE_PATH,
                         builder -> builder.before(this::before)
+
                                 .GET(this::get)
                                 .POST(this::post)
                                 .PUT(this::put)

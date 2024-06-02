@@ -2,6 +2,13 @@ package io.github.yanfeiwuji.isupabase.request.req;
 
 import java.util.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.spi.json.JsonSmartJsonProvider;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.table.TableInfo;
@@ -35,24 +42,40 @@ import org.springframework.web.servlet.function.ServerRequest;
 @Data
 @Slf4j
 public class ApiReq {
+    private final Configuration configuration = Configuration.builder()
+            .options(Option.ALWAYS_RETURN_LIST, Option.SUPPRESS_EXCEPTIONS)
+            .jsonProvider(new JsonSmartJsonProvider())
+            .build();
 
     QueryExec queryExec;
-
+    QueryExecLookup queryExecLookup;
 
     public ApiReq(ServerRequest request, String tableName) {
         long s = System.currentTimeMillis();
         log.info("start time:{}", s);
         MultiValueMap<String, String> params = request.params();
-
         TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
         QueryExecLookup queryExecLookup = QueryExecFactory.of(params, tableInfo);
         this.queryExec = queryExecLookup.queryExec();
+        this.queryExecLookup = queryExecLookup;
         QueryExecFactory.assembly(queryExecLookup, params);
-
     }
 
-    public List<?> result(BaseMapper<?> baseMapper) {
-        return QueryExecInvoke.invoke(queryExec, baseMapper);
+
+    public String result(BaseMapper<?> baseMapper, ObjectMapper objectMapper) {
+        List<?> res = QueryExecInvoke.invoke(queryExec, baseMapper);
+        long start = System.currentTimeMillis();
+        log.info("start time:{}", start);
+        try {
+            final String s = objectMapper.writeValueAsString(res);
+            final DocumentContext documentContext = JsonPath.using(configuration).parse(s);
+            queryExecLookup.removeJsonPath().parallelStream().forEach(documentContext::delete);
+            log.info("end time-t :{}", System.currentTimeMillis() - start);
+
+            return documentContext.jsonString();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public QueryWrapper queryWrapper() {

@@ -1,8 +1,5 @@
 package io.github.yanfeiwuji.isupabase.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.RelationManyToMany;
@@ -24,15 +21,10 @@ public class SysUser {
     private Integer age;
     private Date birthday;
 
-
     @RelationOneToOne(selfField = "id", targetField = "uid")
     private SysUserExt sysUserExt;
 
     @RelationManyToMany(joinTable = "sys_role_user", // 中间表
-            selfField = "id",
-            targetField = "id",
-            joinSelfColumn = "uid",
-            joinTargetColumn = "rid"
-    )
+            selfField = "id", targetField = "id", joinSelfColumn = "uid", joinTargetColumn = "rid")
     private List<SysRole> roles;
 }

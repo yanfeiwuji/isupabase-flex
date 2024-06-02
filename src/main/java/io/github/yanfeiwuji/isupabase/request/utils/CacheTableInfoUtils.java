@@ -1,18 +1,17 @@
 package io.github.yanfeiwuji.isupabase.request.utils;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import cn.hutool.core.collection.CollUtil;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.NamingBase;
-import com.fasterxml.jackson.databind.SerializationConfig;
-import com.fasterxml.jackson.databind.SerializerProvider;
+
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryTable;
 import com.mybatisflex.core.relation.AbstractRelation;
@@ -47,10 +46,13 @@ public class CacheTableInfoUtils {
     private static final Map<Class<?>, Map<String, AbstractRelation<?>>> CACHE_CLAZZ_PARAM_NAME_REL = new ConcurrentHashMap<>();
     private static final Map<Class<?>, String[]> CACHE_CLAZZ_RELS = new ConcurrentHashMap<>();
     private static final Map<String, TableInfo> CACHE_TABLE_INFO = new ConcurrentHashMap<>();
+    private static final Map<String, Set<String>> CACHE_TABLE_NAME_COLUMNS = new ConcurrentHashMap<>();
+
     private static final Map<String, QueryColumn> CACHE_REL_TARGET_QUERY_COLUMN = new ConcurrentHashMap<>();
     private static final Map<String, QueryColumn> CACHE_REL_SELF_QUERY_COLUMN = new ConcurrentHashMap<>();
     private static final Map<String, QueryColumn> CACHE_REL_JOIN_TARGET_QUERY_COLUMN = new ConcurrentHashMap<>();
     private static final Map<String, QueryColumn> CACHE_REL_JOIN_SELF_QUERY_COLUMN = new ConcurrentHashMap<>();
+    private static final Map<String, Set<String>> CACHE_TABLE_NAME_ALL_COLUMN = new ConcurrentHashMap<>();
 
     private static ObjectMapper mapper;
     private static Optional<NamingBase> namingBaseOptional;
@@ -98,8 +100,7 @@ public class CacheTableInfoUtils {
     }
 
     public Optional<String> realColumn(String paramKey, TableInfo tableInfo) {
-        JsonIgnoreProperties.Value defaultPropertyIgnorals = mapper.getSerializationConfig().getDefaultPropertyIgnorals(SysUser.class);
-        System.out.println(defaultPropertyIgnorals.getIgnored() + "sdsdasfafsaf");
+
         return pickReal(
                 paramKey,
                 tableInfo,
@@ -209,6 +210,28 @@ public class CacheTableInfoUtils {
         return CACHE_CLAZZ_RELS.computeIfAbsent(tableInfo.getEntityClass(),
                 clazz -> RelationManager.getRelations(clazz).stream().map(it -> it.getRelationField().getName())
                         .toList().toArray(new String[]{}));
+    }
+
+    public Set<String> allColumns(QueryTable queryTable) {
+        return CACHE_TABLE_NAME_COLUMNS.computeIfAbsent(queryTable.getName(), tableName -> Arrays.stream(CacheTableInfoUtils.nNRealTableInfo(tableName).getAllColumns())
+                  .collect(Collectors.toSet())
+        );
+    }
+
+    public Set<String> allColumnsWithRel(QueryTable queryTable) {
+        return CACHE_TABLE_NAME_ALL_COLUMN.computeIfAbsent(queryTable.getName(), tableName -> {
+            TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
+            final List<AbstractRelation> relations = RelationManager.getRelations(tableInfo.getEntityClass());
+            final Set<String> relKeys = relations.stream().map(AbstractRelation::getRelationField)
+                    .map(Field::getName)
+                    .map(CacheTableInfoUtils::propertyToParamKey)
+                    .collect(Collectors.toSet());
+
+            Set<String> res = new HashSet<>();
+            res.addAll(relKeys);
+            res.addAll(allColumns(queryTable));
+            return res;
+        });
     }
 
     public QueryColumn nNQueryAllColumns(TableInfo tableInfo) {

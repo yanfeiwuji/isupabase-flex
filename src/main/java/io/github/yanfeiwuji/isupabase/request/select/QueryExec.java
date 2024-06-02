@@ -51,7 +51,9 @@ public class QueryExec {
     private Map<String, AbstractRelation<?>> subRelMap;
 
     private boolean all;
-    private List<FieldWrapper> needRemoves;
+
+    // 挑选的key
+    private Set<String> pickKey;
 
     public QueryWrapper handler(QueryWrapper queryWrapper) {
         select(queryWrapper);
@@ -64,17 +66,13 @@ public class QueryExec {
         return queryWrapper;
     }
 
-    private QueryWrapper createQueryWrapper() {
-
-        return QueryWrapper.create();
-    }
-
     private void select(QueryWrapper queryWrapper) {
 
         if (all) {
             queryWrapper.select(queryColumns);
         } else {
-            Map<String, QueryColumn> map = Optional.ofNullable(queryColumns).orElse(List.of()).stream()
+            Map<String, QueryColumn> map = Optional.ofNullable(queryColumns)
+                    .orElse(List.of()).stream()
                     .collect(Collectors.toMap(QueryColumn::getName, qc -> qc));
             // handler sub
             Optional.ofNullable(this.getSubs()).orElse(List.of())
@@ -83,7 +81,6 @@ public class QueryExec {
                         QueryColumn queryColumn = CacheTableInfoUtils.nNRelSelfQueryColumn(rel);
                         if (!map.containsKey(queryColumn.getName())) {
                             map.put(queryColumn.getName(), queryColumn);
-                            this.addNeedRemove(rel.getSelfFieldWrapper());
                         }
                     });
             // handler queryinfo
@@ -91,7 +88,7 @@ public class QueryExec {
                 QueryColumn queryColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(this.relation);
                 if (!map.containsKey(queryColumn.getName())) {
                     map.put(queryColumn.getName(), queryColumn);
-                    this.addNeedRemove(relation.getTargetFieldWrapper());
+
                 }
             }
             queryWrapper.select(map.values().toArray(new QueryColumn[0]));
@@ -115,8 +112,11 @@ public class QueryExec {
     }
 
     private void condition(QueryWrapper queryWrapper) {
-
-        queryWrapper.where(queryCondition);
+        if (queryWrapper.hasCondition()) {
+            queryWrapper.and(queryCondition);
+        } else {
+            queryWrapper.where(queryCondition);
+        }
     }
 
     private void join(QueryWrapper queryWrapper) {
@@ -149,8 +149,11 @@ public class QueryExec {
         if (CommonStr.STAR.equals(queryColumn.getName())) {
             queryColumns = List.of(queryColumn);
             this.all = true;
+            this.addPickKeys(CacheTableInfoUtils.allColumns(queryTable));
         } else {
+            // pick Key
             queryColumns.add(queryColumn);
+            this.addPickKey(queryColumn.getName());
         }
     }
 
@@ -173,6 +176,8 @@ public class QueryExec {
         if (subs == null) {
             subs = new ArrayList<>();
         }
+        this.addPickKey(sub.relEnd);
+
         subs.add(sub);
     }
 
@@ -183,10 +188,19 @@ public class QueryExec {
         subRelMap.put(key, relation);
     }
 
-    public void addNeedRemove(FieldWrapper wrapper) {
-        if (needRemoves == null) {
-            needRemoves = new ArrayList<>();
+
+    public void addPickKey(String key) {
+        System.out.println(key + "==");
+        if (pickKey == null) {
+            pickKey = new HashSet<>();
         }
-        needRemoves.add(wrapper);
+        pickKey.add(key);
+    }
+
+    public void addPickKeys(Set<String> keys) {
+        if (pickKey == null) {
+            pickKey = new HashSet<>();
+        }
+        pickKey.addAll(keys);
     }
 }

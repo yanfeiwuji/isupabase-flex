@@ -1,7 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.utils;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryTable;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -10,10 +9,6 @@ import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import lombok.experimental.UtilityClass;
-
-import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Set;
 
 @UtilityClass
 public class RelationUtils {
@@ -104,7 +99,5 @@ public class RelationUtils {
 
         queryWrapper.leftJoin(queryTable).on(targetQueryColumn.eq(selfQueryColumn));
     }
-
-
 
 }
