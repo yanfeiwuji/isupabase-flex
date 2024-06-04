@@ -68,8 +68,8 @@ public class QueryExecFactory {
             indexed.put(needPre, queryExec);
         }
 
-
-        TokenUtils.splitByComma(stuff.select()).parallelStream().forEach(selectItem -> {
+        final List<String> selects = TokenUtils.splitByComma(stuff.select());
+        selects.parallelStream().forEach(selectItem -> {
 
             MTokens.SELECT_WITH_SUB.keyValue(selectItem)
                     .ifPresentOrElse(it -> {

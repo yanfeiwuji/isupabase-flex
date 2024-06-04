@@ -55,8 +55,7 @@ public class ReqHandler implements IReqHandler {
         ApiReq apiReq = apiReq(request);
         BaseMapper<?> baseMapper = mapper(request);
 
-
-        return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(apiReq.result(baseMapper, objectMapper));
+        return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(apiReq.result(baseMapper));
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

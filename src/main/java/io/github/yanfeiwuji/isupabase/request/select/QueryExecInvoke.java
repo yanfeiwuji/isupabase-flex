@@ -152,7 +152,6 @@ public class QueryExecInvoke {
                 item.put(v, temp);
             });
 
-
         });
         log.info("modify all :{}", System.currentTimeMillis() - startTime);
 

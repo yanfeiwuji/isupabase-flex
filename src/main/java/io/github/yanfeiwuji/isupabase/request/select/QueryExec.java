@@ -60,9 +60,10 @@ public class QueryExec {
     // spread
     private boolean spread = false;
 
+    private QueryWrapper queryWrapper;
+
 
     public QueryWrapper handler(QueryWrapper queryWrapper) {
-
         select(queryWrapper);
         from(queryWrapper);
         inner(queryWrapper);
@@ -70,6 +71,7 @@ public class QueryExec {
         condition(queryWrapper);
         order(queryWrapper);
         range(queryWrapper);
+        this.queryWrapper = queryWrapper;
         return queryWrapper;
     }
 

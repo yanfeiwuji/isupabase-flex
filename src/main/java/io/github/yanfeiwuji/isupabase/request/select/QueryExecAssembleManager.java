@@ -29,7 +29,8 @@ public class QueryExecAssembleManager {
             CommonStr.LIMIT, QueryExecAssembleManager::assembleLimit,
             CommonStr.OFFSET, QueryExecAssembleManager::assembleOffset,
             CommonStr.ORDER, QueryExecAssembleManager::assembleOrder,
-            CommonStr.SELECT, CommonLambda::emptyQueryExecAssembly);
+            CommonStr.SELECT, CommonLambda::emptyQueryExecAssembly,
+            CommonStr.COLUMNS, CommonLambda::emptyQueryExecAssembly);
 
     public Optional<BiConsumer<QueryExec, List<String>>> assembleLimitOffsetOrder(String key) {
         return Optional.ofNullable(LIMIT_OFFSET_ORDER_MAP.get(key));

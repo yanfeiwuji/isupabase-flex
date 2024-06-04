@@ -19,7 +19,6 @@ repositories {
 var mybatisFlexVersion = "1.9.1"
 var hutoolVersion = "5.8.26"
 var guavaVersion = "33.2.0-jre"
-var jsonPathVersion = "2.9.0"// https://mvnrepository.com/artifact/com.jayway.jsonpath/json-path
 
 
 dependencies {
@@ -36,7 +35,6 @@ dependencies {
 
     runtimeOnly("org.postgresql:postgresql")
 
-    implementation("com.jayway.jsonpath:json-path:$jsonPathVersion")
     annotationProcessor("com.mybatis-flex:mybatis-flex-processor:$mybatisFlexVersion")
     annotationProcessor("org.projectlombok:lombok")
 

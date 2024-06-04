@@ -2,17 +2,13 @@ package io.github.yanfeiwuji.isupabase.request.req;
 
 import java.util.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.spi.json.JsonSmartJsonProvider;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.table.TableInfo;
 
+import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.select.*;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.Data;
@@ -42,48 +38,44 @@ import org.springframework.web.servlet.function.ServerRequest;
 @Data
 @Slf4j
 public class ApiReq {
-    private final Configuration configuration = Configuration.builder()
-            .options(Option.ALWAYS_RETURN_LIST, Option.SUPPRESS_EXCEPTIONS)
-            .jsonProvider(new JsonSmartJsonProvider())
-            .build();
+
 
     QueryExec queryExec;
     QueryExecLookup queryExecLookup;
+    List<String> columns;
 
     public ApiReq(ServerRequest request, String tableName) {
-        long s = System.currentTimeMillis();
-        log.info("start time:{}", s);
         MultiValueMap<String, String> params = request.params();
         TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
         QueryExecLookup queryExecLookup = QueryExecFactory.of(params, tableInfo);
         this.queryExec = queryExecLookup.queryExec();
         this.queryExecLookup = queryExecLookup;
+        columns = Optional.ofNullable(params.getFirst(CommonStr.COLUMNS))
+                .map(it -> StrUtil.split(it, StrUtil.COMMA))
+                .orElse(List.of());
+
         QueryExecFactory.assembly(queryExecLookup, params);
     }
 
 
-    public List<?> result(BaseMapper<?> baseMapper, ObjectMapper objectMapper) {
+    public List<?> result(BaseMapper<?> baseMapper) {
         List<?> res = QueryExecInvoke.invoke(queryExec, baseMapper);
+        System.out.println(count(baseMapper) + "--");
         return res;
-//        long start = System.currentTimeMillis();
-//        log.info("start time:{}", start);
-//        try {
-//            final String s = objectMapper.writeValueAsString(res);
-//            final DocumentContext documentContext = JsonPath.using(configuration).parse(s);
-//            queryExecLookup.removeJsonPath().parallelStream().forEach(documentContext::delete);
-//            queryExecLookup.renameJsonPath().parallelStream().forEach(it->{
-//                System.out.println(it.jsonPath()+"<>"+it.originName()+"<>"+it.rename());
-//
-//                documentContext.renameKey(it.jsonPath(),it.originName(),it.rename());
-//
-//            });
-//            String result  = "$.*";
-//            log.info("end time-t :{}", System.currentTimeMillis() - start);
-//
-//            return documentContext.jsonString();
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException(e);
-//        }
+    }
+
+    public Long count(BaseMapper<?> baseMapper) {
+
+
+        final QueryWrapper qw = Optional.ofNullable(queryExec.getQueryWrapper())
+                .orElseGet(() -> queryExec.handler(QueryWrapper.create()));
+        qw.limit(null, null);
+        return baseMapper.selectCountByQuery(qw);
+
+    }
+
+    public void post(BaseMapper<?> baseMapper, ObjectMapper objectMapper) {
+
     }
 
     public QueryWrapper queryWrapper() {

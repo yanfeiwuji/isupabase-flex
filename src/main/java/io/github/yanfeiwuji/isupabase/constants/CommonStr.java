@@ -20,6 +20,7 @@ public final class CommonStr {
     public static final String LIMIT = "limit";
     public static final String OFFSET = "offset";
     public static final String ORDER = "order";
+    public static final String COLUMNS = "columns";
 
     public static final String DOT_ORDER = ".order";
     public static final String DOT_LIMIT = ".limit";
