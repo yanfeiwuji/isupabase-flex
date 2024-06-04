@@ -62,20 +62,28 @@ public class ApiReq {
     }
 
 
-    public String result(BaseMapper<?> baseMapper, ObjectMapper objectMapper) {
+    public List<?> result(BaseMapper<?> baseMapper, ObjectMapper objectMapper) {
         List<?> res = QueryExecInvoke.invoke(queryExec, baseMapper);
-        long start = System.currentTimeMillis();
-        log.info("start time:{}", start);
-        try {
-            final String s = objectMapper.writeValueAsString(res);
-            final DocumentContext documentContext = JsonPath.using(configuration).parse(s);
-            queryExecLookup.removeJsonPath().parallelStream().forEach(documentContext::delete);
-            log.info("end time-t :{}", System.currentTimeMillis() - start);
-
-            return documentContext.jsonString();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        return res;
+//        long start = System.currentTimeMillis();
+//        log.info("start time:{}", start);
+//        try {
+//            final String s = objectMapper.writeValueAsString(res);
+//            final DocumentContext documentContext = JsonPath.using(configuration).parse(s);
+//            queryExecLookup.removeJsonPath().parallelStream().forEach(documentContext::delete);
+//            queryExecLookup.renameJsonPath().parallelStream().forEach(it->{
+//                System.out.println(it.jsonPath()+"<>"+it.originName()+"<>"+it.rename());
+//
+//                documentContext.renameKey(it.jsonPath(),it.originName(),it.rename());
+//
+//            });
+//            String result  = "$.*";
+//            log.info("end time-t :{}", System.currentTimeMillis() - start);
+//
+//            return documentContext.jsonString();
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     public QueryWrapper queryWrapper() {

@@ -23,10 +23,20 @@ import lombok.experimental.UtilityClass;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
 
 @UtilityClass
 public class ValueUtils {
     private static ObjectMapper mapper;
+
+    public static final Map<String, Function<Object, Object>> CASTING_MAP = Map.of(
+            "text", ValueUtils::castText,
+            "int", ValueUtils::castInt,
+            "float", ValueUtils::castFloat,
+            "decimal", ValueUtils::castDecimal,
+            "bool", ValueUtils::castBool
+    );
 
     public static void init(ObjectMapper mapper) {
         ValueUtils.mapper = mapper;
@@ -113,5 +123,52 @@ public class ValueUtils {
             String dbType = CacheTableInfoUtils.realDbType(realParam, tableInfo);
             throw PgrstExFactory.exDataInvalidInput(dbType, value).get();
         }
+    }
+
+    private Object castText(Object value) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
+        return value.toString();
+    }
+
+    private Object castInt(Object value) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
+        return Integer.valueOf(value.toString());
+    }
+
+    private Object castFloat(Object value) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
+        return Float.valueOf(value.toString());
+    }
+
+    private Object castDecimal(Object value) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
+        return Double.valueOf(value.toString());
+    }
+
+    private Object castBool(Object value) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
+        return Boolean.valueOf(value.toString());
+    }
+
+    public void checkCastKey(String castTo) {
+        Optional.ofNullable(CASTING_MAP.get(castTo))
+                .orElseThrow(PgrstExFactory.exNotCasingType(castTo));
+    }
+
+    public Object cast(String castKey, Object value) {
+
+
+        return Optional.ofNullable(CASTING_MAP.get(castKey)).map(it -> it.apply(value))
+                .orElse(value);
     }
 }

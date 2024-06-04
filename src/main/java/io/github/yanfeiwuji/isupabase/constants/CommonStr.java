@@ -67,4 +67,8 @@ public final class CommonStr {
     public static final String NXL_SQL_OP = " &> ";
     public static final String ADJ_SQL_OP = " -|- ";
 
+    // json
+    public static final String JSON_PATH_LEVEL = ".*.";
+    public static final String JSON_PATH_ROOT = "$";
+    public static final String JSON_PATH_ROOT_FIELD_PRE = JSON_PATH_ROOT + JSON_PATH_LEVEL;
 }

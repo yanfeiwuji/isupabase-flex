@@ -1,20 +1,22 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
+import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryColumn;
-import com.mybatisflex.core.query.QueryTable;
+import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
+import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
+import io.github.yanfeiwuji.isupabase.request.token.KeyValue;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
-import io.github.yanfeiwuji.isupabase.request.utils.SelectUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.MultiValueMap;
@@ -22,6 +24,7 @@ import org.springframework.util.MultiValueMap;
 @UtilityClass
 @Slf4j
 public class QueryExecFactory {
+
 
     public QueryExecLookup of(MultiValueMap<String, String> params, TableInfo tableInfo) {
 
@@ -33,21 +36,16 @@ public class QueryExecFactory {
         long start = System.currentTimeMillis();
 
         log.info("start: time:{}", start);
-        List<String> removeJsonPaths = new ArrayList<>();
-        List<ResultMapping> renameJsonPaths = new ArrayList<>();
         QueryExec queryExec = QueryExecFactory.of(new QueryExecStuff(selectValue, tableInfo), lookup,
-                CommonStr.EMPTY_STRING,
-                "$.*.",
-                removeJsonPaths, renameJsonPaths);
+                CommonStr.EMPTY_STRING
+        );
 
         log.info("duration: time:{}", System.currentTimeMillis() - start);
-        return new QueryExecLookup(queryExec, lookup, removeJsonPaths, renameJsonPaths);
+        return new QueryExecLookup(queryExec, lookup);
     }
 
     // one time to get indexed and
-    private QueryExec of(QueryExecStuff stuff, Map<String, QueryExec> indexed, String pre,
-                         String preJsonPath,
-                         List<String> removeJsonPaths, List<ResultMapping> renameJsonPaths) {
+    private QueryExec of(QueryExecStuff stuff, Map<String, QueryExec> indexed, String pre) {
 
         QueryExec queryExec = new QueryExec();
         TableInfo tableInfo = stuff.tableInfo();
@@ -72,30 +70,38 @@ public class QueryExecFactory {
 
 
         TokenUtils.splitByComma(stuff.select()).parallelStream().forEach(selectItem -> {
+
             MTokens.SELECT_WITH_SUB.keyValue(selectItem)
                     .ifPresentOrElse(it -> {
                         QueryExec subQueryExec = QueryExecFactory.of(
-                                SelectUtils.queryExecStuff(it, tableInfo),
-                                indexed, needPre,
-                                preJsonPath + it.key() + ".*."
-                                , removeJsonPaths, renameJsonPaths);
+                                QueryExecFactory.queryExecStuff(it, tableInfo),
+                                indexed, needPre
+                        );
                         queryExec.addSub(subQueryExec);
                         Optional.ofNullable(subQueryExec.getRelation())
                                 .ifPresent(rel -> queryExec.putSubRelMap(subQueryExec.getRelEnd(), rel));
+
+                        MTokens.RENAME.first(selectItem)
+                                .ifPresent(rename -> queryExec.addRename(it.key(), rename));
+
                     }, () -> {
-                        queryExec.addQueryColumn(SelectUtils.queryColumn(selectItem, tableInfo));
+
+                        if (CommonStr.STAR.equals(selectItem)) {
+                            queryExec.addQueryColumn(CacheTableInfoUtils.nNQueryAllColumns(tableInfo));
+                        } else {
+                            final String item = MTokens.SELECT_ITEM.first(selectItem).orElse(StrUtil.EMPTY);
+                            final QueryColumn queryColumn = CacheTableInfoUtils.nNRealQueryColumn(item, tableInfo);
+                            queryExec.addQueryColumn(queryColumn);
+                            MTokens.RENAME.first(selectItem)
+                                    .ifPresent(rename -> queryExec.addRename(item, rename));
+                            MTokens.CAST.first(selectItem)
+                                    .ifPresent(cast -> QueryExecFactory.addCast(queryExec, item, cast));
+                        }
                     });
 
 
         });
 
-        final Set<String> allKeys = CacheTableInfoUtils.allColumnsWithRel(queryExec.getQueryTable());
-        final Set<String> pickKey = queryExec.getPickKey();
-
-        final Set<String> collect = allKeys.stream().filter(e -> !pickKey.contains(e))
-                .map(it -> preJsonPath + it)
-                .collect(Collectors.toSet());
-        removeJsonPaths.addAll(collect);
 
         return queryExec;
     }
@@ -114,6 +120,21 @@ public class QueryExecFactory {
         QueryExecAssembleManager.assembleLimitOffsetOrder(key)
                 .ifPresentOrElse(it -> it.accept(queryExec, values),
                         () -> QueryExecAssembleManager.assembleFilter(queryExec, key, values));
+    }
+
+
+    private QueryExecStuff queryExecStuff(KeyValue keyValue, TableInfo tableInfo) {
+        boolean inner = keyValue.key().endsWith(CommonStr.SELECT_INNER_MARK);
+        String key = CharSequenceUtil.replace(keyValue.key(), CommonStr.SELECT_INNER_MARK,
+                CommonStr.EMPTY_STRING);
+        AbstractRelation<?> relation = CacheTableInfoUtils.nNRealRelation(key, tableInfo);
+        TableInfo innerTableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
+        return new QueryExecStuff(keyValue.value(), innerTableInfo, inner, relation);
+    }
+
+    private void addCast(QueryExec queryExec, String key, String cast) {
+        ValueUtils.checkCastKey(cast);
+        queryExec.addCastKey(key, cast);
     }
 
 }

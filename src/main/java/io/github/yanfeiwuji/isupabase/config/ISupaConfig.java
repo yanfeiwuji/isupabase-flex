@@ -62,8 +62,5 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
         };
     }
 
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-      //  registry.addInterceptor();
-    }
+
 }

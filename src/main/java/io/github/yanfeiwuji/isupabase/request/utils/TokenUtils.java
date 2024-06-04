@@ -12,14 +12,6 @@ import java.util.regex.Pattern;
 @UtilityClass
 public class TokenUtils {
 
-    public Pattern opDot(String op) {
-        return Pattern.compile("^%s\\.(.*)".formatted(op));
-    }
-
-    public Pattern quantOp(String op) {
-        return Pattern.compile("^%s(\\((any|all)\\))?\\.(.*)".formatted(op));
-    }
-
     public String removeRoundBrackets(String input) {
         return CharSequenceUtil.strip(input, "(", ")");
     }

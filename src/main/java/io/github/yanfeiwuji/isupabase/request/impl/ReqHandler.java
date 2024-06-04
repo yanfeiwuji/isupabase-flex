@@ -1,12 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.spi.json.JsonSmartJsonProvider;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.mybatis.Mappers;
 import com.mybatisflex.core.table.TableInfo;
@@ -18,8 +12,6 @@ import io.github.yanfeiwuji.isupabase.request.IReqHandler;
 import io.github.yanfeiwuji.isupabase.request.IReqQueryWrapperHandler;
 import io.github.yanfeiwuji.isupabase.request.ex.*;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
-import io.github.yanfeiwuji.isupabase.request.select.ResultMapping;
-import io.github.yanfeiwuji.isupabase.request.select.ResultMappingFactory;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

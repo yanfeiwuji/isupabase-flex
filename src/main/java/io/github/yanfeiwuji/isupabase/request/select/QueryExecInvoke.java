@@ -4,12 +4,18 @@ import cn.hutool.core.util.StrUtil;
 
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.datasource.DataSourceKey;
+import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.util.StringUtil;
+import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import lombok.experimental.UtilityClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,6 +25,8 @@ import static com.mybatisflex.core.query.QueryMethods.column;
 @UtilityClass
 public class QueryExecInvoke {
 
+    private static final Logger log = LoggerFactory.getLogger(QueryExecInvoke.class);
+
     private record TargetValues(Set<Object> targetValues, List<Row> mappingRows) {
     }
 
@@ -27,25 +35,15 @@ public class QueryExecInvoke {
     }
 
     public List<?> invoke(QueryExec queryExec, BaseMapper<?> baseMapper) {
-        // // only from root
-        // if (Objects.nonNull(queryExec.getRelation())) {
-        // return List.of();
-        // }
-        // QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
-        // List<?> preList = baseMapper.selectListByQuery(queryWrapper);
-        // Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream().forEach(exec
-        // -> embeddedList(exec, baseMapper, preList));
-
         return embeddedList(queryExec, baseMapper, null);
-
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private List<?> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
-        List<?> targetObjectList;
+    private List<Map> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
+        List<Map> targetObjectList;
         if (Objects.isNull(queryExec.getRelation())) {
             QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
-            targetObjectList = baseMapper.selectListByQuery(queryWrapper);
+            targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
         } else {
             AbstractRelation<?> relation = queryExec.getRelation();
             choiceDs(relation);
@@ -56,19 +54,23 @@ public class QueryExecInvoke {
             if (targetValues.targetValues().isEmpty()) {
                 return preList;
             }
+
             QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
             queryExec.handler(queryWrapper);
-            Class<?> clazz = relation.isOnlyQueryValueField() ? relation.getTargetEntityClass()
-                    : relation.getMappingType();
 
-            targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, clazz);
-            relation.join(preList, targetObjectList, targetValues.mappingRows());
+            targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
+
+
+            RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, false);
 
         }
         List<?> finalTargetObjectList = targetObjectList;
-        Optional.ofNullable(queryExec.getSubs()).orElse(List.of()).parallelStream()
+        Optional.ofNullable(queryExec.getSubs())
+                .orElse(List.of())
+                .parallelStream()
                 .forEach(exec -> embeddedList(exec, baseMapper, finalTargetObjectList));
 
+        modifyKeys(queryExec, targetObjectList);
         return targetObjectList;
     }
 
@@ -85,13 +87,15 @@ public class QueryExecInvoke {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private TargetValues embeddedTargetValues(AbstractRelation relation, List preList) {
-        return new TargetValues(relation.getSelfFieldValues(preList), null);
+        return new TargetValues(RelationUtils.selfFieldValues(relation, preList), null);
     }
 
     @SuppressWarnings("rawtypes")
     private TargetValues embeddedJoinTargetValues(BaseMapper<?> baseMapper, AbstractRelation relation, List preList) {
         @SuppressWarnings("unchecked")
-        Set selfFieldValues = relation.getSelfFieldValues(preList);
+
+        Set selfFieldValues = RelationUtils.selfFieldValues(relation, preList);
+
         if (selfFieldValues.isEmpty()) {
             return new TargetValues(Set.of(), List.of());
         }
@@ -115,6 +119,43 @@ public class QueryExecInvoke {
         return new TargetValues(targetValues, mappingRows);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void modifyKeys(QueryExec queryExec, List<Map> targetObjectList) {
+        long startTime = System.currentTimeMillis();
+        log.info("start:{}", startTime);
+        targetObjectList.parallelStream().forEach(item -> {
+            if (Objects.isNull(item)) {
+                return;
+            }
 
+            // remove
+            queryExec.getPickKeys().forEach(key -> item.putIfAbsent(key, null));
+            final List<String> removeKeys = item.keySet().stream()
+                    .filter(key -> !queryExec.getPickKeys().contains(key))
+                    .toList();
+            removeKeys.forEach(item::remove);
+            // cast
+            for (Map.Entry<String, String> entry : Optional.ofNullable(queryExec.getCastMap()).orElse(Map.of()).entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                try {
+                    Object needValue = ValueUtils.cast(value, item.get(key));
+                    item.replace(key, needValue);
+                } catch (RuntimeException e) {
+                    throw PgrstExFactory.exCasingError(e.getMessage()).get();
+                }
+            }
+            // rename
+            Optional.ofNullable(queryExec.getRenameMap()).orElse(Map.of()).forEach((k, v) -> {
+                final Object temp = item.get(k);
+                item.remove(k);
+                item.put(v, temp);
+            });
+
+
+        });
+        log.info("modify all :{}", System.currentTimeMillis() - startTime);
+
+    }
 
 }

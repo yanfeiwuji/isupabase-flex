@@ -53,9 +53,16 @@ public class QueryExec {
     private boolean all;
 
     // 挑选的key
-    private Set<String> pickKey;
+    private Set<String> pickKeys;
+
+    private Map<String, String> renameMap;
+    private Map<String, String> castMap;
+    // spread
+    private boolean spread = false;
+
 
     public QueryWrapper handler(QueryWrapper queryWrapper) {
+
         select(queryWrapper);
         from(queryWrapper);
         inner(queryWrapper);
@@ -88,7 +95,6 @@ public class QueryExec {
                 QueryColumn queryColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(this.relation);
                 if (!map.containsKey(queryColumn.getName())) {
                     map.put(queryColumn.getName(), queryColumn);
-
                 }
             }
             queryWrapper.select(map.values().toArray(new QueryColumn[0]));
@@ -145,7 +151,6 @@ public class QueryExec {
         if (all) {
             return;
         }
-
         if (CommonStr.STAR.equals(queryColumn.getName())) {
             queryColumns = List.of(queryColumn);
             this.all = true;
@@ -190,17 +195,30 @@ public class QueryExec {
 
 
     public void addPickKey(String key) {
-        System.out.println(key + "==");
-        if (pickKey == null) {
-            pickKey = new HashSet<>();
+        if (pickKeys == null) {
+            pickKeys = new HashSet<>();
         }
-        pickKey.add(key);
+        pickKeys.add(key);
     }
 
     public void addPickKeys(Set<String> keys) {
-        if (pickKey == null) {
-            pickKey = new HashSet<>();
+        if (pickKeys == null) {
+            pickKeys = new HashSet<>();
         }
-        pickKey.addAll(keys);
+        pickKeys.addAll(keys);
+    }
+
+    public void addRename(String key, String newName) {
+        if (renameMap == null) {
+            renameMap = new HashMap<>();
+        }
+        renameMap.put(key, newName);
+    }
+
+    public void addCastKey(String key, String castKey) {
+        if (castMap == null) {
+            castMap = new HashMap<>();
+        }
+        castMap.put(key, castKey);
     }
 }

@@ -6,3 +6,4 @@ spring:
     #url: jdbc:postgresql://192.168.0.78:5432/app_db?user=app_user&password=password
   jackson:
     property-naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy
+

@@ -9,8 +9,12 @@ public record ExCodeStatus(String code, HttpStatus status) {
     public static final ExCodeStatus DB_UNDEFINED_TABLE = new ExCodeStatus("42P01", HttpStatus.NOT_FOUND);
     public static final ExCodeStatus DB_UNDEFINED_COLUMN = new ExCodeStatus("42703", HttpStatus.BAD_REQUEST);
 
-    public static final ExCodeStatus DB_INVALID_INPUT = new ExCodeStatus("22P02", HttpStatus.OK);
+    public static final ExCodeStatus DB_INVALID_INPUT = new ExCodeStatus("22P02", HttpStatus.BAD_REQUEST);
     public static final ExCodeStatus DB_DATATYPE_MISMATCH = new ExCodeStatus("42804", HttpStatus.BAD_REQUEST);
+    public static final ExCodeStatus DB_CANNOT_COERCE = new ExCodeStatus("42846", HttpStatus.BAD_REQUEST);
+
+    public static final ExCodeStatus DB_UNDEFINED_OBJECT = new ExCodeStatus("42704", HttpStatus.BAD_REQUEST);
+
 
     public static final ExCodeStatus PGRST_PARSE_ERROR = new ExCodeStatus("PGRST100", HttpStatus.BAD_REQUEST);
     public static final ExCodeStatus PGRST_FUNCTION_ONLY_GET_OR_POST = new ExCodeStatus("PGRST101",

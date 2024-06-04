@@ -50,9 +50,7 @@ public class QueryExecAssembleManager {
     }
 
     private void assembleOrder(QueryExec queryExec, List<String> values) {
-
         values.forEach(it -> assembleOrderString(queryExec, it));
-
     }
 
     private void assembleOrderString(QueryExec queryExec, String orderString) {
@@ -79,7 +77,6 @@ public class QueryExecAssembleManager {
             queryExec.addJoin(relation);
             TableInfo targetTableInfo = relation.getTargetTableInfo();
             queryColumn = CacheTableInfoUtils.nNRealQueryColumn(two, targetTableInfo);
-
         } else {
             queryColumn = CacheTableInfoUtils.nNRealQueryColumn(one, queryExec.getTableInfo());
         }
