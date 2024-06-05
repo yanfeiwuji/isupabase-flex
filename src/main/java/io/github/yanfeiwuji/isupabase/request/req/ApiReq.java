@@ -2,7 +2,8 @@ package io.github.yanfeiwuji.isupabase.request.req;
 
 import java.util.*;
 
-import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.text.StrPool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.*;
@@ -12,7 +13,6 @@ import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.select.*;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.servlet.function.ServerRequest;
 
@@ -36,9 +36,8 @@ import org.springframework.web.servlet.function.ServerRequest;
  * with order
  */
 @Data
-@Slf4j
-public class ApiReq {
 
+public class ApiReq {
 
     QueryExec queryExec;
     QueryExecLookup queryExecLookup;
@@ -47,25 +46,21 @@ public class ApiReq {
     public ApiReq(ServerRequest request, String tableName) {
         MultiValueMap<String, String> params = request.params();
         TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
-        QueryExecLookup queryExecLookup = QueryExecFactory.of(params, tableInfo);
+        this.queryExecLookup = QueryExecFactory.of(params, tableInfo);
         this.queryExec = queryExecLookup.queryExec();
-        this.queryExecLookup = queryExecLookup;
+
         columns = Optional.ofNullable(params.getFirst(CommonStr.COLUMNS))
-                .map(it -> StrUtil.split(it, StrUtil.COMMA))
+                .map(it -> CharSequenceUtil.split(it, StrPool.COMMA))
                 .orElse(List.of());
 
         QueryExecFactory.assembly(queryExecLookup, params);
     }
 
-
     public List<?> result(BaseMapper<?> baseMapper) {
-        List<?> res = QueryExecInvoke.invoke(queryExec, baseMapper);
-        System.out.println(count(baseMapper) + "--");
-        return res;
+        return QueryExecInvoke.invoke(queryExec, baseMapper);
     }
 
     public Long count(BaseMapper<?> baseMapper) {
-
 
         final QueryWrapper qw = Optional.ofNullable(queryExec.getQueryWrapper())
                 .orElseGet(() -> queryExec.handler(QueryWrapper.create()));
@@ -75,7 +70,7 @@ public class ApiReq {
     }
 
     public void post(BaseMapper<?> baseMapper, ObjectMapper objectMapper) {
-
+        // todo
     }
 
     public QueryWrapper queryWrapper() {

@@ -1,11 +1,9 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
-import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.datasource.DataSourceKey;
-import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.row.Row;
@@ -16,8 +14,6 @@ import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import lombok.experimental.UtilityClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,20 +23,14 @@ import static com.mybatisflex.core.query.QueryMethods.column;
 @UtilityClass
 public class QueryExecInvoke {
 
-    private static final Logger log = LoggerFactory.getLogger(QueryExecInvoke.class);
-
     private record TargetValues(Set<Object> targetValues, List<Row> mappingRows) {
-    }
-
-    public String filter() {
-        return "";
     }
 
     public List<?> invoke(QueryExec queryExec, BaseMapper<?> baseMapper) {
         return embeddedList(queryExec, baseMapper, null);
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private List<Map> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
         List<Map> targetObjectList;
         if (Objects.isNull(queryExec.getRelation())) {
@@ -87,7 +77,7 @@ public class QueryExecInvoke {
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private TargetValues embeddedTargetValues(AbstractRelation relation, List preList) {
         return new TargetValues(RelationUtils.selfFieldValues(relation, preList), null);
     }
@@ -109,7 +99,8 @@ public class QueryExecInvoke {
 
             queryWrapper.where(CacheTableInfoUtils.nNRelJoinSelfQueryColumn(relation).in(selfFieldValues));
         } else {
-            queryWrapper.where(CacheTableInfoUtils.nNRelJoinSelfQueryColumn(relation).eq(selfFieldValues.iterator().next()));
+            queryWrapper.where(
+                    CacheTableInfoUtils.nNRelJoinSelfQueryColumn(relation).eq(selfFieldValues.iterator().next()));
         }
         List<Row> mappingRows = baseMapper.selectListByQueryAs(queryWrapper, Row.class);
 
@@ -121,7 +112,7 @@ public class QueryExecInvoke {
         return new TargetValues(targetValues, mappingRows);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @TrackExecutionTime
     private void modifyKeys(QueryExec queryExec, List<Map> targetObjectList) {
 

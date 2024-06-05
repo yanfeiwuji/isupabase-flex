@@ -7,10 +7,7 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
@@ -35,8 +32,7 @@ public class ValueUtils {
             "int", ValueUtils::castInt,
             "float", ValueUtils::castFloat,
             "decimal", ValueUtils::castDecimal,
-            "bool", ValueUtils::castBool
-    );
+            "bool", ValueUtils::castBool);
 
     public static void init(ObjectMapper mapper) {
         ValueUtils.mapper = mapper;
@@ -83,7 +79,6 @@ public class ValueUtils {
         String realParam = CacheTableInfoUtils.nNRealParam(queryColumn.getName(), tableInfo);
         String propertyName = CacheTableInfoUtils.nNRealProperty(realParam, tableInfo);
         String jsonStr = new JSONObject().set(realParam, value).toString();
-
 
         try {
             Object bean = mapper.readValue(jsonStr, tableInfo.getEntityClass());
@@ -161,12 +156,12 @@ public class ValueUtils {
     }
 
     public void checkCastKey(String castTo) {
-        Optional.ofNullable(CASTING_MAP.get(castTo))
-                .orElseThrow(PgrstExFactory.exNotCasingType(castTo));
+        if (Optional.ofNullable(CASTING_MAP.get(castTo)).isEmpty()) {
+            throw PgrstExFactory.exNotCasingType(castTo).get();
+        }
     }
 
     public Object cast(String castKey, Object value) {
-
 
         return Optional.ofNullable(CASTING_MAP.get(castKey)).map(it -> it.apply(value))
                 .orElse(value);

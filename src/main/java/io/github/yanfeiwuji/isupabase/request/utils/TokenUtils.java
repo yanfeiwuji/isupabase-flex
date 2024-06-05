@@ -3,12 +3,10 @@ package io.github.yanfeiwuji.isupabase.request.utils;
 import cn.hutool.core.text.CharPool;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.StrUtil;
 import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 @UtilityClass
 public class TokenUtils {
@@ -58,15 +56,10 @@ public class TokenUtils {
             }
         }
         final String endStr = input.substring(start).trim();
-        if(CharSequenceUtil.isNotEmpty(endStr)){
+        if (CharSequenceUtil.isNotEmpty(endStr)) {
             result.add(input.substring(start).trim());
         }
         return result;
-    }
-
-    public static void main(String[] args) {
-        final List<String> strings = TokenUtils.splitByComma("");
-        System.out.println(strings.size());
     }
 
 }

@@ -1,7 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.utils;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryTable;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -111,15 +110,16 @@ public class RelationUtils {
         final String column = selfFieldColumn(relation);
         return preList.stream().map(it -> it.get(column))
                 .filter(Objects::nonNull)
-                .filter(it -> !StrUtil.EMPTY.equals(it))
+                .filter(it -> !CharSequenceUtil.EMPTY.equals(it))
                 .collect(Collectors.toSet());
     }
 
+    @SuppressWarnings("rawtypes")
     public void join(AbstractRelation<?> relation,
-                     List<Map> selfEntities,
-                     List<Map> targetObjectList,
-                     List<Row> mappingRows,
-                     boolean spread) {
+            List<Map> selfEntities,
+            List<Map> targetObjectList,
+            List<Row> mappingRows,
+            boolean spread) {
 
         if (relation instanceof ToManyRelation<?>) {
             joinMany(relation, selfEntities, targetObjectList, mappingRows);
@@ -128,7 +128,9 @@ public class RelationUtils {
         }
     }
 
-    private void joinOne(AbstractRelation<?> relation, List<Map> selfEntities, List<Map> targetObjectList, List<Row> mappingRows, boolean spread) {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private void joinOne(AbstractRelation<?> relation, List<Map> selfEntities, List<Map> targetObjectList,
+            List<Row> mappingRows, boolean spread) {
         final String selfFieldColumn = selfFieldColumn(relation);
         final String joinSelfColumn = relation.getJoinSelfColumn();
         final String joinTargetColumn = relation.getJoinTargetColumn();
@@ -136,7 +138,6 @@ public class RelationUtils {
         final String targetedFieldColumn = targetFieldColumn(relation);
         final String relationFieldName = relationFieldName(relation);
         final String valueField = relation.getValueField();
-
 
         selfEntities.forEach(selfEntity -> {
             Object selfValue = selfEntity.get(selfFieldColumn);
@@ -146,7 +147,8 @@ public class RelationUtils {
                 String targetMappingValue = null;
                 if (mappingRows != null) {
                     Object finalSelfValue = selfValue;
-                    targetMappingValue = mappingRows.stream().filter(it -> finalSelfValue.equals(it.getIgnoreCase(joinSelfColumn)))
+                    targetMappingValue = mappingRows.stream()
+                            .filter(it -> finalSelfValue.equals(it.getIgnoreCase(joinSelfColumn)))
                             .map(it -> it.getIgnoreCase(joinTargetColumn))
                             .filter(Objects::nonNull)
                             .map(Object::toString)
@@ -165,7 +167,6 @@ public class RelationUtils {
                             selfEntity.put(relationFieldName, targetObject.get(valueField));
                         } else {
                             if (spread) {
-                                System.out.println(relation.getName() + spread + "===");
                                 selfEntity.putAll(targetObject);
                             } else {
                                 selfEntity.put(relationFieldName, targetObject);
@@ -178,7 +179,9 @@ public class RelationUtils {
         });
     }
 
-    private void joinMany(AbstractRelation<?> relation, List<Map> selfEntities, List<Map> targetObjectList, List<Row> mappingRows) {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private void joinMany(AbstractRelation<?> relation, List<Map> selfEntities, List<Map> targetObjectList,
+            List<Row> mappingRows) {
 
         final String selfFieldColumn = selfFieldColumn(relation);
         final String joinSelfColumn = relation.getJoinSelfColumn();
@@ -187,20 +190,22 @@ public class RelationUtils {
         final String targetedFieldColumn = targetFieldColumn(relation);
         final String relationFieldName = relationFieldName(relation);
         final String valueField = relation.getValueField();
-        final String manyRelSelfValueSplitBy = CacheTableInfoUtils.endManyRelSelfValueSplitBy(relation).orElse(StrUtil.EMPTY);
+        final String manyRelSelfValueSplitBy = CacheTableInfoUtils.endManyRelSelfValueSplitBy(relation)
+                .orElse(CharSequenceUtil.EMPTY);
 
-        //目标表关联字段->目标表对象
+        // 目标表关联字段->目标表对象
         Map<String, List<Map<String, Object>>> leftFieldToRightTableMap = new HashMap<>(targetObjectList.size());
         for (Map targetObject : targetObjectList) {
             Object targetJoinFieldValue = targetObject.get(targetedFieldColumn);
             if (targetJoinFieldValue != null) {
-                leftFieldToRightTableMap.computeIfAbsent(targetJoinFieldValue.toString(), k -> new ArrayList<>(1)).add(targetObject);
+                leftFieldToRightTableMap.computeIfAbsent(targetJoinFieldValue.toString(), k -> new ArrayList<>(1))
+                        .add(targetObject);
             }
         }
 
-        //通过中间表
+        // 通过中间表
         if (mappingRows != null) {
-            //当使用中间表时，需要重新映射关联关系
+            // 当使用中间表时，需要重新映射关联关系
             Map<String, List<Map<String, Object>>> temp = new HashMap<>(selfEntities.size());
             for (Row mappingRow : mappingRows) {
                 Object midTableJoinSelfValue = mappingRow.getIgnoreCase(joinSelfColumn);
@@ -211,15 +216,17 @@ public class RelationUtils {
                 if (midTableJoinTargetValue == null) {
                     continue;
                 }
-                List<Map<String, Object>> targetObjects = leftFieldToRightTableMap.get(midTableJoinTargetValue.toString());
+                List<Map<String, Object>> targetObjects = leftFieldToRightTableMap
+                        .get(midTableJoinTargetValue.toString());
+
                 if (targetObjects == null) {
                     continue;
                 }
-                temp.computeIfAbsent(midTableJoinSelfValue.toString(), k -> new ArrayList<>(targetObjects.size())).addAll(targetObjects);
+                temp.computeIfAbsent(midTableJoinSelfValue.toString(), k -> new ArrayList<>(targetObjects.size()))
+                        .addAll(targetObjects);
             }
             leftFieldToRightTableMap = temp;
         }
-
 
         for (Map selfEntity : selfEntities) {
             if (selfEntity == null) {
@@ -231,10 +238,10 @@ public class RelationUtils {
             }
             selfValue = selfValue.toString();
 
-            //只有当splitBy不为空时才会有多个值
+            // 只有当splitBy不为空时才会有多个值
             Set<String> targetMappingValues;
 
-            if (StrUtil.isNotBlank(manyRelSelfValueSplitBy)) {
+            if (CharSequenceUtil.isNotBlank(manyRelSelfValueSplitBy)) {
                 String[] splitValues = ((String) selfValue).split(manyRelSelfValueSplitBy);
                 targetMappingValues = new LinkedHashSet<>(Arrays.asList(splitValues));
             } else {
@@ -264,7 +271,6 @@ public class RelationUtils {
         final TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getSelfEntityClass());
         return tableInfo.getPropertyColumnMapping().get(relation.getSelfField().getName());
     }
-
 
     private String targetFieldColumn(AbstractRelation<?> relation) {
         final TableInfo tableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());

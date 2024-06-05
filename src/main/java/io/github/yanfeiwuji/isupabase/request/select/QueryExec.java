@@ -14,7 +14,6 @@ import com.mybatisflex.core.relation.ManyToOne;
 import com.mybatisflex.core.relation.OneToOne;
 
 import com.mybatisflex.core.table.TableInfo;
-import com.mybatisflex.core.util.FieldWrapper;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
@@ -45,7 +44,7 @@ public class QueryExec {
 
     // up use
     private boolean inner = false;
-    //  inner exist
+    // inner exist
     private boolean innerExist = true;
     //
     private Number limit;
@@ -68,7 +67,6 @@ public class QueryExec {
 
     // 不执行
     private boolean notExec = false;
-
 
     public QueryWrapper handler(QueryWrapper queryWrapper) {
         select(queryWrapper);
@@ -201,7 +199,6 @@ public class QueryExec {
         }
 
         this.addPickKey(sub.relEnd);
-
         subs.add(sub);
     }
 
@@ -211,7 +208,6 @@ public class QueryExec {
         }
         subRelMap.put(key, relation);
     }
-
 
     public void addPickKey(String key) {
         if (pickKeyMap == null) {

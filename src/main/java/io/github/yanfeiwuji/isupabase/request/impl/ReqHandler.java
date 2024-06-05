@@ -1,6 +1,5 @@
 package io.github.yanfeiwuji.isupabase.request.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.mybatis.Mappers;
 import com.mybatisflex.core.table.TableInfo;
@@ -13,8 +12,6 @@ import io.github.yanfeiwuji.isupabase.request.IReqQueryWrapperHandler;
 import io.github.yanfeiwuji.isupabase.request.ex.*;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -27,10 +24,8 @@ import java.util.Optional;
 @Component
 @AllArgsConstructor
 public class ReqHandler implements IReqHandler {
-    private static final Logger log = LoggerFactory.getLogger(ReqHandler.class);
     private final IReqQueryWrapperHandler reqQueryWrapperHandler;
     private final IBodyHandler bodyHandler;
-    private final ObjectMapper objectMapper;
 
     @Override
     public ServerRequest before(ServerRequest request) {
@@ -58,7 +53,7 @@ public class ReqHandler implements IReqHandler {
         return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(apiReq.result(baseMapper));
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public ServerResponse post(ServerRequest request) {
         TableInfo tableInfo = tableInfo(request);
