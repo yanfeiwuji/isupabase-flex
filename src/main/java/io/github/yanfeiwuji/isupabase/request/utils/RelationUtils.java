@@ -111,7 +111,7 @@ public class RelationUtils {
         final String column = selfFieldColumn(relation);
         return preList.stream().map(it -> it.get(column))
                 .filter(Objects::nonNull)
-                .filter(it -> !CommonStr.EMPTY_STRING.equals(it))
+                .filter(it -> !StrUtil.EMPTY.equals(it))
                 .collect(Collectors.toSet());
     }
 
@@ -158,7 +158,6 @@ public class RelationUtils {
                 } else {
                     targetMappingValue = (String) selfValue;
                 }
-                ;
                 for (Map<String, Object> targetObject : targetObjectList) {
                     Object targetValue = targetObject.get(targetedFieldColumn);
                     if (targetValue != null && targetMappingValue.equals(targetValue.toString())) {
@@ -166,6 +165,7 @@ public class RelationUtils {
                             selfEntity.put(relationFieldName, targetObject.get(valueField));
                         } else {
                             if (spread) {
+                                System.out.println(relation.getName() + spread + "===");
                                 selfEntity.putAll(targetObject);
                             } else {
                                 selfEntity.put(relationFieldName, targetObject);

@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
+import cn.hutool.core.lang.Opt;
 import cn.hutool.core.util.StrUtil;
 
 import com.mybatisflex.core.BaseMapper;
@@ -9,6 +10,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.util.StringUtil;
+import io.github.yanfeiwuji.isupabase.config.TrackExecutionTime;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
@@ -60,14 +62,14 @@ public class QueryExecInvoke {
 
             targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
 
-
-            RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, false);
+            RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
 
         }
         List<?> finalTargetObjectList = targetObjectList;
         Optional.ofNullable(queryExec.getSubs())
                 .orElse(List.of())
                 .parallelStream()
+                .filter(it -> !it.isNotExec())
                 .forEach(exec -> embeddedList(exec, baseMapper, finalTargetObjectList));
 
         modifyKeys(queryExec, targetObjectList);
@@ -120,42 +122,40 @@ public class QueryExecInvoke {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
+    @TrackExecutionTime
     private void modifyKeys(QueryExec queryExec, List<Map> targetObjectList) {
-        long startTime = System.currentTimeMillis();
-        log.info("start:{}", startTime);
-        // todo make it more high
-        targetObjectList.parallelStream().forEach(item -> {
+
+        final Map<String, String> pickKeys = Optional.ofNullable(queryExec.getPickKeyMap()).orElse(Map.of());
+        final Map<String, String> castMap = Optional.ofNullable(queryExec.getCastMap()).orElse(Map.of());
+        final Map<String, String> renameMap = Optional.ofNullable(queryExec.getRenameMap()).orElse(Map.of());
+
+        targetObjectList.forEach(item -> {
             if (Objects.isNull(item)) {
                 return;
             }
-
-            // remove
-            queryExec.getPickKeys().forEach(key -> item.putIfAbsent(key, null));
+            pickKeys.forEach((k, v) -> item.putIfAbsent(k, null));
             final List<String> removeKeys = item.keySet().stream()
-                    .filter(key -> !queryExec.getPickKeys().contains(key))
+                    .map(Object::toString)
+                    .filter(k -> !pickKeys.containsKey(k))
                     .toList();
+
             removeKeys.forEach(item::remove);
-            // cast
-            for (Map.Entry<String, String> entry : Optional.ofNullable(queryExec.getCastMap()).orElse(Map.of()).entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
-                try {
-                    Object needValue = ValueUtils.cast(value, item.get(key));
-                    item.replace(key, needValue);
-                } catch (RuntimeException e) {
-                    throw PgrstExFactory.exCasingError(e.getMessage()).get();
-                }
+
+            try {
+                castMap.forEach((k, v) -> {
+                    Object needValue = ValueUtils.cast(v, item.get(k));
+                    item.replace(k, needValue);
+                });
+            } catch (RuntimeException e) {
+                throw PgrstExFactory.exCasingError(e.getMessage()).get();
             }
-            // rename
-            Optional.ofNullable(queryExec.getRenameMap()).orElse(Map.of()).forEach((k, v) -> {
+
+            renameMap.forEach((k, v) -> {
                 final Object temp = item.get(k);
                 item.remove(k);
                 item.put(v, temp);
             });
-
         });
-        log.info("modify all :{}", System.currentTimeMillis() - startTime);
-
     }
 
 }

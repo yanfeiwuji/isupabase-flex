@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 public final class MTokens {
 
     public final Token SELECT_WITH_SUB = new Token("select_with_sub",
-            Pattern.compile("^(?:[a-zA-Z1-9_]*:)?([a-zA-Z1-9_]*(?:!inner)?)\\((.*)\\)(?:::[a-zA-Z]*)?$"));
+            Pattern.compile("^(?:\\.\\.\\.)?(?:[a-zA-Z1-9_]*:)?([a-zA-Z1-9_]*(?:!inner)?)\\((.*)\\)(?:::[a-zA-Z]*)?$"));
 
     // public final Token ORDER_BY = new Token("order_by",
     // Pattern.compile("^([a-zA-Z1-9_]*)(?:\\.(asc|desc))?(?:\\.(nullsfirst|nullslast))?"));

@@ -8,6 +8,14 @@ import java.util.function.Supplier;
 
 @UtilityClass
 public class PgrstExFactory {
+    public Supplier<PgrstEx> exCanNotSpreadRelForManyEnd(String root, String sub) {
+        return ExCodeStatus.PGRST_CAN_NOT_SPREAD_REL_FOR_MANY_END.toSupplierEx(
+                new ExInfo(null,
+                        "%s' and '%s' do not form a many-to-one or one-to-one relationship".formatted(root, sub),
+                        "A spread operation on '%s' is not possible".formatted(sub))
+        );
+    }
+
     public Supplier<PgrstEx> exCasingError(String exMsg) {
         return ExCodeStatus.DB_INVALID_INPUT.toSupplierEx(
                 new ExInfo(
@@ -15,6 +23,7 @@ public class PgrstExFactory {
                         null,
                         "invalid input syntax %s".formatted(exMsg)));
     }
+
     public Supplier<PgrstEx> exNotCasingType(String value) {
         return ExCodeStatus.DB_UNDEFINED_OBJECT.toSupplierEx(
                 new ExInfo(
@@ -113,7 +122,7 @@ public class PgrstExFactory {
                         new ExInfo(
                                 null,
                                 null,
-                                "column \"%s.%s\" does not exist".formatted(
+                                "column %s.%s does not exist".formatted(
                                         tableInfo.getTableName(), key)));
 
     }

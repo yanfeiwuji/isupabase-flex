@@ -1,6 +1,8 @@
 package io.github.yanfeiwuji.isupabase.constants;
 
 public final class CommonStr {
+
+
     private CommonStr() {
     }
 
@@ -14,7 +16,6 @@ public final class CommonStr {
     public static final String ASC = "asc";
     public static final String DESC = "desc";
 
-    public static final String EMPTY_STRING = "";
 
     public static final String SELECT = "select";
     public static final String LIMIT = "limit";
@@ -22,11 +23,11 @@ public final class CommonStr {
     public static final String ORDER = "order";
     public static final String COLUMNS = "columns";
 
-    public static final String DOT_ORDER = ".order";
-    public static final String DOT_LIMIT = ".limit";
-    public static final String DOT_OFFSET = ".offset";
 
     public static final String PERCENT = "%";
+
+    // op
+    public static final String SPREAD_MARK = "...";
 
     public static final String IS_VALUE_NULL = "null";
     public static final String IS_VALUE_UNKNOWN = "unknown";
@@ -37,7 +38,7 @@ public final class CommonStr {
     public static final String SQL_UNKNOWN = " UNKNOWN ";
     public static final String SQL_TRUE = " TRUE ";
     public static final String SQL_FALSE = " FALSE ";
-    //
+    // logic
     public static final String AND = "and";
     public static final String OR = "or";
     public static final String NOT_AND = "not.and";
@@ -68,8 +69,7 @@ public final class CommonStr {
     public static final String NXL_SQL_OP = " &> ";
     public static final String ADJ_SQL_OP = " -|- ";
 
-    // json
-    public static final String JSON_PATH_LEVEL = ".*.";
-    public static final String JSON_PATH_ROOT = "$";
-    public static final String JSON_PATH_ROOT_FIELD_PRE = JSON_PATH_ROOT + JSON_PATH_LEVEL;
+    public static final String IS_NULL = "is.null";
+    public static final String NOT_IS_NULL = "not.is.null";
+
 }

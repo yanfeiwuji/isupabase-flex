@@ -51,6 +51,7 @@ public record ExCodeStatus(String code, HttpStatus status) {
             HttpStatus.METHOD_NOT_ALLOWED);
     public static final ExCodeStatus PGRST_CAN_NOT_ORDER_REL_FOR_MANY_END = new ExCodeStatus("PGRST118",
             HttpStatus.BAD_REQUEST);
+
     public static final ExCodeStatus PGRST_CAN_NOT_SPREAD_REL_FOR_MANY_END = new ExCodeStatus("PGRST119",
             HttpStatus.BAD_REQUEST);
     public static final ExCodeStatus PGRST_AN_EMBEDDED_ONLY_USE_FILTER_IS = new ExCodeStatus("PGRST120",

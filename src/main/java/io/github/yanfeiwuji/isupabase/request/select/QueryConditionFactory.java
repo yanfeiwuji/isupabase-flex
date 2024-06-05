@@ -92,10 +92,13 @@ public class QueryConditionFactory {
     }
 
     public QueryCondition ofNoLogic(TableInfo tableInfo, String key, String value) {
+
         return QueryConditionFactory.ofNoLogic(CacheTableInfoUtils.nNRealQueryColumn(key, tableInfo), value);
     }
 
     public QueryCondition of(TableInfo tableInfo, String key, List<String> values) {
+
+
         return values.stream().map(value -> QueryConditionFactory.of(tableInfo, key, value))
                 .reduce(QueryCondition.createEmpty(), QueryCondition::and);
     }
@@ -114,6 +117,7 @@ public class QueryConditionFactory {
                     return op.apply(list);
                 }).orElseGet(() -> QueryConditionFactory.ofNoLogic(tableInfo, key, value));
     }
+
 
     private QueryCondition handler(QueryColumn queryColumn, String value, String op, String modifier) {
 

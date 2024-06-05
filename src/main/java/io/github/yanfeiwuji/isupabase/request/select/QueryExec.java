@@ -45,6 +45,9 @@ public class QueryExec {
 
     // up use
     private boolean inner = false;
+    //  inner exist
+    private boolean innerExist = true;
+    //
     private Number limit;
     private Number offset;
 
@@ -53,14 +56,18 @@ public class QueryExec {
     private boolean all;
 
     // 挑选的key
-    private Set<String> pickKeys;
+    private Map<String, String> pickKeyMap;
 
     private Map<String, String> renameMap;
     private Map<String, String> castMap;
     // spread
     private boolean spread = false;
 
+    // handler hz 就会有
     private QueryWrapper queryWrapper;
+
+    // 不执行
+    private boolean notExec = false;
 
 
     public QueryWrapper handler(QueryWrapper queryWrapper) {
@@ -113,10 +120,19 @@ public class QueryExec {
         Optional.ofNullable(this.subs)
                 .orElse(List.of())
                 .stream().filter(QueryExec::isInner)
-                .forEach(innerSubs -> queryWrapper.and(QueryMethods.exists(
-                        RelationUtils
-                                .relationExistQueryWrapper(innerSubs.relation)
-                                .and(innerSubs.queryCondition))));
+                .forEach(innerSubs -> {
+                    if (innerSubs.innerExist) {
+                        queryWrapper.and(QueryMethods.exists(
+                                RelationUtils
+                                        .relationExistQueryWrapper(innerSubs.relation)
+                                        .and(innerSubs.queryCondition)));
+                    } else {
+                        queryWrapper.and(QueryMethods.notExists(
+                                RelationUtils
+                                        .relationExistQueryWrapper(innerSubs.relation)
+                                        .and(innerSubs.queryCondition)));
+                    }
+                });
     }
 
     private void condition(QueryWrapper queryWrapper) {
@@ -183,6 +199,7 @@ public class QueryExec {
         if (subs == null) {
             subs = new ArrayList<>();
         }
+
         this.addPickKey(sub.relEnd);
 
         subs.add(sub);
@@ -197,17 +214,24 @@ public class QueryExec {
 
 
     public void addPickKey(String key) {
-        if (pickKeys == null) {
-            pickKeys = new HashSet<>();
+        if (pickKeyMap == null) {
+            pickKeyMap = new HashMap<>();
         }
-        pickKeys.add(key);
+        pickKeyMap.put(key, key);
     }
 
     public void addPickKeys(Set<String> keys) {
-        if (pickKeys == null) {
-            pickKeys = new HashSet<>();
+        if (pickKeyMap == null) {
+            pickKeyMap = new HashMap<>();
         }
-        pickKeys.addAll(keys);
+        keys.forEach(key -> pickKeyMap.put(key, key));
+    }
+
+    public void removePickKey(String key) {
+        if (pickKeyMap == null) {
+            return;
+        }
+        pickKeyMap.remove(key);
     }
 
     public void addRename(String key, String newName) {

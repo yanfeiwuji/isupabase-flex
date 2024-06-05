@@ -32,6 +32,10 @@ public class QueryExecAssembleManager {
             CommonStr.SELECT, CommonLambda::emptyQueryExecAssembly,
             CommonStr.COLUMNS, CommonLambda::emptyQueryExecAssembly);
 
+    private static final Map<String, Boolean> EMBEDDING_IS_OP_MAP = Map.of(
+            CommonStr.IS_NULL, Boolean.FALSE,
+            CommonStr.NOT_IS_NULL, Boolean.TRUE);
+
     public Optional<BiConsumer<QueryExec, List<String>>> assembleLimitOffsetOrder(String key) {
         return Optional.ofNullable(LIMIT_OFFSET_ORDER_MAP.get(key));
     }
@@ -46,9 +50,19 @@ public class QueryExecAssembleManager {
 
     public void assembleFilter(QueryExec queryExec, String key, List<String> values) {
         TableInfo tableInfo = queryExec.getTableInfo();
-        queryExec.getQueryCondition().and(QueryConditionFactory.of(tableInfo, key, values));
+        CacheTableInfoUtils.realRelation(key, tableInfo).ifPresentOrElse(relation -> {
+            final QueryExec needSub = queryExec.getSubs().stream().filter(sub -> sub.getRelEnd().equals(key))
+                    .findFirst().orElseThrow(PgrstExFactory.exColumnNotFound(tableInfo, key));
+            final Boolean innerExist = Optional.ofNullable(EMBEDDING_IS_OP_MAP.get(values.getFirst()))
+                    // It is  consistent with pgrst
+                    .orElseThrow(PgrstExFactory.exColumnNotFound(tableInfo, key));
+            needSub.setInner(true);
+            System.out.println(innerExist+"dds");
+            needSub.setInnerExist(innerExist);
 
+        }, () -> queryExec.getQueryCondition().and(QueryConditionFactory.of(tableInfo, key, values)));
     }
+
 
     private void assembleOrder(QueryExec queryExec, List<String> values) {
         values.forEach(it -> assembleOrderString(queryExec, it));
