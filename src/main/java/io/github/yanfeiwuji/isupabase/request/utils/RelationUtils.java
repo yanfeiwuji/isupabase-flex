@@ -2,6 +2,7 @@ package io.github.yanfeiwuji.isupabase.request.utils;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import com.mybatisflex.core.query.QueryColumn;
+import com.mybatisflex.core.query.QueryMethods;
 import com.mybatisflex.core.query.QueryTable;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
@@ -30,7 +31,7 @@ public class RelationUtils {
     }
 
     private QueryWrapper relationExistJoin(AbstractRelation<?> relation) {
-        QueryWrapper queryWrapper = QueryWrapper.create();
+        //  QueryWrapper queryWrapper = QueryWrapper.create();
         TableInfo targetTableInfo = relation.getTargetTableInfo();
 
         String joinTable = relation.getJoinTable();
@@ -44,13 +45,9 @@ public class RelationUtils {
 
         QueryColumn joinTargetQueryColumn = CacheTableInfoUtils.nNRelJoinTargetQueryColumn(relation);
         QueryColumn joinSelfQueryColumn = CacheTableInfoUtils.nNRelJoinSelfQueryColumn(relation);
-
-        queryWrapper.select(CommonStr.ONE)
-                .from(queryTable)
+        return QueryMethods.selectOne().from(queryTable)
                 .join(joinQueryTable).on(targetColumn.eq(joinTargetQueryColumn))
                 .where(joinSelfQueryColumn.eq(selfColumn));
-
-        return queryWrapper;
     }
 
     private QueryWrapper relationExistNoJoin(AbstractRelation<?> relation) {
@@ -58,10 +55,10 @@ public class RelationUtils {
         QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(subTableInfo);
         QueryColumn targetColumn = CacheTableInfoUtils.nNRelTargetQueryColumn(relation);
         QueryColumn selfColumn = CacheTableInfoUtils.nNRelSelfQueryColumn(relation);
-        return QueryWrapper.create()
-                .select(CommonStr.ONE)
+        return QueryMethods.selectOne()
                 .from(queryTable)
                 .where(targetColumn.eq(selfColumn));
+
     }
 
     public void relationJoin(QueryWrapper queryWrapper, AbstractRelation<?> relation) {
@@ -116,10 +113,10 @@ public class RelationUtils {
 
     @SuppressWarnings("rawtypes")
     public void join(AbstractRelation<?> relation,
-            List<Map> selfEntities,
-            List<Map> targetObjectList,
-            List<Row> mappingRows,
-            boolean spread) {
+                     List<Map> selfEntities,
+                     List<Map> targetObjectList,
+                     List<Row> mappingRows,
+                     boolean spread) {
 
         if (relation instanceof ToManyRelation<?>) {
             joinMany(relation, selfEntities, targetObjectList, mappingRows);
@@ -128,9 +125,9 @@ public class RelationUtils {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private void joinOne(AbstractRelation<?> relation, List<Map> selfEntities, List<Map> targetObjectList,
-            List<Row> mappingRows, boolean spread) {
+                         List<Row> mappingRows, boolean spread) {
         final String selfFieldColumn = selfFieldColumn(relation);
         final String joinSelfColumn = relation.getJoinSelfColumn();
         final String joinTargetColumn = relation.getJoinTargetColumn();
@@ -179,9 +176,9 @@ public class RelationUtils {
         });
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private void joinMany(AbstractRelation<?> relation, List<Map> selfEntities, List<Map> targetObjectList,
-            List<Row> mappingRows) {
+                          List<Row> mappingRows) {
 
         final String selfFieldColumn = selfFieldColumn(relation);
         final String joinSelfColumn = relation.getJoinSelfColumn();

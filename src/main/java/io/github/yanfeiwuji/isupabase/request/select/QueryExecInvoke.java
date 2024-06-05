@@ -26,35 +26,45 @@ public class QueryExecInvoke {
     private record TargetValues(Set<Object> targetValues, List<Row> mappingRows) {
     }
 
+    @SuppressWarnings({"rawtyes", "uncheck"})
+    public List<?> invoke(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
+        return embeddedList(queryExec, baseMapper, preList);
+    }
+
+
+    @SuppressWarnings({"rawtyes", "uncheck"})
     public List<?> invoke(QueryExec queryExec, BaseMapper<?> baseMapper) {
         return embeddedList(queryExec, baseMapper, null);
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private List<Map> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
-        List<Map> targetObjectList;
-        if (Objects.isNull(queryExec.getRelation())) {
-            QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
-            targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
-        } else {
-            AbstractRelation<?> relation = queryExec.getRelation();
-            choiceDs(relation);
-            TargetValues targetValues = Optional.of(relation.getJoinTable()).filter(StrUtil::isNotBlank)
-                    .map(it -> embeddedJoinTargetValues(baseMapper, relation, preList))
-                    .orElseGet(() -> embeddedTargetValues(relation, preList));
+        List<Map> targetObjectList = preList;
+        if (Objects.isNull(targetObjectList)) {
+            if (Objects.isNull(queryExec.getRelation())) {
+                QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
+                targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
+            } else {
+                AbstractRelation<?> relation = queryExec.getRelation();
+                choiceDs(relation);
+                TargetValues targetValues = Optional.of(relation.getJoinTable()).filter(StrUtil::isNotBlank)
+                        .map(it -> embeddedJoinTargetValues(baseMapper, relation, preList))
+                        .orElseGet(() -> embeddedTargetValues(relation, preList));
 
-            if (targetValues.targetValues().isEmpty()) {
-                return preList;
+                if (targetValues.targetValues().isEmpty()) {
+                    return preList;
+                }
+
+                QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
+                queryExec.handler(queryWrapper);
+
+                targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
+
+                RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
+
             }
-
-            QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
-            queryExec.handler(queryWrapper);
-
-            targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
-
-            RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
-
         }
+
         List<?> finalTargetObjectList = targetObjectList;
         Optional.ofNullable(queryExec.getSubs())
                 .orElse(List.of())
@@ -77,7 +87,7 @@ public class QueryExecInvoke {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private TargetValues embeddedTargetValues(AbstractRelation relation, List preList) {
         return new TargetValues(RelationUtils.selfFieldValues(relation, preList), null);
     }
@@ -112,7 +122,7 @@ public class QueryExecInvoke {
         return new TargetValues(targetValues, mappingRows);
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @TrackExecutionTime
     private void modifyKeys(QueryExec queryExec, List<Map> targetObjectList) {
 

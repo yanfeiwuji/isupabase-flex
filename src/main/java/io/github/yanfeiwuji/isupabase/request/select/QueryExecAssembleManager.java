@@ -30,7 +30,8 @@ public class QueryExecAssembleManager {
             CommonStr.OFFSET, QueryExecAssembleManager::assembleOffset,
             CommonStr.ORDER, QueryExecAssembleManager::assembleOrder,
             CommonStr.SELECT, CommonLambda::emptyQueryExecAssembly,
-            CommonStr.COLUMNS, CommonLambda::emptyQueryExecAssembly);
+            CommonStr.COLUMNS, CommonLambda::emptyQueryExecAssembly,
+            CommonStr.ON_CONFLICT,CommonLambda::emptyQueryExecAssembly);
 
     private static final Map<String, Boolean> EMBEDDING_IS_OP_MAP = Map.of(
             CommonStr.IS_NULL, Boolean.FALSE,
@@ -51,7 +52,8 @@ public class QueryExecAssembleManager {
     public void assembleFilter(QueryExec queryExec, String key, List<String> values) {
         TableInfo tableInfo = queryExec.getTableInfo();
         CacheTableInfoUtils.realRelation(key, tableInfo).ifPresentOrElse(relation -> {
-            final QueryExec needSub = queryExec.getSubs().stream().filter(sub -> sub.getRelEnd().equals(key))
+            final QueryExec needSub = Optional.ofNullable(queryExec.getSubs()).orElse(List.of())
+                    .stream().filter(sub -> sub.getRelEnd().equals(key))
                     .findFirst().orElseThrow(PgrstExFactory.exColumnNotFound(tableInfo, key));
             final Boolean innerExist = Optional.ofNullable(EMBEDDING_IS_OP_MAP.get(values.getFirst()))
                     // It is consistent with pgrst

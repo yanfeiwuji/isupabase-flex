@@ -1,20 +1,18 @@
 package io.github.yanfeiwuji.isupabase.request.ex;
 
+import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
 import lombok.experimental.UtilityClass;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 @UtilityClass
 public class PgrstExFactory {
-    public Supplier<PgrstEx> exCanNotSpreadRelForManyEnd(String root, String sub) {
-        return ExCodeStatus.PGRST_CAN_NOT_SPREAD_REL_FOR_MANY_END.toSupplierEx(
-                new ExInfo(null,
-                        "%s' and '%s' do not form a many-to-one or one-to-one relationship".formatted(root, sub),
-                        "A spread operation on '%s' is not possible".formatted(sub))
-        );
-    }
+
+
 
     public Supplier<PgrstEx> exCasingError(String exMsg) {
         return ExCodeStatus.DB_INVALID_INPUT.toSupplierEx(
@@ -48,6 +46,23 @@ public class PgrstExFactory {
                         null,
                         "argument of IS %s must be type boolean, not type %s".formatted(sqlBool,
                                 columnType)));
+    }
+
+
+    public Supplier<PgrstEx> exInvalidPreferInStrict(List<String> invalids) {
+
+        return ExCodeStatus.PGRST_INVALID_PREFERENCES.toSupplierEx(new ExInfo(
+                "Invalid preferences: %s".formatted(invalids.stream().reduce(String::concat).orElse(CharSequenceUtil.EMPTY)),
+                null,
+                "Invalid preferences given with handling=strict"));
+    }
+
+    public Supplier<PgrstEx> exCanNotSpreadRelForManyEnd(String root, String sub) {
+        return ExCodeStatus.PGRST_CAN_NOT_SPREAD_REL_FOR_MANY_END.toSupplierEx(
+                new ExInfo(null,
+                        "%s' and '%s' do not form a many-to-one or one-to-one relationship".formatted(root, sub),
+                        "A spread operation on '%s' is not possible".formatted(sub))
+        );
     }
 
     public Supplier<PgrstEx> exCanNotOrderRelForManyEnd(String root, String embedded) {

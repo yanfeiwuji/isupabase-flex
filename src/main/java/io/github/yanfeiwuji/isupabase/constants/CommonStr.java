@@ -22,6 +22,7 @@ public final class CommonStr {
     public static final String OFFSET = "offset";
     public static final String ORDER = "order";
     public static final String COLUMNS = "columns";
+    public static final String ON_CONFLICT = "on_conflict";
 
 
     public static final String PERCENT = "%";
@@ -71,5 +72,29 @@ public final class CommonStr {
 
     public static final String IS_NULL = "is.null";
     public static final String NOT_IS_NULL = "not.is.null";
+
+    public static final String PREFER_HEADER_KEY = "Prefer";
+
+    // handling
+    public static final String PREFER_HANDLING_STRICT = "handling=strict";
+    public static final String PREFER_HANDLING_LENIENT = "handling=lenient";
+    // timezone
+    public static final String PREFER_TIMEZONE = "timezone="; // not impl
+    // return
+    public static final String PREFER_RETURN_MINIMAL = "return=minimal";
+    public static final String PREFER_RETURN_HEADERS_ONLY = "return=headers-only"; // not impl
+    public static final String PREFER_RETURN_REPRESENTATION = "return=representation";
+    // count
+    public static final String PREFER_COUNT_EXACT = "count=exact";
+    public static final String PREFER_COUNT_PLANNED = "count=planned";
+    public static final String PREFER_COUNT_ESTIMATED = "count=estimated";
+
+    // resolution
+    public static final String PREFER_RESOLUTION_MERGE_DUPLICATES = "resolution=merge-duplicates";
+
+    public static final String PREFER_RESOLUTION_IGNORE_DUPLICATES = "resolution=ignore-duplicates";  // not impl
+
+    // missing
+    public static final String PREFER_MISSION_DEFAULT = "missing=default"; // not impl
 
 }

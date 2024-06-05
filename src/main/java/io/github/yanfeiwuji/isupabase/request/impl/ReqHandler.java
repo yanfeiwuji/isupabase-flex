@@ -53,21 +53,18 @@ public class ReqHandler implements IReqHandler {
         return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(apiReq.result(baseMapper));
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public ServerResponse post(ServerRequest request) {
         TableInfo tableInfo = tableInfo(request);
-        BodyInfo<?> bodyInfo = bodyHandler.handler(request, tableInfo.getEntityClass());
+        BodyInfo<Object> bodyInfo = (BodyInfo<Object>) bodyHandler.handler(request, tableInfo.getEntityClass());
+        final ApiReq apiReq = apiReq(request);
+        final BaseMapper<Object> mapper = mapper(request);
+        apiReq.insert(mapper, bodyInfo);
+        final Object o = apiReq.returnInfo(mapper, bodyInfo);
 
-        Optional.ofNullable(bodyInfo)
-                .map(BodyInfo::getSingle)
-                .ifPresent(it -> mapper(request).insert(it));
-        Optional.ofNullable(bodyInfo)
-                .map(BodyInfo::getArray)
-                .map(it -> (List) it)
-                .ifPresent(it -> mapper(request).insertBatch(it));
 
-        return ServerResponse.ok().build();
+        return ServerResponse.ok().body(o);
     }
 
     @Override

@@ -19,4 +19,15 @@ public class BodyInfo<T> {
         this(null, array);
     }
 
+    public List<T> result() {
+        if (single != null) {
+            return List.of(single);
+        } else if (array != null) {
+            return array;
+        } else {
+            return List.of();
+        }
+    }
+
+
 }
