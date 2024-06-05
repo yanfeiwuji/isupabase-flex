@@ -54,15 +54,13 @@ public class QueryExecAssembleManager {
             final QueryExec needSub = queryExec.getSubs().stream().filter(sub -> sub.getRelEnd().equals(key))
                     .findFirst().orElseThrow(PgrstExFactory.exColumnNotFound(tableInfo, key));
             final Boolean innerExist = Optional.ofNullable(EMBEDDING_IS_OP_MAP.get(values.getFirst()))
-                    // It is  consistent with pgrst
+                    // It is consistent with pgrst
                     .orElseThrow(PgrstExFactory.exColumnNotFound(tableInfo, key));
             needSub.setInner(true);
-            System.out.println(innerExist+"dds");
             needSub.setInnerExist(innerExist);
 
         }, () -> queryExec.getQueryCondition().and(QueryConditionFactory.of(tableInfo, key, values)));
     }
-
 
     private void assembleOrder(QueryExec queryExec, List<String> values) {
         values.forEach(it -> assembleOrderString(queryExec, it));
