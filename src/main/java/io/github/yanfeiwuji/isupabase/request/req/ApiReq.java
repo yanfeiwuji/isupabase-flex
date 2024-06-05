@@ -19,7 +19,6 @@ import lombok.Data;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.servlet.function.ServerRequest;
-import org.springframework.web.servlet.function.ServerResponse;
 
 /**
  * select
@@ -41,7 +40,6 @@ import org.springframework.web.servlet.function.ServerResponse;
  * with order
  */
 @Data
-
 public class ApiReq {
 
     private QueryExec queryExec;

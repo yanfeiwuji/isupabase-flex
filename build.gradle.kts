@@ -2,6 +2,7 @@ plugins {
     java
     id("org.springframework.boot") version "3.2.5"
     id("io.spring.dependency-management") version "1.1.4"
+    id("org.graalvm.buildtools.native") version "0.10.2"
 }
 
 group = "io.github.yanfeiwuji.isupabase"
@@ -12,7 +13,10 @@ java {
 }
 
 repositories {
+
     mavenLocal()
+
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
     mavenCentral()
 }
 
@@ -22,18 +26,20 @@ var guavaVersion = "33.2.0-jre"
 
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-web") 
+    implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-aop")
 
-    implementation("com.zaxxer:HikariCP") 
+    implementation("com.zaxxer:HikariCP")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("cn.hutool:hutool-all:$hutoolVersion")
     implementation("com.mybatis-flex:mybatis-flex-spring-boot3-starter:$mybatisFlexVersion")
     // implementation("com.google.guava:guava:$guavaVersion")
 
     implementation("org.projectlombok:lombok")
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
     runtimeOnly("org.postgresql:postgresql")
+    implementation("org.mybatis.spring.native:mybatis-spring-native-core:0.1.0-SNAPSHOT")
 
     annotationProcessor("com.mybatis-flex:mybatis-flex-processor:$mybatisFlexVersion")
     annotationProcessor("org.projectlombok:lombok")
