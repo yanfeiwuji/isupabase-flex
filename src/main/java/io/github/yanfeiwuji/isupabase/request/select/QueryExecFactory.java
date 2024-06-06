@@ -29,9 +29,7 @@ public class QueryExecFactory {
         String selectValue = Optional
                 .ofNullable(params.getFirst(CommonStr.SELECT))
                 .orElse(CommonStr.STAR);
-
         Map<String, QueryExec> lookup = new HashMap<>();
-
 
         QueryExec queryExec = QueryExecFactory.of(new QueryExecStuff(selectValue, tableInfo), lookup,
                 CharSequenceUtil.EMPTY
@@ -77,6 +75,10 @@ public class QueryExecFactory {
 
 
         return queryExec;
+    }
+
+    public void assemblyOnlyRoot(){
+
     }
 
     public void assembly(QueryExecLookup queryExecLookup, MultiValueMap<String, String> params) {

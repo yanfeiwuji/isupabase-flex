@@ -84,8 +84,8 @@ public class CacheTableInfoUtils {
     }
 
     public QueryColumn nNRealTableIdColumn(TableInfo tableInfo) {
-        // todo handler no id
-        return realTableIdColumn(tableInfo).orElseThrow(PgrstExFactory.exColumnNotFound(tableInfo, ""));
+
+        return realTableIdColumn(tableInfo).orElseThrow(PgrstExFactory.exTableNoPk(tableInfo.getTableName()));
     }
 
     public String nNRealProperty(String paramKey, TableInfo tableInfo) {
@@ -183,9 +183,8 @@ public class CacheTableInfoUtils {
                     if (primaryColumns.length == 1) {
                         return new QueryColumn(CacheTableInfoUtils.nNQueryTable(tableInfo), primaryColumns[0]);
                     } else if (primaryColumns.length >= 2) {
-
                         final String join = CharSequenceUtil.join(StrPool.COMMA, Arrays.stream(primaryColumns).toArray());
-                        return new RawQueryColumn("( " + join + " )");
+                        return new RawQueryColumn("( %s )".formatted(join));
                     } else {
                         return null;
                     }

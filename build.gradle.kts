@@ -24,6 +24,7 @@ var mybatisFlexVersion = "1.9.1"
 var hutoolVersion = "5.8.26"
 var guavaVersion = "33.2.0-jre"
 
+var mybatisNativeVersion = "0.1.0-SNAPSHOT"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -36,18 +37,19 @@ dependencies {
     // implementation("com.google.guava:guava:$guavaVersion")
 
     implementation("org.projectlombok:lombok")
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+    implementation("org.mybatis.spring.native:mybatis-spring-native-core:$mybatisNativeVersion")
 
     runtimeOnly("org.postgresql:postgresql")
-    implementation("org.mybatis.spring.native:mybatis-spring-native-core:0.1.0-SNAPSHOT")
 
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("com.mybatis-flex:mybatis-flex-processor:$mybatisFlexVersion")
     annotationProcessor("org.projectlombok:lombok")
 
     // developmentOnly("org.springframework.boot:spring-boot-devtools")
 
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
 tasks.withType<Test> {

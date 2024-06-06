@@ -245,17 +245,20 @@ public class RelationUtils {
                 targetMappingValues = new HashSet<>(1);
                 targetMappingValues.add((String) selfValue);
             }
+            final List<Map<String, Object>> putList;
+
 
             if (targetMappingValues.isEmpty()) {
-                return;
+                putList = List.of();
+            } else {
+                Map<String, List<Map<String, Object>>> finalLeftFieldToRightTableMap = leftFieldToRightTableMap;
+
+                putList = targetMappingValues.stream()
+                        .flatMap(it -> Optional.ofNullable(finalLeftFieldToRightTableMap.get(it))
+                                .orElse(List.of()).stream())
+                        .toList();
             }
-
-            Map<String, List<Map<String, Object>>> finalLeftFieldToRightTableMap = leftFieldToRightTableMap;
-
-            final List<Map<String, Object>> putList = targetMappingValues.stream()
-                    .flatMap(it -> Optional.ofNullable(finalLeftFieldToRightTableMap.get(it))
-                            .orElse(List.of()).stream())
-                    .toList();
+            System.out.println(putList.size() + "==dsfs");
             if (relation.isOnlyQueryValueField()) {
                 selfEntity.put(relationFieldName, putList.stream().map(it -> it.get(valueField)).toList());
             } else {

@@ -13,7 +13,6 @@ import java.util.function.Supplier;
 public class PgrstExFactory {
 
 
-
     public Supplier<PgrstEx> exCasingError(String exMsg) {
         return ExCodeStatus.DB_INVALID_INPUT.toSupplierEx(
                 new ExInfo(
@@ -46,6 +45,16 @@ public class PgrstExFactory {
                         null,
                         "argument of IS %s must be type boolean, not type %s".formatted(sqlBool,
                                 columnType)));
+    }
+
+    public Supplier<PgrstEx> exTableNoPk(String tableName) {
+        return ExCodeStatus.PGRST_EXT_TABLE_NO_PK.toSupplierEx(
+                new ExInfo(
+                        null,
+                        null,
+                        "%s not has primary key".formatted(tableName)
+                )
+        );
     }
 
 

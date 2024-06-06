@@ -61,11 +61,13 @@ public record ExCodeStatus(String code, HttpStatus status) {
     public static final ExCodeStatus PGRST_INVALID_PREFERENCES = new ExCodeStatus("PGRST122", HttpStatus.BAD_REQUEST);
 
     public static final ExCodeStatus PGRST_REL_NOT_EXIST = new ExCodeStatus("PGRST200", HttpStatus.BAD_REQUEST);
-    public static final ExCodeStatus PGRST_AMBIGUOUS_EMBEDDED_WAS_MADE = new ExCodeStatus("PGRST201",
-            HttpStatus.BAD_REQUEST);
+    public static final ExCodeStatus PGRST_AMBIGUOUS_EMBEDDED_WAS_MADE = new ExCodeStatus("PGRST201", HttpStatus.BAD_REQUEST);
     public static final ExCodeStatus PGRST_FUNCTION_NOT_EXIST = new ExCodeStatus("PGRST202", HttpStatus.NOT_FOUND);
     public static final ExCodeStatus PGRST_FUNCTION_NOT_UNI = new ExCodeStatus("PGRST203", HttpStatus.MULTIPLE_CHOICES);
     public static final ExCodeStatus PGRST_PUT_COLUMNS_NOT_FOUND = new ExCodeStatus("PGRST204", HttpStatus.BAD_REQUEST);
+
+    // ext error
+    public static final ExCodeStatus PGRST_EXT_TABLE_NO_PK = new ExCodeStatus("PGRSTY001", HttpStatus.BAD_REQUEST);
 
     public ExRes toExRes(ExInfo info) {
         return new ExRes(code, info.details(), info.hint(), info.message());

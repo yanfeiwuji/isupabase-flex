@@ -10,6 +10,7 @@ import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 
+import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
@@ -49,7 +50,7 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
         return arg -> {
             CacheTableInfoUtils.init(mapper);
             ValueUtils.init(mapper);
-
+            ApiReq.init(mapper);
         };
     }
 
