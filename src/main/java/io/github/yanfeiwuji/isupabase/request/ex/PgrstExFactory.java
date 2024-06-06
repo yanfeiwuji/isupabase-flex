@@ -1,7 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.ex;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
 import lombok.experimental.UtilityClass;

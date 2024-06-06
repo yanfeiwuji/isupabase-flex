@@ -5,7 +5,6 @@ import java.util.*;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.relation.ToManyRelation;
-import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
 
 import cn.hutool.core.text.CharSequenceUtil;
@@ -32,8 +31,7 @@ public class QueryExecFactory {
         Map<String, QueryExec> lookup = new HashMap<>();
 
         QueryExec queryExec = QueryExecFactory.of(new QueryExecStuff(selectValue, tableInfo), lookup,
-                CharSequenceUtil.EMPTY
-        );
+                CharSequenceUtil.EMPTY);
 
         return new QueryExecLookup(queryExec, lookup);
     }
@@ -70,15 +68,9 @@ public class QueryExecFactory {
         selects.parallelStream().forEach(selectItem -> MTokens.SELECT_WITH_SUB.keyValue(selectItem)
                 .ifPresentOrElse(
                         it -> selectSub(queryExec, tableInfo, selectItem, it, indexed, needPre),
-                        () -> selectColumn(queryExec, tableInfo, selectItem))
-        );
-
+                        () -> selectColumn(queryExec, tableInfo, selectItem)));
 
         return queryExec;
-    }
-
-    public void assemblyOnlyRoot(){
-
     }
 
     public void assembly(QueryExecLookup queryExecLookup, MultiValueMap<String, String> params) {
@@ -96,7 +88,6 @@ public class QueryExecFactory {
                 .ifPresentOrElse(it -> it.accept(queryExec, values),
                         () -> QueryExecAssembleManager.assembleFilter(queryExec, key, values));
     }
-
 
     private QueryExecStuff queryExecStuff(KeyValue keyValue, TableInfo tableInfo) {
         boolean inner = keyValue.key().endsWith(CommonStr.SELECT_INNER_MARK);
@@ -125,11 +116,11 @@ public class QueryExecFactory {
         }
     }
 
-    private void selectSub(QueryExec queryExec, TableInfo tableInfo, String selectItem, KeyValue keyValue, Map<String, QueryExec> indexed, String needPre) {
+    private void selectSub(QueryExec queryExec, TableInfo tableInfo, String selectItem, KeyValue keyValue,
+            Map<String, QueryExec> indexed, String needPre) {
         QueryExec subQueryExec = QueryExecFactory.of(
                 QueryExecFactory.queryExecStuff(keyValue, tableInfo),
-                indexed, needPre
-        );
+                indexed, needPre);
 
         queryExec.addSub(subQueryExec);
 
@@ -137,7 +128,8 @@ public class QueryExecFactory {
             queryExec.removePickKey(subQueryExec.getRelEnd());
         }
 
-        Optional.ofNullable(subQueryExec.getRelation()).ifPresent(rel -> queryExec.putSubRelMap(subQueryExec.getRelEnd(), rel));
+        Optional.ofNullable(subQueryExec.getRelation())
+                .ifPresent(rel -> queryExec.putSubRelMap(subQueryExec.getRelEnd(), rel));
 
         handlerSubSpread(selectItem, queryExec, subQueryExec);
         MTokens.RENAME.first(selectItem).ifPresent(rename -> queryExec.addRename(keyValue.key(), rename));
@@ -150,8 +142,7 @@ public class QueryExecFactory {
             if (relation instanceof ToManyRelation<?>) {
                 throw PgrstExFactory.exCanNotSpreadRelForManyEnd(
                         rootQueryExec.getQueryTable().getName(),
-                        subQueryExec.getQueryTable().getName()
-                ).get();
+                        subQueryExec.getQueryTable().getName()).get();
             }
             Optional.ofNullable(subQueryExec.getPickKeyMap()).map(Map::keySet)
                     .ifPresent(rootQueryExec::addPickKeys);

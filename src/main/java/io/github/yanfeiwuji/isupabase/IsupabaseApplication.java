@@ -9,6 +9,8 @@ import io.github.yanfeiwuji.isupabase.mapper.SysUserMapper;
 import io.github.yanfeiwuji.isupabase.request.IReqHandler;
 import lombok.AllArgsConstructor;
 import org.mybatis.spring.annotation.MapperScan;
+import org.mybatis.spring.mapper.ClassPathMapperScanner;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -17,6 +19,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.function.*;
 
+
 import java.util.List;
 
 @RestController
@@ -24,6 +27,7 @@ import java.util.List;
 @AllArgsConstructor
 @MapperScan("io.github.yanfeiwuji.isupabase.mapper")
 @EnableAspectJAutoProxy
+@RegisterReflectionForBinding({ClassPathMapperScanner.class})
 public class IsupabaseApplication {
 
     private final SysUserMapper sysUserMapper;
@@ -38,6 +42,7 @@ public class IsupabaseApplication {
 
     @GetMapping
     public List<SysUser> user() {
+
         return sysUserMapper.selectAll();
 
     }

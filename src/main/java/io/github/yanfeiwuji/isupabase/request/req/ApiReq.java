@@ -8,14 +8,12 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.row.Db;
-import com.mybatisflex.core.row.DbChain;
 import com.mybatisflex.core.table.TableInfo;
 
 import com.mybatisflex.core.update.UpdateChain;
@@ -28,14 +26,11 @@ import io.github.yanfeiwuji.isupabase.request.utils.FlexUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.PreferUtils;
 import jakarta.servlet.ServletException;
 import lombok.Data;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
-
 
 /**
  * select
@@ -58,10 +53,7 @@ import org.springframework.web.servlet.function.ServerResponse;
  */
 @Data
 public class ApiReq {
-    private static final Logger log = LoggerFactory.getLogger(ApiReq.class);
-    // 共用 mapper
     private static ObjectMapper mapper;
-
 
     private QueryExec queryExec;
     private QueryExecLookup queryExecLookup;
@@ -85,7 +77,6 @@ public class ApiReq {
         ApiReq.mapper = mapper;
     }
 
-
     public ApiReq(ServerRequest request, String tableName, BaseMapper<Object> baseMapper) {
         MultiValueMap<String, String> params = request.params();
         TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
@@ -108,7 +99,6 @@ public class ApiReq {
         }
         readBody(request, tableInfo);
     }
-
 
     public void get() {
         List<?> list = QueryExecInvoke.invoke(queryExec, baseMapper);
@@ -156,10 +146,8 @@ public class ApiReq {
         final Object first = body.getFirst();
         final Map<String, Object> bodyMap = BeanUtil.beanToMap(first); // modify
 
-
-        final QueryWrapper queryWrapper =
-                QueryWrapper.create().select(queryExec.getQueryColumns())
-                        .where(queryCondition);
+        final QueryWrapper queryWrapper = QueryWrapper.create().select(queryExec.getQueryColumns())
+                .where(queryCondition);
         orders.forEach(queryWrapper::orderBy);
         queryWrapper.limit(queryExec.getLimit());
         queryWrapper.offset(queryExec.getOffset());
@@ -176,7 +164,6 @@ public class ApiReq {
         if (Objects.nonNull(inIdsCondition)) {
             chain.where(inIdsCondition).update();
         }
-
 
     }
 
@@ -228,7 +215,7 @@ public class ApiReq {
         responseBody = null;
     }
 
-
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private void readBody(ServerRequest request, TableInfo tableInfo) {
         if (request.method().equals(HttpMethod.GET) || request.method().equals(HttpMethod.DELETE)) {
             return;
@@ -252,7 +239,6 @@ public class ApiReq {
                 this.body = List.of(mapper.readValue(strBody, entityClass));
             }
 
-
             if (!columns.isEmpty()) {
                 final CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, o) -> {
 
@@ -260,6 +246,7 @@ public class ApiReq {
                     return columns.containsKey(paramKey);
                 });
                 // copy
+
                 this.body = (List<Object>) BeanUtil.copyToList(this.body, entityClass, copyOptions);
 
             }
@@ -269,7 +256,7 @@ public class ApiReq {
     }
 
     public ServerResponse handler() {
-        //   ok.header().header().header()
+        // ok.header().header().header()
 
         switch (httpMethod.name()) {
             case "GET" -> get();
@@ -277,7 +264,8 @@ public class ApiReq {
             case "PATCH" -> patch();
             case "PUT" -> put();
             case "DELETE" -> delete();
-            default -> throw new RuntimeException("not");
+            default -> {
+            }
         }
         returnInfo();
         if (Objects.nonNull(responseBody)) {
@@ -301,15 +289,15 @@ public class ApiReq {
 
         final Number offset = Optional.ofNullable(queryExec.getOffset()).orElse(0);
         final Number limit = Optional.ofNullable(queryExec.getLimit()).orElse(0);
-        headers.add(CommonStr.HEADER_RANGE_KEY, CommonStr.HEADER_RANGE_VALUE_FORMAT.formatted(offset.intValue(), limit.intValue(), count));
+        headers.add(CommonStr.HEADER_RANGE_KEY,
+                CommonStr.HEADER_RANGE_VALUE_FORMAT.formatted(offset.intValue(), limit.intValue(), count));
 
         headers.add(CommonStr.HEADER_PREFERENCE_APPLIED_KEY, CharSequenceUtil.join(StrPool.COMMA, preferApplied));
     }
 
-
     private List<?> readIdsThenLoad(BaseMapper<?> baseMapper, TableInfo tableInfo, List<?> body) {
 
-        // todo  test
+        // todo test
 
         final QueryCondition queryCondition = inIdsCondition(tableInfo, body);
         if (Objects.isNull(queryCondition)) {

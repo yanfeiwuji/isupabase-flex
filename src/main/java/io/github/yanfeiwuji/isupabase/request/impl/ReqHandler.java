@@ -10,7 +10,6 @@ import io.github.yanfeiwuji.isupabase.request.ex.*;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -41,10 +40,8 @@ public class ReqHandler implements IReqHandler {
         return handler(request);
     }
 
-
     @Override
     public ServerResponse post(ServerRequest request) {
-
         return handler(request);
     }
 
@@ -60,7 +57,6 @@ public class ReqHandler implements IReqHandler {
 
     @Override
     public ServerResponse delete(ServerRequest request) {
-
         return handler(request);
     }
 
@@ -71,7 +67,6 @@ public class ReqHandler implements IReqHandler {
 
     @Override
     public ServerResponse after(ServerRequest request, ServerResponse response) {
-
         return response;
     }
 
