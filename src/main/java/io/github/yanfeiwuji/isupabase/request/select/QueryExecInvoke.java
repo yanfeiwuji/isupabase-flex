@@ -46,17 +46,13 @@ public class QueryExecInvoke {
                     .orElseGet(() -> embeddedTargetValues(relation, preList));
 
             if (targetValues.targetValues().isEmpty()) {
-                // handler prelist join a empty
+                RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
                 return preList;
             }else {
-
                 QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
                 queryExec.handler(queryWrapper);
-
                 targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
-
                 RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
-
             }
 
 

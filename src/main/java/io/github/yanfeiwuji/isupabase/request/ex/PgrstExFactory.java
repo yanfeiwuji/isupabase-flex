@@ -57,6 +57,23 @@ public class PgrstExFactory {
         );
     }
 
+    public Supplier<PgrstEx> exUpdateOrDeleteUseLimitMustHasOrderUniCol() {
+        return ExCodeStatus.PGRST_UPDATE_DELETE_USE_LIMIT_MUST_HAS_ORDER_UNI_COL.toSupplierEx(new ExInfo(
+                null,
+                "Apply an 'order' using unique column(s)",
+                "A 'limit' was applied without an explicit 'order'"));
+    }
+
+
+    public Supplier<PgrstEx> exInvalidJson() {
+        return ExCodeStatus.PGRST_INVALID_REQUEST_BODY.toSupplierEx(
+                new ExInfo(
+                        null,
+                        null,
+                        "Empty or invalid json"
+                )
+        );
+    }
 
     public Supplier<PgrstEx> exInvalidPreferInStrict(List<String> invalids) {
 

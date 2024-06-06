@@ -75,6 +75,9 @@ public final class CommonStr {
 
     public static final String PREFER_HEADER_KEY = "Prefer";
 
+    public static final String HEADER_RANGE_KEY = "Content-Range";
+    public static final String HEADER_PREFERENCE_APPLIED_KEY = "Preference-Applied";
+    public static final String HEADER_RANGE_VALUE_FORMAT = "%d-%d/%s";
     // handling
     public static final String PREFER_HANDLING_STRICT = "handling=strict";
     public static final String PREFER_HANDLING_LENIENT = "handling=lenient";
@@ -86,8 +89,8 @@ public final class CommonStr {
     public static final String PREFER_RETURN_REPRESENTATION = "return=representation";
     // count
     public static final String PREFER_COUNT_EXACT = "count=exact";
-    public static final String PREFER_COUNT_PLANNED = "count=planned";
-    public static final String PREFER_COUNT_ESTIMATED = "count=estimated";
+    public static final String PREFER_COUNT_PLANNED = "count=planned"; // not impl
+    public static final String PREFER_COUNT_ESTIMATED = "count=estimated"; // not impl
 
     // resolution
     public static final String PREFER_RESOLUTION_MERGE_DUPLICATES = "resolution=merge-duplicates";

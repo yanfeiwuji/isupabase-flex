@@ -11,7 +11,6 @@ import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import lombok.experimental.UtilityClass;
 
 import java.util.*;
@@ -31,7 +30,7 @@ public class RelationUtils {
     }
 
     private QueryWrapper relationExistJoin(AbstractRelation<?> relation) {
-        //  QueryWrapper queryWrapper = QueryWrapper.create();
+
         TableInfo targetTableInfo = relation.getTargetTableInfo();
 
         String joinTable = relation.getJoinTable();
@@ -258,7 +257,6 @@ public class RelationUtils {
                                 .orElse(List.of()).stream())
                         .toList();
             }
-            System.out.println(putList.size() + "==dsfs");
             if (relation.isOnlyQueryValueField()) {
                 selfEntity.put(relationFieldName, putList.stream().map(it -> it.get(valueField)).toList());
             } else {

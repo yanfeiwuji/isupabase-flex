@@ -32,47 +32,41 @@ public class ReqHandler implements IReqHandler {
         BaseMapper<Object> baseMapper = (BaseMapper<Object>) Mappers.ofEntityClass(tableInfo.getEntityClass());
         ApiReq apiReq = new ApiReq(request, tableName, baseMapper);
 
-        request.servletRequest().setAttribute(REQ_TABLE_INFO_KEY, tableInfo);
-        request.servletRequest().setAttribute(REQ_TABLE_MAPPER_KEY, baseMapper);
         request.servletRequest().setAttribute(REQ_API_REQ_KEY, apiReq);
         return request;
     }
 
     @Override
     public ServerResponse get(ServerRequest request) {
-        ApiReq apiReq = apiReq(request);
-        return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(apiReq.result());
+        return handler(request);
     }
 
 
     @Override
     public ServerResponse post(ServerRequest request) {
 
-        final ApiReq apiReq = apiReq(request);
-        apiReq.post();
-
-        return ServerResponse.ok().body(apiReq.returnInfo());
+        return handler(request);
     }
 
     @Override
     public ServerResponse put(ServerRequest request) {
-        final ApiReq apiReq = apiReq(request);
-        apiReq.put();
-        return ServerResponse.ok().build();
+        return handler(request);
     }
 
     @Override
     public ServerResponse patch(ServerRequest request) {
-        final ApiReq apiReq = apiReq(request);
-        apiReq.patch();
-        return ServerResponse.ok().body(apiReq.returnInfo());
+        return handler(request);
     }
 
     @Override
     public ServerResponse delete(ServerRequest request) {
+
+        return handler(request);
+    }
+
+    private ServerResponse handler(ServerRequest request) {
         final ApiReq apiReq = apiReq(request);
-        apiReq.delete();
-        return ServerResponse.ok().body(apiReq.returnInfo());
+        return apiReq.handler();
     }
 
     @Override
@@ -88,14 +82,6 @@ public class ReqHandler implements IReqHandler {
                 .map(PgrstEx.class::cast)
                 .map(PgrstEx::toResponse)
                 .orElse(ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
-    }
-
-
-    @SuppressWarnings("unchecked")
-    private <T> BaseMapper<T> mapper(ServerRequest request) {
-        return request
-                .attribute(REQ_TABLE_MAPPER_KEY).map(BaseMapper.class::cast)
-                .orElseThrow();
     }
 
     private ApiReq apiReq(ServerRequest request) {

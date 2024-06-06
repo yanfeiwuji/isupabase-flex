@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.req;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -7,6 +8,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,18 +20,21 @@ import com.mybatisflex.core.table.TableInfo;
 
 import com.mybatisflex.core.update.UpdateChain;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.select.*;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheJavaType;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.FlexUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.PreferUtils;
+import jakarta.servlet.ServletException;
 import lombok.Data;
-import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.servlet.function.ServerRequest;
+import org.springframework.web.servlet.function.ServerResponse;
 
 
 /**
@@ -65,15 +70,16 @@ public class ApiReq {
     private Map<String, String> prefers;
     private String onConflict;
     private Set<String> preferApplied;
-
     // use to update
     private Set<String> firstBodyKeys;
-
-
     // body
     private List<Object> body;
     private HttpMethod httpMethod;
     private BaseMapper<Object> baseMapper;
+
+    private Object responseBody;
+    // 受影响的行数
+    private Integer rowNum;
 
     public static void init(ObjectMapper mapper) {
         ApiReq.mapper = mapper;
@@ -101,20 +107,25 @@ public class ApiReq {
             QueryExecFactory.assembly(queryExecLookup, params);
         }
         readBody(request, tableInfo);
-
-
     }
 
-    public List<?> result() {
-        return QueryExecInvoke.invoke(queryExec, baseMapper);
+
+    public void get() {
+        List<?> list = QueryExecInvoke.invoke(queryExec, baseMapper);
+        rowNum = list.size();
+        responseBody = list;
+
     }
 
     public Long count() {
+
+        if (Objects.isNull(queryExec.getLimit()) && Objects.isNull(queryExec.getOffset())) {
+            return Long.valueOf(rowNum);
+        }
         final QueryWrapper qw = Optional.ofNullable(queryExec.getQueryWrapper())
                 .orElseGet(() -> queryExec.handler(QueryWrapper.create()));
         qw.limit(null, null);
         return baseMapper.selectCountByQuery(qw);
-
     }
 
     public void post() {
@@ -129,126 +140,204 @@ public class ApiReq {
                 return true;
             });
         }
+        rowNum = body.size();
     }
 
     public void put() {
         body.forEach(baseMapper::update);
+        rowNum = body.size();
     }
 
     public void patch() {
+        checkLimit();
         final QueryCondition queryCondition = queryExec.getQueryCondition();
 
         final List<QueryOrderBy> orders = Optional.ofNullable(queryExec.getOrders()).orElse(List.of());
         final Object first = body.getFirst();
-        final Map<String, Object> bodyMap = BeanUtil.beanToMap(first);
+        final Map<String, Object> bodyMap = BeanUtil.beanToMap(first); // modify
+
+
+        final QueryWrapper queryWrapper =
+                QueryWrapper.create().select(queryExec.getQueryColumns())
+                        .where(queryCondition);
+        orders.forEach(queryWrapper::orderBy);
+        queryWrapper.limit(queryExec.getLimit());
+        queryWrapper.offset(queryExec.getOffset());
+
+        this.body = baseMapper.selectListByQuery(queryWrapper);
 
         final UpdateChain<Object> chain = UpdateChain.of(baseMapper);
         Optional.ofNullable(firstBodyKeys)
                 .orElse(Set.of())
                 .forEach(it -> chain.set(it, bodyMap.get(CharSequenceUtil.toCamelCase(it))));
 
-        chain.where(queryCondition);
-        orders.forEach(chain::orderBy);
-        chain.limit(queryExec.getLimit()).update();
-        // 查询
-        if (prefers.containsKey(CommonStr.PREFER_RETURN_REPRESENTATION)) {
-            final QueryWrapper queryWrapper = QueryWrapper.create().select(queryExec.getQueryColumns())
-                    .where(queryCondition);
-            orders.forEach(queryWrapper::orderBy);
-            queryWrapper.limit(queryExec.getOffset());
-            this.body = baseMapper.selectListByQuery(queryWrapper);
+        final QueryCondition inIdsCondition = inIdsCondition(queryExec.getTableInfo(), this.body);
+        rowNum = this.body.size();
+        if (Objects.nonNull(inIdsCondition)) {
+            chain.where(inIdsCondition).update();
         }
+
+
     }
 
     public void delete() {
+        checkLimit();
         final TableInfo tableInfo = queryExec.getTableInfo();
-        final List<QueryOrderBy> orders = queryExec.getOrders();
-        final DbChain dbChain = DbChain.table(tableInfo.getEntityClass())
-                .and(queryExec.getQueryCondition());
-        orders.forEach(dbChain::orderBy);
-        dbChain.limit(queryExec.getLimit());
-        if (prefers.containsKey(CommonStr.PREFER_RETURN_REPRESENTATION)) {
-            final List<?> objects = dbChain.listAs(tableInfo.getEntityClass());
-            this.body = (List<Object>) readIdsThenLoad(baseMapper, queryExec.getTableInfo(), objects);
-        }
-        dbChain.remove();
+        final List<QueryOrderBy> orders = Optional.ofNullable(queryExec.getOrders()).orElse(List.of());
 
+        final QueryWrapper queryWrapper = QueryWrapper.create();
+        orders.forEach(queryWrapper::orderBy);
+        queryWrapper.limit(queryExec.getLimit());
+        queryWrapper.offset(queryExec.getOffset());
+
+        // must query then delete
+        final List<?> objects = baseMapper.selectListByQuery(queryWrapper);
+        if (prefers.containsKey(CommonStr.PREFER_RETURN_REPRESENTATION)) {
+            List<?> res = readIdsThenLoad(baseMapper, queryExec.getTableInfo(), objects);
+            rowNum = res.size();
+            responseBody = res;
+        }
+        if (objects.isEmpty()) {
+            return;
+        }
+        // delete by Ids
+        final List<Object[]> ids = objects.stream().map(tableInfo::buildPkSqlArgs).toList();
+
+        baseMapper.deleteBatchByIds(ids);
     }
 
-    public Object returnInfo() {
-
+    public void returnInfo() {
+        if (httpMethod.equals(HttpMethod.GET)) {
+            // get not change
+            return;
+        }
         if (prefers.containsKey(CommonStr.PREFER_RETURN_MINIMAL)) {
             addPreferApplied(CommonStr.PREFER_RETURN_MINIMAL);
-            return null;
+            responseBody = null;
         }
         if (prefers.containsKey(CommonStr.PREFER_RETURN_REPRESENTATION)) {
             addPreferApplied(CommonStr.PREFER_RETURN_REPRESENTATION);
             if (httpMethod.equals(HttpMethod.DELETE)) {
-                return body;
+                return;
             }
             final TableInfo tableInfo = queryExec.getTableInfo();
-            return readIdsThenLoad(baseMapper, tableInfo, body);
-
+            responseBody = readIdsThenLoad(baseMapper, tableInfo, body);
 
         }
         addPreferApplied(CommonStr.PREFER_RETURN_MINIMAL);
-        return null;
+        responseBody = null;
     }
 
-    @SneakyThrows
+
     private void readBody(ServerRequest request, TableInfo tableInfo) {
         if (request.method().equals(HttpMethod.GET) || request.method().equals(HttpMethod.DELETE)) {
             return;
         }
-        final Class<?> entityClass = tableInfo.getEntityClass();
-        String strBody = request.body(String.class);
-        if (JSONUtil.isTypeJSONArray(strBody)) {
-            JavaType listType = CacheJavaType.listJavaType(entityClass, mapper);
-            JavaType listMapJavaType = CacheJavaType.listJavaType(Map.class, mapper);
 
-            final List<Map> mapList = mapper.readValue(strBody, listMapJavaType);
+        try {
+            final Class<?> entityClass = tableInfo.getEntityClass();
+            String strBody = request.body(String.class);
+            if (JSONUtil.isTypeJSONArray(strBody)) {
+                JavaType listType = CacheJavaType.listJavaType(entityClass, mapper);
+                JavaType listMapJavaType = CacheJavaType.listJavaType(Map.class, mapper);
 
-            Optional.ofNullable(mapList.getFirst()).map(Map::keySet).ifPresent(this::setFirstBodyKeys);
-            this.body = mapper.readValue(strBody, listType);
-        } else {
-            final Map map = mapper.readValue(strBody, Map.class);
+                final List<Map> mapList = mapper.readValue(strBody, listMapJavaType);
 
-            Optional.ofNullable(map).map(Map::keySet).ifPresent(this::setFirstBodyKeys);
-            this.body = List.of(mapper.readValue(strBody, entityClass));
+                Optional.ofNullable(mapList.getFirst()).map(Map::keySet).ifPresent(this::setFirstBodyKeys);
+                this.body = mapper.readValue(strBody, listType);
+            } else {
+                final Map map = mapper.readValue(strBody, Map.class);
+
+                Optional.ofNullable(map).map(Map::keySet).ifPresent(this::setFirstBodyKeys);
+                this.body = List.of(mapper.readValue(strBody, entityClass));
+            }
+
+
+            if (!columns.isEmpty()) {
+                final CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, o) -> {
+
+                    final String paramKey = CacheTableInfoUtils.propertyToParamKey(f.getName());
+                    return columns.containsKey(paramKey);
+                });
+                // copy
+                this.body = (List<Object>) BeanUtil.copyToList(this.body, entityClass, copyOptions);
+
+            }
+        } catch (ServletException | IOException e) {
+            throw PgrstExFactory.exInvalidJson().get();
         }
+    }
 
+    public ServerResponse handler() {
+        //   ok.header().header().header()
 
-        if (!columns.isEmpty()) {
-            final CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, o) -> {
-
-                final String paramKey = CacheTableInfoUtils.propertyToParamKey(f.getName());
-                return columns.containsKey(paramKey);
-            });
-            // copy
-            this.body = (List<Object>) BeanUtil.copyToList(this.body, entityClass, copyOptions);
-
+        switch (httpMethod.name()) {
+            case "GET" -> get();
+            case "POST" -> post();
+            case "PATCH" -> patch();
+            case "PUT" -> put();
+            case "DELETE" -> delete();
+            default -> throw new RuntimeException("not");
+        }
+        returnInfo();
+        if (Objects.nonNull(responseBody)) {
+            return ServerResponse.ok().headers(this::addHeader).body(responseBody);
+        } else {
+            return ServerResponse.ok().headers(this::addHeader).build();
         }
 
     }
 
+    public void addHeader(HttpHeaders headers) {
+        String count = CommonStr.STAR;
+        if (prefers.containsKey(CommonStr.PREFER_COUNT_EXACT)) {
+            addPreferApplied(CommonStr.PREFER_COUNT_EXACT);
+            if (httpMethod.equals(HttpMethod.GET)) {
+                count = count().toString();
+            } else {
+                count = rowNum.toString();
+            }
+        }
+
+        final Number offset = Optional.ofNullable(queryExec.getOffset()).orElse(0);
+        final Number limit = Optional.ofNullable(queryExec.getLimit()).orElse(0);
+        headers.add(CommonStr.HEADER_RANGE_KEY, CommonStr.HEADER_RANGE_VALUE_FORMAT.formatted(offset.intValue(), limit.intValue(), count));
+
+        headers.add(CommonStr.HEADER_PREFERENCE_APPLIED_KEY, CharSequenceUtil.join(StrPool.COMMA, preferApplied));
+    }
+
+
     private List<?> readIdsThenLoad(BaseMapper<?> baseMapper, TableInfo tableInfo, List<?> body) {
+
+        // todo  test
+
+        final QueryCondition queryCondition = inIdsCondition(tableInfo, body);
+        if (Objects.isNull(queryCondition)) {
+            return List.of();
+        }
+        queryExec.setQueryCondition(queryCondition);
+        return QueryExecInvoke.invoke(queryExec, baseMapper);
+    }
+
+    private QueryCondition inIdsCondition(TableInfo tableInfo, List<?> body) {
 
         final String[] primaryColumns = tableInfo.getPrimaryColumns();
         // ids
         final List<Object[]> list = body.stream().map(tableInfo::buildPkSqlArgs)
                 .toList();
         final QueryColumn queryColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
-        // todo  test
-
-
+        // to test
+        if (list.isEmpty()) {
+            return null;
+        }
         if (primaryColumns.length == 1) {
             final List<Object> ids = list.stream().map(it -> it[0]).toList();
-            queryExec.setQueryCondition(queryColumn.in(ids));
-            return QueryExecInvoke.invoke(queryExec, baseMapper);
+            return queryColumn.in(ids);
         } else {
-            queryExec.setQueryCondition(queryColumn.in(list));
-            return QueryExecInvoke.invoke(queryExec, baseMapper);
+            return queryColumn.in(list);
+
         }
+
     }
 
     private void addPreferApplied(String prefer) {
@@ -256,6 +345,14 @@ public class ApiReq {
             preferApplied = new HashSet<>();
         }
         preferApplied.add(prefer);
+    }
+
+    private void checkLimit() {
+        final List<QueryOrderBy> orders = queryExec.getOrders();
+        final Number limit = queryExec.getLimit();
+        if (!(Objects.nonNull(limit) && Objects.nonNull(orders) && !orders.isEmpty())) {
+            throw PgrstExFactory.exUpdateOrDeleteUseLimitMustHasOrderUniCol().get();
+        }
     }
 
 }
