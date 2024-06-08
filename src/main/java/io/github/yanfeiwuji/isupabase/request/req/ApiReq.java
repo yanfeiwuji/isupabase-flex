@@ -155,7 +155,7 @@ public class ApiReq {
         orders.forEach(queryWrapper::orderBy);
         queryWrapper.limit(queryExec.getLimit());
         queryWrapper.offset(queryExec.getOffset());
-
+        // pre query then use project
         this.body = baseMapper.selectListByQuery(queryWrapper);
 
         final UpdateChain<Object> chain = UpdateChain.of(baseMapper);
@@ -163,12 +163,20 @@ public class ApiReq {
                 .orElse(Set.of())
                 .forEach(it -> chain.set(it, bodyMap.get(CharSequenceUtil.toCamelCase(it))));
 
-        final QueryCondition inIdsCondition = inIdsCondition(queryExec.getTableInfo(), this.body);
+        //    final QueryCondition inIdsCondition = inIdsCondition(queryExec.getTableInfo(), this.body);
         rowNum = this.body.size();
+        final TableInfo tableInfo = queryExec.getTableInfo();
+        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
+        final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
+        final QueryWrapper updateWrapper = QueryWrapper.create().select(idColumn).from(queryTable);
 
-        if (Objects.nonNull(inIdsCondition)) {
-            chain.where(inIdsCondition).update();
-        }
+
+        updateWrapper.where(queryCondition);
+        orders.forEach(updateWrapper::orderBy);
+        updateWrapper.limit(queryExec.getLimit());
+        updateWrapper.offset(queryExec.getOffset());
+
+        chain.where(idColumn.in(updateWrapper)).update();
 
     }
 
