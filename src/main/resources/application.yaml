@@ -9,8 +9,3 @@ spring:
 mybatis-flex:
   configuration:
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
-
-mybatis:
-  configuration:
-    ### 开启打印sql配置
-    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl

@@ -14,7 +14,7 @@ java {
     }
 }
 repositories {
-    mavenLocal()
+   mavenLocal()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     mavenCentral()
 }
@@ -30,7 +30,7 @@ dependencies {
 
     implementation("com.zaxxer:HikariCP")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("cn.hutool:hutool-all:$hutoolVersion")
+    implementation("cn.hutool:hutool-core:$hutoolVersion")
     implementation("com.mybatis-flex:mybatis-flex-spring-boot3-starter:$mybatisFlexVersion")
     // implementation("com.google.guava:guava:$guavaVersion")
 

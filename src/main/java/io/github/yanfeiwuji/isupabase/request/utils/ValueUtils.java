@@ -3,11 +3,11 @@ package io.github.yanfeiwuji.isupabase.request.utils;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.json.JSONArray;
-import cn.hutool.json.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
@@ -16,6 +16,8 @@ import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import lombok.experimental.UtilityClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ import java.util.function.Function;
 
 @UtilityClass
 public class ValueUtils {
+    private static final Logger log = LoggerFactory.getLogger(ValueUtils.class);
     private static ObjectMapper mapper;
 
     public static final Map<String, Function<Object, Object>> CASTING_MAP = Map.of(
@@ -74,15 +77,15 @@ public class ValueUtils {
     }
 
     public Object singleValue(QueryColumn queryColumn, String value) {
+
         String name = queryColumn.getTable().getName();
         TableInfo tableInfo = TableInfoFactory.ofTableName(name);
+        final ObjectNode objectNode = mapper.createObjectNode();
         String realParam = CacheTableInfoUtils.nNRealParam(queryColumn.getName(), tableInfo);
         String propertyName = CacheTableInfoUtils.nNRealProperty(realParam, tableInfo);
-        String jsonStr = new JSONObject().set(realParam, value).toString();
-
+        final ObjectNode put = objectNode.put(propertyName, value);
         try {
-            Object bean = mapper.readValue(jsonStr, tableInfo.getEntityClass());
-
+            Object bean = mapper.treeToValue(put, tableInfo.getEntityClass());
             return BeanUtil.getProperty(bean, propertyName);
         } catch (JsonProcessingException e) {
             String dbType = CacheTableInfoUtils.realDbType(realParam, tableInfo);
@@ -101,18 +104,17 @@ public class ValueUtils {
         TableInfo tableInfo = TableInfoFactory.ofTableName(name);
         String realParam = CacheTableInfoUtils.nNRealParam(queryColumn.getName(), tableInfo);
         String propertyName = CacheTableInfoUtils.nNRealProperty(realParam, tableInfo);
+        final ArrayNode arrayNode = mapper.createArrayNode();
 
-        JSONArray jsonArray = new JSONArray();
         TokenUtils.splitByCommaQuoted(value)
-                .stream().map(it -> new JSONObject().set(realParam, it))
-                .forEach(jsonArray::put);
+                .stream().map(it -> mapper.createObjectNode().put(realParam, it))
+                .forEach(arrayNode::add);
 
-        String json = jsonArray.toString();
         Class<?> entityClass = tableInfo.getEntityClass();
         JavaType listType = mapper.getTypeFactory().constructParametricType(List.class, entityClass);
 
         try {
-            List<?> list = mapper.readValue(json, listType);
+            List<?> list = mapper.treeToValue(arrayNode, listType);
             return list.stream().map(it -> BeanUtil.getProperty(it, propertyName)).toArray();
         } catch (JsonProcessingException e) {
             String dbType = CacheTableInfoUtils.realDbType(realParam, tableInfo);

@@ -262,7 +262,6 @@ public class ApiReq {
 
             if (!columns.isEmpty()) {
                 final CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, o) -> {
-
                     final String paramKey = CacheTableInfoUtils.propertyToParamKey(f.getName());
                     return columns.containsKey(paramKey);
                 });

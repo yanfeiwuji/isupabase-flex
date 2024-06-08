@@ -33,7 +33,7 @@ public class AuthDialectImpl extends CommonsDialectImpl {
 
         System.out.println(b + "<has> sys_user_ext"+"<"+operateType+">");
         for (QueryTable queryTable : queryTables) {
-            System.out.println(queryTable + "--");
+
         }
 
         super.prepareAuth(queryWrapper, operateType);

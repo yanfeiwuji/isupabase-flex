@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.StrPool;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.NamingBase;
@@ -41,7 +43,10 @@ public class CacheTableInfoUtils {
     private static final Map<Class<?>, Map<String, String>> CACHE_CLAZZ_PARAM_NAME_PROPERTY = new ConcurrentHashMap<>();
 
     private static final Map<Class<?>, Map<String, ColumnInfo>> CACHE_CLAZZ_PARAM_NAME_COLUMN_INFO = new ConcurrentHashMap<>();
+    private static final Map<String, Map<String, ColumnInfo>> CACHE_TABLE_NAME_COLUMN_NAME_COLUMN_INFO = new ConcurrentHashMap<>();
+
     private static final Map<Class<?>, Map<String, QueryColumn>> CACHE_CLAZZ_PARAM_NAME_QUERY_COLUMN = new ConcurrentHashMap<>();
+
     private static final Map<Class<?>, Map<String, String>> CACHE_CLAZZ_QUERY_COLUMN_NAME_PARAM_NAME = new ConcurrentHashMap<>();
 
     private static final Map<Class<?>, QueryTable> CACHE_CLAZZ_QUERY_TABLE = new ConcurrentHashMap<>();
@@ -61,7 +66,7 @@ public class CacheTableInfoUtils {
     private static final Map<String, QueryColumn> CACHE_REL_JOIN_TARGET_QUERY_COLUMN = new ConcurrentHashMap<>();
     private static final Map<String, QueryColumn> CACHE_REL_JOIN_SELF_QUERY_COLUMN = new ConcurrentHashMap<>();
     private static final Map<String, Set<String>> CACHE_TABLE_NAME_ALL_COLUMN = new ConcurrentHashMap<>();
-
+    //  private static final Map<String, Map<String, JsonDeserializer<Object>>> CACHE_TABLE_NAME_COLUMN_NAME_JSON_DESERIALIZER = new ConcurrentHashMap<>();
 
     private static ObjectMapper mapper;
     private static Optional<NamingBase> namingBaseOptional;
@@ -94,6 +99,7 @@ public class CacheTableInfoUtils {
         return realColumnInfo(paramKey, tableInfo).orElseThrow(PgrstExFactory.exColumnNotFound(tableInfo, paramKey));
     }
 
+
     public QueryTable nNQueryTable(TableInfo tableInfo) {
         return CACHE_CLAZZ_QUERY_TABLE.computeIfAbsent(tableInfo.getEntityClass(),
                 it -> new QueryTable(tableInfo.getSchema(), tableInfo.getTableName()));
@@ -111,6 +117,24 @@ public class CacheTableInfoUtils {
     public AbstractRelation<?> nNRealRelation(String paramKey, TableInfo tableInfo) {
         return realRelation(paramKey, tableInfo)
                 .orElseThrow(PgrstExFactory.exRelNotExist(tableInfo.getTableName(), paramKey));
+    }
+
+    public ColumnInfo queryColumnToColumnInfo(QueryColumn queryColumn) {
+        final String tableName = queryColumn.getTable().getName();
+        final String columnName = queryColumn.getName();
+
+        return CACHE_TABLE_NAME_COLUMN_NAME_COLUMN_INFO.computeIfAbsent(tableName, tn -> {
+            final TableInfo tableInfo = TableInfoFactory.ofTableName(tableName);
+
+            final MapBuilder<String, ColumnInfo> builder = MapBuilder.create();
+            tableInfo.getColumnInfoList().forEach(info -> builder.put(
+                    info.getColumn(),
+                    info));
+            tableInfo.getPrimaryKeyList().forEach(info -> builder.put(
+                    CacheTableInfoUtils.propertyToParamKey(info.getProperty()),
+                    info));
+            return builder.build();
+        }).get(columnName);
     }
 
     public Optional<String> realColumn(String paramKey, TableInfo tableInfo) {
@@ -245,6 +269,7 @@ public class CacheTableInfoUtils {
                 .get(queryColumnName));
     }
 
+
     public String[] clazzRels(TableInfo tableInfo) {
         return CACHE_CLAZZ_RELS.computeIfAbsent(tableInfo.getEntityClass(),
                 clazz -> RelationManager.getRelations(clazz).stream().map(it -> it.getRelationField().getName())
@@ -272,6 +297,7 @@ public class CacheTableInfoUtils {
             return res;
         });
     }
+
 
     public QueryColumn nNQueryAllColumns(TableInfo tableInfo) {
         return CACHE_CLAZZ_QUERY_ALL_COLUMNS.computeIfAbsent(
