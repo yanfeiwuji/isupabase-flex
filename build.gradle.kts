@@ -36,19 +36,15 @@ dependencies {
 
     implementation("org.projectlombok:lombok")
 
-
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-
 
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("com.mybatis-flex:mybatis-flex-processor:$mybatisFlexVersion")
     annotationProcessor("org.projectlombok:lombok")
 
     // developmentOnly("org.springframework.boot:spring-boot-devtools")
-
-
 }
 
 tasks.withType<Test> {

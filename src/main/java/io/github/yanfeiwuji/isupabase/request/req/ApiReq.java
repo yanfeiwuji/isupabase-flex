@@ -28,6 +28,7 @@ import jakarta.servlet.ServletException;
 import lombok.Data;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -71,7 +72,7 @@ public class ApiReq {
 
     private Object responseBody;
     // 受影响的行数
-    private Integer rowNum;
+    private Integer rowNum = 0;
 
     public static void init(ObjectMapper mapper) {
         ApiReq.mapper = mapper;
@@ -114,6 +115,9 @@ public class ApiReq {
         }
         final QueryWrapper qw = Optional.ofNullable(queryExec.getQueryWrapper())
                 .orElseGet(() -> queryExec.handler(QueryWrapper.create()));
+
+        // clear orders
+        CPI.setOrderBys(qw, null);
         qw.limit(null, null);
         return baseMapper.selectCountByQuery(qw);
     }
@@ -161,6 +165,7 @@ public class ApiReq {
 
         final QueryCondition inIdsCondition = inIdsCondition(queryExec.getTableInfo(), this.body);
         rowNum = this.body.size();
+
         if (Objects.nonNull(inIdsCondition)) {
             chain.where(inIdsCondition).update();
         }
@@ -173,24 +178,31 @@ public class ApiReq {
         final List<QueryOrderBy> orders = Optional.ofNullable(queryExec.getOrders()).orElse(List.of());
 
         final QueryWrapper queryWrapper = QueryWrapper.create();
+        queryWrapper.where(queryExec.getQueryCondition());
         orders.forEach(queryWrapper::orderBy);
         queryWrapper.limit(queryExec.getLimit());
         queryWrapper.offset(queryExec.getOffset());
 
-        // must query then delete
-        final List<?> objects = baseMapper.selectListByQuery(queryWrapper);
         if (prefers.containsKey(CommonStr.PREFER_RETURN_REPRESENTATION)) {
+
+            // must query then delete
+            final List<?> objects = baseMapper.selectListByQuery(queryWrapper);
             List<?> res = readIdsThenLoad(baseMapper, queryExec.getTableInfo(), objects);
             rowNum = res.size();
             responseBody = res;
         }
-        if (objects.isEmpty()) {
-            return;
-        }
-        // delete by Ids
-        final List<Object[]> ids = objects.stream().map(tableInfo::buildPkSqlArgs).toList();
 
-        baseMapper.deleteBatchByIds(ids);
+        final QueryColumn queryColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
+        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
+        final QueryWrapper deleteWithOrderLimit =
+                QueryWrapper.create().select(queryColumn)
+                        .from(queryTable)
+                        .where(queryExec.getQueryCondition());
+        orders.forEach(deleteWithOrderLimit::orderBy);
+        deleteWithOrderLimit.limit(queryExec.getLimit());
+        deleteWithOrderLimit.offset(queryExec.getOffset());
+
+        baseMapper.deleteByCondition(queryColumn.in(deleteWithOrderLimit));
     }
 
     public void returnInfo() {
@@ -206,16 +218,17 @@ public class ApiReq {
             addPreferApplied(CommonStr.PREFER_RETURN_REPRESENTATION);
             if (httpMethod.equals(HttpMethod.DELETE)) {
                 return;
-            }
-            final TableInfo tableInfo = queryExec.getTableInfo();
-            responseBody = readIdsThenLoad(baseMapper, tableInfo, body);
+            } else {
+                final TableInfo tableInfo = queryExec.getTableInfo();
+                responseBody = readIdsThenLoad(baseMapper, tableInfo, body);
 
+            }
         }
         addPreferApplied(CommonStr.PREFER_RETURN_MINIMAL);
-        responseBody = null;
+
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private void readBody(ServerRequest request, TableInfo tableInfo) {
         if (request.method().equals(HttpMethod.GET) || request.method().equals(HttpMethod.DELETE)) {
             return;
@@ -246,7 +259,6 @@ public class ApiReq {
                     return columns.containsKey(paramKey);
                 });
                 // copy
-
                 this.body = (List<Object>) BeanUtil.copyToList(this.body, entityClass, copyOptions);
 
             }
@@ -262,16 +274,28 @@ public class ApiReq {
             case "GET" -> get();
             case "POST" -> post();
             case "PATCH" -> patch();
-            case "PUT" -> put();
+            // case "PUT" -> put();
             case "DELETE" -> delete();
             default -> {
             }
         }
         returnInfo();
+        HttpStatus httpStatus = HttpStatus.OK;
+        if (Objects.nonNull(queryExec.getLimit()) || Objects.nonNull(queryExec.getOffset())
+        ) {
+            if (HttpMethod.GET.equals(httpMethod)) {
+
+                httpStatus = HttpStatus.PARTIAL_CONTENT;
+            }
+        }
         if (Objects.nonNull(responseBody)) {
-            return ServerResponse.ok().headers(this::addHeader).body(responseBody);
+            return ServerResponse.status(httpStatus)
+                    .headers(this::addHeader)
+                    .body(responseBody);
         } else {
-            return ServerResponse.ok().headers(this::addHeader).build();
+            return ServerResponse
+                    .status(HttpStatus.NO_CONTENT)
+                    .headers(this::addHeader).build();
         }
 
     }
@@ -288,22 +312,30 @@ public class ApiReq {
         }
 
         final Number offset = Optional.ofNullable(queryExec.getOffset()).orElse(0);
-        final Number limit = Optional.ofNullable(queryExec.getLimit()).orElse(0);
+        final Number limit = Optional.ofNullable(queryExec.getLimit()).orElse(rowNum);
+
         headers.add(CommonStr.HEADER_RANGE_KEY,
-                CommonStr.HEADER_RANGE_VALUE_FORMAT.formatted(offset.intValue(), limit.intValue(), count));
+                CommonStr.HEADER_RANGE_VALUE_FORMAT.formatted(
+                        limit.intValue() - 1 >= 0 ?
+                                CommonStr.HEADER_RANGE_VALUE_RANGE_FORMAT
+                                        .formatted(offset.intValue(), limit.intValue() - 1) :
+                                CommonStr.STAR
+                        , count));
 
         headers.add(CommonStr.HEADER_PREFERENCE_APPLIED_KEY, CharSequenceUtil.join(StrPool.COMMA, preferApplied));
+        // headers.setAccessControlAllowHeaders(CommonStr.ACCESS_CONTROL_EXPOSE_HEADERS);
     }
 
     private List<?> readIdsThenLoad(BaseMapper<?> baseMapper, TableInfo tableInfo, List<?> body) {
 
-        // todo test
 
         final QueryCondition queryCondition = inIdsCondition(tableInfo, body);
         if (Objects.isNull(queryCondition)) {
             return List.of();
         }
         queryExec.setQueryCondition(queryCondition);
+        final List<?> invoke = QueryExecInvoke.invoke(queryExec, baseMapper);
+
         return QueryExecInvoke.invoke(queryExec, baseMapper);
     }
 
@@ -323,7 +355,6 @@ public class ApiReq {
             return queryColumn.in(ids);
         } else {
             return queryColumn.in(list);
-
         }
 
     }
@@ -338,7 +369,12 @@ public class ApiReq {
     private void checkLimit() {
         final List<QueryOrderBy> orders = queryExec.getOrders();
         final Number limit = queryExec.getLimit();
-        if (!(Objects.nonNull(limit) && Objects.nonNull(orders) && !orders.isEmpty())) {
+
+        if (Objects.isNull(limit)) {
+            return;
+        }
+
+        if (Objects.isNull(orders) || orders.isEmpty()) {
             throw PgrstExFactory.exUpdateOrDeleteUseLimitMustHasOrderUniCol().get();
         }
     }

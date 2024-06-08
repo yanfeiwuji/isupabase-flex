@@ -30,37 +30,13 @@ public class ReqHandler implements IReqHandler {
 
         BaseMapper<Object> baseMapper = (BaseMapper<Object>) Mappers.ofEntityClass(tableInfo.getEntityClass());
         ApiReq apiReq = new ApiReq(request, tableName, baseMapper);
-
         request.servletRequest().setAttribute(REQ_API_REQ_KEY, apiReq);
         return request;
     }
 
-    @Override
-    public ServerResponse get(ServerRequest request) {
-        return handler(request);
-    }
 
     @Override
-    public ServerResponse post(ServerRequest request) {
-        return handler(request);
-    }
-
-    @Override
-    public ServerResponse put(ServerRequest request) {
-        return handler(request);
-    }
-
-    @Override
-    public ServerResponse patch(ServerRequest request) {
-        return handler(request);
-    }
-
-    @Override
-    public ServerResponse delete(ServerRequest request) {
-        return handler(request);
-    }
-
-    private ServerResponse handler(ServerRequest request) {
+    public ServerResponse handler(ServerRequest request) {
         final ApiReq apiReq = apiReq(request);
         return apiReq.handler();
     }

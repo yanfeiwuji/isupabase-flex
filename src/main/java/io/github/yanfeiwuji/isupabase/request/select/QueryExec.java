@@ -62,7 +62,7 @@ public class QueryExec {
     // spread
     private boolean spread = false;
 
-    // handler hz 就会有
+    // handler then set it 
     private QueryWrapper queryWrapper;
 
     // 不执行
@@ -79,6 +79,7 @@ public class QueryExec {
         this.queryWrapper = queryWrapper;
         return queryWrapper;
     }
+
 
     private void select(QueryWrapper queryWrapper) {
 

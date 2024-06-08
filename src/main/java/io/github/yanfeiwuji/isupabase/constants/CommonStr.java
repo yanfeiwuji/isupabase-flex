@@ -1,5 +1,7 @@
 package io.github.yanfeiwuji.isupabase.constants;
 
+import java.util.List;
+
 public final class CommonStr {
 
 
@@ -76,8 +78,9 @@ public final class CommonStr {
     public static final String PREFER_HEADER_KEY = "Prefer";
 
     public static final String HEADER_RANGE_KEY = "Content-Range";
-    public static final String HEADER_PREFERENCE_APPLIED_KEY = "Preference-Applied";
-    public static final String HEADER_RANGE_VALUE_FORMAT = "%d-%d/%s";
+    public static final String HEADER_PREFERENCE_APPLIED_KEY = "preference-applied";
+    public static final String HEADER_RANGE_VALUE_FORMAT = "%s/%s";
+    public static final String HEADER_RANGE_VALUE_RANGE_FORMAT = "%d-%d";
     // handling
     public static final String PREFER_HANDLING_STRICT = "handling=strict";
     public static final String PREFER_HANDLING_LENIENT = "handling=lenient";
@@ -99,5 +102,15 @@ public final class CommonStr {
 
     // missing
     public static final String PREFER_MISSION_DEFAULT = "missing=default"; // not impl
+
+
+    public static final String[] EXPOSE_HEADERS =
+            new String[]{
+                    "Content-Encoding",
+                    "Content-Location",
+                    CommonStr.HEADER_RANGE_KEY,
+                    "Content-Type",
+                    "Date",
+                    "Location", "Server", "Transfer-Encoding", "Range-Unit"};
 
 }

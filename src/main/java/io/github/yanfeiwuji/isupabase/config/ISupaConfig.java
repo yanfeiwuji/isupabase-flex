@@ -10,6 +10,7 @@ import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 
+import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
@@ -19,6 +20,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
@@ -54,4 +56,15 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
         };
     }
 
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        //  WebMvcConfigurer.super.addCorsMappings(registry);
+        registry.addMapping("/**")
+                .allowCredentials(true)
+                .maxAge(3600)
+                //   .allowedHeaders(CommonStr.ALLOW_HEADERS)
+                .exposedHeaders(CommonStr.EXPOSE_HEADERS)
+                .allowedMethods("*")
+                .allowedOriginPatterns("*");
+    }
 }

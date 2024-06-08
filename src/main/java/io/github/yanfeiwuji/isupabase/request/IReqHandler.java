@@ -10,23 +10,13 @@ import org.springframework.web.servlet.function.ServerResponse;
 public interface IReqHandler {
 
     String PATH_PARAM = "tableName";
-    String ROUTE_PATH = String.format("{%s}", PATH_PARAM);
-    String REQ_TABLE_INFO_KEY = "reqTableInfo";
-    String REQ_API_REQ_KEY = "reqApiReq";
+    String ROUTE_PATH = String.format("/rest/v1/{%s}", PATH_PARAM);
 
-    String REQ_TABLE_MAPPER_KEY = "reqTableMapper";
+    String REQ_API_REQ_KEY = "reqApiReq";
 
     ServerRequest before(ServerRequest request);
 
-    ServerResponse get(ServerRequest request) throws Exception;
-
-    ServerResponse post(ServerRequest request) throws Exception;
-
-    ServerResponse put(ServerRequest request) throws Exception;
-
-    ServerResponse patch(ServerRequest request) throws Exception;
-
-    ServerResponse delete(ServerRequest request) throws Exception;
+    ServerResponse handler(ServerRequest request) throws Exception;
 
     ServerResponse after(ServerRequest request, ServerResponse response);
 
@@ -37,12 +27,11 @@ public interface IReqHandler {
                 .route()
                 .path(ROUTE_PATH,
                         builder -> builder.before(this::before)
-
-                                .GET(this::get)
-                                .POST(this::post)
-                                .PUT(this::put)
-                                .PATCH(this::patch)
-                                .DELETE(this::delete)
+                                .GET(this::handler)
+                                .POST(this::handler)
+                                // .PUT(this::put)
+                                .PATCH(this::handler)
+                                .DELETE(this::handler)
                                 .after(this::after)
                 )
                 .onError(PgrstEx.class, this::onError)

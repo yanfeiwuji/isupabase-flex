@@ -8,7 +8,6 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.util.StringUtil;
-import io.github.yanfeiwuji.isupabase.config.TrackExecutionTime;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
@@ -117,7 +116,6 @@ public class QueryExecInvoke {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    @TrackExecutionTime
     private void modifyKeys(QueryExec queryExec, List<Map> targetObjectList) {
 
         final Map<String, String> pickKeys = Optional.ofNullable(queryExec.getPickKeyMap()).orElse(Map.of());
