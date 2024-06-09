@@ -35,6 +35,7 @@ dependencies {
     // implementation("com.google.guava:guava:$guavaVersion")
 
     implementation("org.projectlombok:lombok")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     runtimeOnly("org.postgresql:postgresql")
 

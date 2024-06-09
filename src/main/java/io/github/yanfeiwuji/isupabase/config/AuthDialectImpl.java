@@ -23,7 +23,7 @@ public class AuthDialectImpl extends CommonsDialectImpl {
 
     @Override
     public void prepareAuth(QueryWrapper queryWrapper, OperateType operateType) {
-        log.info("qw");
+
         List<QueryTable> queryTables = CPI.getQueryTables(queryWrapper);
         if (queryTables == null || queryTables.isEmpty()) {
             return;
@@ -31,7 +31,7 @@ public class AuthDialectImpl extends CommonsDialectImpl {
         final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(queryWrapper);
         final boolean b = CPI.containsTable(whereQueryCondition, "sys_user_ext");
 
-        System.out.println(b + "<has> sys_user_ext"+"<"+operateType+">");
+
         for (QueryTable queryTable : queryTables) {
 
         }

@@ -1,15 +1,38 @@
 package io.github.yanfeiwuji.isupabase.request.ex;
 
 import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.text.StrPool;
+import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.table.TableInfo;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Path;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @UtilityClass
 public class PgrstExFactory {
+
+    public Supplier<PgrstEx> exInsertValidatorError(Set<ConstraintViolation<Object>> errors, String tableName) {
+
+        final List<ViolationInfo> violationInfos = errors.stream()
+                .map(ViolationInfo::of)
+                .toList();
+
+        return ExCodeStatus.DB_NOT_NULL_VIOLATION.toSupplierEx(
+                new ExInfo("Failing row contains",
+                        null,
+                        "new row for relation  \"%s  \" violates check messages"
+                                .formatted(tableName)
+
+                ), violationInfos
+        );
+    }
 
 
     public Supplier<PgrstEx> exCasingError(String exMsg) {
@@ -181,4 +204,6 @@ public class PgrstExFactory {
                         null,
                         "relation \"%s\" does not exist".formatted(tableName)));
     }
+
+
 }

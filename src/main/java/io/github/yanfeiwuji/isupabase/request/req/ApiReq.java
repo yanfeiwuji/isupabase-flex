@@ -8,7 +8,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
-import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.BaseMapper;
@@ -20,16 +19,21 @@ import com.mybatisflex.core.update.UpdateChain;
 import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.select.*;
-import io.github.yanfeiwuji.isupabase.request.utils.CacheJavaType;
-import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
-import io.github.yanfeiwuji.isupabase.request.utils.FlexUtils;
-import io.github.yanfeiwuji.isupabase.request.utils.PreferUtils;
+import io.github.yanfeiwuji.isupabase.request.utils.*;
+import io.github.yanfeiwuji.isupabase.request.validate.Valid;
 import jakarta.servlet.ServletException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.groups.Default;
 import lombok.Data;
+import org.hibernate.validator.internal.engine.ValidatorImpl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.MultiValueMap;
+import org.springframework.validation.Errors;
+import org.springframework.validation.Validator;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -54,7 +58,9 @@ import org.springframework.web.servlet.function.ServerResponse;
  */
 @Data
 public class ApiReq {
+
     private static ObjectMapper mapper;
+    private static SpringValidatorAdapter validator;
 
     private QueryExec queryExec;
     private QueryExecLookup queryExecLookup;
@@ -74,8 +80,9 @@ public class ApiReq {
     // 受影响的行数
     private Integer rowNum = 0;
 
-    public static void init(ObjectMapper mapper) {
+    public static void init(ObjectMapper mapper, SpringValidatorAdapter validator) {
         ApiReq.mapper = mapper;
+        ApiReq.validator = validator;
     }
 
     public ApiReq(ServerRequest request, String tableName, BaseMapper<Object> baseMapper) {
@@ -245,7 +252,8 @@ public class ApiReq {
         try {
             final Class<?> entityClass = tableInfo.getEntityClass();
             String strBody = request.body(String.class);
-            if (JSONUtil.isTypeJSONArray(strBody)) {
+
+            if (ValueUtils.isTypeJSONArray(strBody)) {
                 JavaType listType = CacheJavaType.listJavaType(entityClass, mapper);
                 JavaType listMapJavaType = CacheJavaType.listJavaType(Map.class, mapper);
 
@@ -255,10 +263,12 @@ public class ApiReq {
                 this.body = mapper.readValue(strBody, listType);
             } else {
                 final Map map = mapper.readValue(strBody, Map.class);
-
                 Optional.ofNullable(map).map(Map::keySet).ifPresent(this::setFirstBodyKeys);
                 this.body = List.of(mapper.readValue(strBody, entityClass));
             }
+            // validator
+            validatorBody();
+
 
             if (!columns.isEmpty()) {
                 final CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, o) -> {
@@ -383,6 +393,22 @@ public class ApiReq {
 
         if (Objects.isNull(orders) || orders.isEmpty()) {
             throw PgrstExFactory.exUpdateOrDeleteUseLimitMustHasOrderUniCol().get();
+        }
+    }
+
+    private void validatorBody() {
+        if (Objects.isNull(body)) {
+            return;
+        }
+        Set<ConstraintViolation<Object>> errors = Set.of();
+        if (HttpMethod.PATCH.equals(httpMethod) || HttpMethod.PUT.equals(httpMethod)) {
+            errors = validator.validate(body, Default.class, Valid.Update.class);
+        }
+        if (HttpMethod.POST.equals(httpMethod)) {
+            errors = validator.validate(body.getFirst(), Default.class, Valid.Insert.class);
+        }
+        if (!errors.isEmpty()) {
+            throw PgrstExFactory.exInsertValidatorError(errors, queryExec.getQueryTable().getName()).get();
         }
     }
 

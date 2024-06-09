@@ -15,6 +15,7 @@ public record ExCodeStatus(String code, HttpStatus status) {
 
     public static final ExCodeStatus DB_UNDEFINED_OBJECT = new ExCodeStatus("42704", HttpStatus.BAD_REQUEST);
 
+    public static final ExCodeStatus DB_NOT_NULL_VIOLATION = new ExCodeStatus("23502", HttpStatus.BAD_REQUEST);
 
     public static final ExCodeStatus PGRST_PARSE_ERROR = new ExCodeStatus("PGRST100", HttpStatus.BAD_REQUEST);
     public static final ExCodeStatus PGRST_FUNCTION_ONLY_GET_OR_POST = new ExCodeStatus("PGRST101",
@@ -70,14 +71,22 @@ public record ExCodeStatus(String code, HttpStatus status) {
     public static final ExCodeStatus PGRST_EXT_TABLE_NO_PK = new ExCodeStatus("PGRSTY001", HttpStatus.BAD_REQUEST);
 
     public ExRes toExRes(ExInfo info) {
-        return new ExRes(code, info.details(), info.hint(), info.message());
+        return new ExRes(code, info.details(), info.hint(), info.message(), null);
+    }
+
+    public ExRes toExRes(ExInfo info, Object extInfo) {
+        return new ExRes(code, info.details(), info.hint(), info.message(), extInfo);
     }
 
     public PgrstEx toEx(ExInfo info) {
-        return new PgrstEx(this, info);
+        return new PgrstEx(this, info, null);
     }
 
     public Supplier<PgrstEx> toSupplierEx(ExInfo info) {
-        return () -> new PgrstEx(this, info);
+        return () -> new PgrstEx(this, info, null);
+    }
+
+    public Supplier<PgrstEx> toSupplierEx(ExInfo info, Object extInfo) {
+        return () -> new PgrstEx(this, info, extInfo);
     }
 }

@@ -168,4 +168,8 @@ public class ValueUtils {
         return Optional.ofNullable(CASTING_MAP.get(castKey)).map(it -> it.apply(value))
                 .orElse(value);
     }
+
+    public boolean isTypeJSONArray(String str) {
+        return !CharSequenceUtil.isBlank(str) && CharSequenceUtil.isWrap(CharSequenceUtil.trim(str), '[', ']');
+    }
 }

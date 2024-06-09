@@ -20,6 +20,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.Validator;
+import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -48,11 +50,11 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     }
 
     @Bean
-    CommandLineRunner commandLineRunner(ObjectMapper mapper) {
+    CommandLineRunner commandLineRunner(ObjectMapper mapper, SpringValidatorAdapter validatorAdapter) {
         return arg -> {
             CacheTableInfoUtils.init(mapper);
             ValueUtils.init(mapper);
-            ApiReq.init(mapper);
+            ApiReq.init(mapper, validatorAdapter);
         };
     }
 
