@@ -1,16 +1,20 @@
 package io.github.yanfeiwuji.isupabase.request;
 
+import io.github.yanfeiwuji.isupabase.constants.CommonStr;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstEx;
-import org.springframework.web.servlet.function.RouterFunction;
-import org.springframework.web.servlet.function.RouterFunctions;
-import org.springframework.web.servlet.function.ServerRequest;
-import org.springframework.web.servlet.function.ServerResponse;
+import org.springframework.web.servlet.function.*;
+
+import java.util.regex.Pattern;
+
+import static org.springframework.web.servlet.function.RequestPredicates.*;
 
 
 public interface IReqHandler {
 
     String PATH_PARAM = "tableName";
-    String ROUTE_PATH = String.format("/rest/v1/{%s}", PATH_PARAM);
+    String ROUTE_PATH = String.format("%s/{%s}", CommonStr.REST_PATH, PATH_PARAM);
+    Pattern PATH_PATTERN = Pattern.compile(CommonStr.REST_PATH + "/.*[^rpc]");
+
 
     String REQ_API_REQ_KEY = "reqApiReq";
 
@@ -22,20 +26,26 @@ public interface IReqHandler {
 
     ServerResponse onError(Throwable throwable, ServerRequest request);
 
+
     default RouterFunction<ServerResponse> routerFunction() {
+
         return RouterFunctions
                 .route()
-                .path(ROUTE_PATH,
-                        builder -> builder.before(this::before)
-                                .GET(this::handler)
-                                .POST(this::handler)
-                                // .PUT(this::put)
-                                .PATCH(this::handler)
-                                .DELETE(this::handler)
-                                .after(this::after)
-                )
+                .before(this::before)
+                .route(isValidPath().and(GET(ROUTE_PATH)), this::handler)
+                .route(isValidPath().and(POST(ROUTE_PATH)), this::handler)
+                .route(isValidPath().and(PATCH(ROUTE_PATH)), this::handler)
+                .route(isValidPath().and(DELETE(ROUTE_PATH)), this::handler)
+                .after(this::after)
                 .onError(PgrstEx.class, this::onError)
                 .build();
 
+    }
+
+    private RequestPredicate isValidPath() {
+        return request -> {
+            String path = request.uri().getPath();
+            return PATH_PATTERN.matcher(path).find();
+        };
     }
 }

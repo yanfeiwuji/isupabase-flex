@@ -65,7 +65,7 @@ public class QueryExecFactory {
             return queryExec;
         }
 
-        selects.parallelStream().forEach(selectItem -> MTokens.SELECT_WITH_SUB.keyValue(selectItem)
+        selects.forEach(selectItem -> MTokens.SELECT_WITH_SUB.keyValue(selectItem)
                 .ifPresentOrElse(
                         it -> selectSub(queryExec, tableInfo, selectItem, it, indexed, needPre),
                         () -> selectColumn(queryExec, tableInfo, selectItem)));

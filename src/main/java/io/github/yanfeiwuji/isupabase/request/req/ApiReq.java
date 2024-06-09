@@ -26,6 +26,8 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.groups.Default;
 import lombok.Data;
 import org.hibernate.validator.internal.engine.ValidatorImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -59,6 +61,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 @Data
 public class ApiReq {
 
+    private static final Logger log = LoggerFactory.getLogger(ApiReq.class);
     private static ObjectMapper mapper;
     private static SpringValidatorAdapter validator;
 
@@ -79,6 +82,7 @@ public class ApiReq {
     private Object responseBody;
     // 受影响的行数
     private Integer rowNum = 0;
+    private HttpStatus httpStatus = HttpStatus.OK;
 
     public static void init(ObjectMapper mapper, SpringValidatorAdapter validator) {
         ApiReq.mapper = mapper;
@@ -86,6 +90,7 @@ public class ApiReq {
     }
 
     public ApiReq(ServerRequest request, String tableName, BaseMapper<Object> baseMapper) {
+
         MultiValueMap<String, String> params = request.params();
         TableInfo tableInfo = CacheTableInfoUtils.nNRealTableInfo(tableName);
         this.queryExecLookup = QueryExecFactory.of(params, tableInfo);
@@ -141,6 +146,7 @@ public class ApiReq {
                 return true;
             });
         }
+        this.httpStatus = HttpStatus.CREATED;
         rowNum = body.size();
     }
 
@@ -297,21 +303,24 @@ public class ApiReq {
             }
         }
         returnInfo();
-        HttpStatus httpStatus = HttpStatus.OK;
-        if (Objects.nonNull(queryExec.getLimit()) || Objects.nonNull(queryExec.getOffset())
-        ) {
-            if (HttpMethod.GET.equals(httpMethod)) {
 
+        if (prefers.containsKey(CommonStr.PREFER_COUNT_EXACT)) {
+            if (HttpMethod.GET.equals(httpMethod)) {
                 httpStatus = HttpStatus.PARTIAL_CONTENT;
             }
         }
+
         if (Objects.nonNull(responseBody)) {
             return ServerResponse.status(httpStatus)
                     .headers(this::addHeader)
                     .body(responseBody);
         } else {
+
+            if (!httpMethod.equals(HttpMethod.POST) || !httpStatus.equals(HttpStatus.CREATED)) {
+                httpStatus = HttpStatus.NO_CONTENT;
+            }
             return ServerResponse
-                    .status(HttpStatus.NO_CONTENT)
+                    .status(httpStatus)
                     .headers(this::addHeader).build();
         }
 

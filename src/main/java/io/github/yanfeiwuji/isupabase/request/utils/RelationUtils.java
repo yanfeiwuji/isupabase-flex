@@ -112,8 +112,8 @@ public class RelationUtils {
 
     @SuppressWarnings("rawtypes")
     public void join(AbstractRelation<?> relation,
-                     List<Map> selfEntities,
-                     List<Map> targetObjectList,
+                     List<? extends Map> selfEntities,
+                     List<? extends Map> targetObjectList,
                      List<Row> mappingRows,
                      boolean spread) {
 
@@ -125,7 +125,7 @@ public class RelationUtils {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void joinOne(AbstractRelation<?> relation, List<Map> selfEntities, List<Map> targetObjectList,
+    private void joinOne(AbstractRelation<?> relation, List<? extends Map> selfEntities, List<? extends Map> targetObjectList,
                          List<Row> mappingRows, boolean spread) {
         final String selfFieldColumn = selfFieldColumn(relation);
         final String joinSelfColumn = relation.getJoinSelfColumn();
@@ -176,7 +176,7 @@ public class RelationUtils {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void joinMany(AbstractRelation<?> relation, List<Map> selfEntities, List<Map> targetObjectList,
+    private void joinMany(AbstractRelation<?> relation, List<? extends Map> selfEntities, List<? extends Map> targetObjectList,
                           List<Row> mappingRows) {
 
         final String selfFieldColumn = selfFieldColumn(relation);

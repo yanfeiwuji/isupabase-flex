@@ -12,6 +12,7 @@ import lombok.experimental.UtilityClass;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -23,6 +24,7 @@ public class PgrstExFactory {
         final List<ViolationInfo> violationInfos = errors.stream()
                 .map(ViolationInfo::of)
                 .toList();
+
 
         return ExCodeStatus.DB_NOT_NULL_VIOLATION.toSupplierEx(
                 new ExInfo("Failing row contains",

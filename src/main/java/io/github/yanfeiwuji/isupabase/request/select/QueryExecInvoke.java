@@ -32,11 +32,13 @@ public class QueryExecInvoke {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private List<Map> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
-        List<Map> targetObjectList = preList;
+    private List<? extends Map> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
+        List<? extends Map> targetObjectList = preList;
         if (Objects.isNull(queryExec.getRelation())) {
             QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
-            targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
+            targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class)
+                    .stream().map(it -> new TreeMap<String, Object>(it)).toList();
+
         } else {
             AbstractRelation<?> relation = queryExec.getRelation();
             choiceDs(relation);
@@ -47,13 +49,13 @@ public class QueryExecInvoke {
             if (targetValues.targetValues().isEmpty()) {
                 RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
                 return preList;
-            }else {
+            } else {
                 QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
                 queryExec.handler(queryWrapper);
-                targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class);
+                targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class)
+                        .stream().map(it -> new TreeMap<String, Object>(it)).toList();
                 RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
             }
-
 
         }
 
@@ -116,7 +118,7 @@ public class QueryExecInvoke {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void modifyKeys(QueryExec queryExec, List<Map> targetObjectList) {
+    private void modifyKeys(QueryExec queryExec, List<? extends Map> targetObjectList) {
 
         final Map<String, String> pickKeys = Optional.ofNullable(queryExec.getPickKeyMap()).orElse(Map.of());
         final Map<String, String> castMap = Optional.ofNullable(queryExec.getCastMap()).orElse(Map.of());
@@ -150,5 +152,6 @@ public class QueryExecInvoke {
             });
         });
     }
+
 
 }

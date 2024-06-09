@@ -83,7 +83,8 @@ public class ValueUtils {
         final ObjectNode objectNode = mapper.createObjectNode();
         String realParam = CacheTableInfoUtils.nNRealParam(queryColumn.getName(), tableInfo);
         String propertyName = CacheTableInfoUtils.nNRealProperty(realParam, tableInfo);
-        final ObjectNode put = objectNode.put(propertyName, value);
+
+        final ObjectNode put = objectNode.put(realParam, value);
         try {
             Object bean = mapper.treeToValue(put, tableInfo.getEntityClass());
             return BeanUtil.getProperty(bean, propertyName);

@@ -173,7 +173,7 @@ public class QueryExec {
             this.all = true;
             this.addPickKeys(CacheTableInfoUtils.allColumns(queryTable));
         } else {
-            // pick Key
+
             queryColumns.add(queryColumn);
             this.addPickKey(queryColumn.getName());
         }

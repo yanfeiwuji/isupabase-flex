@@ -103,6 +103,14 @@ public final class CommonStr {
     // missing
     public static final String PREFER_MISSION_DEFAULT = "missing=default"; // not impl
 
+    // api version
+    public static final String API_VERSION = "v1";
+
+    // restPath
+    public static final String REST_PATH = "rest/v1";
+    // restRpc
+    public static final String REST_RPC_PATH = "rest/v1/rpc";
+
 
     public static final String[] EXPOSE_HEADERS =
             new String[]{

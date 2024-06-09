@@ -19,7 +19,7 @@ repositories {
     mavenCentral()
 }
 
-var mybatisFlexVersion = "1.9.1"
+var mybatisFlexVersion = "1.9.2"
 var hutoolVersion = "5.8.26"
 var guavaVersion = "33.2.0-jre"
 
