@@ -16,16 +16,14 @@ import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import io.github.yanfeiwuji.isupabase.entity.SysUser;
 import io.github.yanfeiwuji.isupabase.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -57,7 +55,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final SessionMapper sessionMapper;
     private final RefreshTokenMapper refreshTokenMapper;
-    private final SysUserMapper sysUserMapper;
+
+
+    @Value("${isupabase.jwt-exp}")
+    private Long jwtExp;
 
 
     public TokenInfo<User> passwordLogin(String username, String password) {
@@ -81,14 +82,14 @@ public class AuthService {
         refreshToken.setSessionId(session.getId());
         refreshTokenMapper.insert(refreshToken);
 
-        return UserToJwtClaimsSet(principal, session, refreshToken);
+        return userToJwtClaimsSet(principal, session, refreshToken);
     }
 
 
     public User singUpByEmail(SignUpParam signUpParam) {
 
-        final User User = userMapper.selectOneByCondition(USER.EMAIL.eq(signUpParam.getEmail()));
-        if (Objects.isNull(User)) {
+        final User user = userMapper.selectOneByCondition(USER.EMAIL.eq(signUpParam.getEmail()));
+        if (Objects.isNull(user)) {
             // reg
             final User newUser = signUpParam.toUser();
             newUser.setEncryptedPassword(passwordEncoder.encode(signUpParam.getPassword()));
@@ -109,14 +110,13 @@ public class AuthService {
     }
 
 
-    private TokenInfo<User> UserToJwtClaimsSet(User user, Session session, RefreshToken refreshToken) {
+    private TokenInfo<User> userToJwtClaimsSet(User user, Session session, RefreshToken refreshToken) {
         Objects.requireNonNull(user);
         Objects.requireNonNull(session);
         Objects.requireNonNull(refreshToken);
-
         final JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
                 .audience(List.of(AuthStrPool.AUTHENTICATED_AUD))
-                .expiresAt(Instant.now().plusSeconds(3600))
+                .expiresAt(Instant.now().plusSeconds(jwtExp))
                 .issuedAt(Instant.now())
                 .issuer("https://github.com")
                 .subject(user.getId().toString())
@@ -129,13 +129,14 @@ public class AuthService {
                 .claim("amr", List.of(Map.of("method", "password")))
                 .claim("session_id", session.getId())
                 .claim("is_anonymous", user.isAnonymous())
+
                 .build();
         final Jwt encode = jwtEncoder.encode(JwtEncoderParameters.from(jwtClaimsSet));
         final String tokenValue = encode.getTokenValue();
         return TokenInfo.<User>builder().accessToken(tokenValue)
                 .refreshToken(refreshToken.getToken())
                 .user(user)
-                .expiresIn(3600L)
+                .expiresIn(jwtExp)
                 .expiresAt(Objects.requireNonNull(encode.getExpiresAt()).getEpochSecond())
                 .tokenType("barer").build();
 
@@ -152,7 +153,7 @@ public class AuthService {
 
     public void logoutLocal() {
         final Optional<Long> sessionId = AuthUtil.sessionId();
-        System.out.println(sessionId);
+
         if (sessionId.isEmpty()) {
             return;
         }
@@ -160,4 +161,6 @@ public class AuthService {
         sessionMapper.deleteById(sessionId.get());
         refreshTokenMapper.deleteByCondition(REFRESH_TOKEN.SESSION_ID.eq(sessionId.get()));
     }
+
+
 }

@@ -45,6 +45,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 
+import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.*;
@@ -130,6 +131,7 @@ public class SecurityConfig {
                     Builder((RSAPublicKey) publicKey)
                     .privateKey((RSAPrivateKey) privateKey)
                     .keyID("yanfeiwuji")
+
                     .build();
             JWKSet jwkSet = new JWKSet(rsaKey);
             return new ImmutableJWKSet<>(jwkSet);
@@ -195,4 +197,7 @@ public class SecurityConfig {
     }
 
 
+    public static void main(String[] args) {
+
+    }
 }

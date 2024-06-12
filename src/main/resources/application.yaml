@@ -19,7 +19,9 @@ spring:
 mybatis-flex:
   configuration:
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
-
+    default-fetch-size: 1000
+  global-config:
+    default-page-size:
 # must re config this
 isupabase:
   auth-private-key: |
@@ -30,3 +32,4 @@ isupabase:
     -----BEGIN PUBLIC KEY-----
     MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApe4ezQydGOmzZtDuDeENOKNpgO6e3N1ICF9/zWcqw9RTf/ZO/t44covZOjOmEk+/hQUifEGB844CDJ+stidI9+D0AXQz5aTkhgDDB4BO29KUYhlmIq4S0gfY9JOG+mohC0uROHtiZmJAxmSuawkGJivUECsnJINmvGmCO0/18wzbA0abdJ/lscxfALUOR0cZ02mMU60lzpd6N0IAzJsOrI7AWSx5q8JcIOZUWMDHostGz3e3VEE0tO0P4CktuP0mcRj0cxUknLmzIkXuNChFUhjC7TmgZyscCfT2iNSoecIBTAkQEh/EpUgi9j+LGtIstsy+qYEGxO65VrpcuMm6uQIDAQAB
     -----END PUBLIC KEY-----
+  jwt-exp: 3600
