@@ -2,6 +2,7 @@ package io.github.yanfeiwuji.isupabase.entity;
 
 import com.mybatisflex.annotation.*;
 import com.mybatisflex.core.keygen.KeyGenerators;
+import io.github.yanfeiwuji.isupabase.config.UpdateI;
 import io.github.yanfeiwuji.isupabase.request.validate.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,7 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 @Data
-@Table("sys_user")
+@Table(value = "sys_user")
 public class SysUser {
 
     @Id(keyType = KeyType.Generator, value = KeyGenerators.flexId)

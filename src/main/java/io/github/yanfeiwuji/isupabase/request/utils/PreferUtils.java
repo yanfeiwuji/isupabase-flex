@@ -2,7 +2,7 @@ package io.github.yanfeiwuji.isupabase.request.utils;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import lombok.experimental.UtilityClass;
 
@@ -19,30 +19,30 @@ import java.util.stream.Stream;
 @UtilityClass
 public class PreferUtils {
     private static final Map<String, Object> PREFER_MAP = Stream.of(
-                    CommonStr.PREFER_HANDLING_STRICT,
-                    CommonStr.PREFER_HANDLING_LENIENT,
+                    PgrstStrPool.PREFER_HANDLING_STRICT,
+                    PgrstStrPool.PREFER_HANDLING_LENIENT,
 
-                    CommonStr.PREFER_TIMEZONE,
+                    PgrstStrPool.PREFER_TIMEZONE,
 
-                    CommonStr.PREFER_COUNT_EXACT,
-                    CommonStr.PREFER_COUNT_PLANNED,
-                    CommonStr.PREFER_COUNT_ESTIMATED,
+                    PgrstStrPool.PREFER_COUNT_EXACT,
+                    PgrstStrPool.PREFER_COUNT_PLANNED,
+                    PgrstStrPool.PREFER_COUNT_ESTIMATED,
 
-                    CommonStr.PREFER_RETURN_MINIMAL,
-                    CommonStr.PREFER_RETURN_HEADERS_ONLY,
-                    CommonStr.PREFER_RETURN_REPRESENTATION,
+                    PgrstStrPool.PREFER_RETURN_MINIMAL,
+                    PgrstStrPool.PREFER_RETURN_HEADERS_ONLY,
+                    PgrstStrPool.PREFER_RETURN_REPRESENTATION,
 
-                    CommonStr.PREFER_RESOLUTION_MERGE_DUPLICATES,
-                    CommonStr.PREFER_RESOLUTION_IGNORE_DUPLICATES,
+                    PgrstStrPool.PREFER_RESOLUTION_MERGE_DUPLICATES,
+                    PgrstStrPool.PREFER_RESOLUTION_IGNORE_DUPLICATES,
 
-                    CommonStr.PREFER_MISSION_DEFAULT)
+                    PgrstStrPool.PREFER_MISSION_DEFAULT)
             .collect(Collectors.toMap(it -> it, it -> it));
 
     public Map<String, String> pickPrefer(String preferHeader) {
         if (Objects.isNull(preferHeader)) {
             return Map.of();
         }
-        boolean strict = preferHeader.contains(CommonStr.PREFER_HANDLING_STRICT);
+        boolean strict = preferHeader.contains(PgrstStrPool.PREFER_HANDLING_STRICT);
 
         final List<String> prefers = CharSequenceUtil.splitTrim(preferHeader, StrPool.COMMA);
 

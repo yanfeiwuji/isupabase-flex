@@ -5,7 +5,7 @@ import cn.hutool.core.text.CharSequenceUtil;
 import com.mybatisflex.core.constant.SqlOperator;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.table.TableInfo;
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
@@ -26,14 +26,14 @@ import java.util.stream.Stream;
 public class QueryConditionFactory {
 
     private static final Map<String, Function<List<QueryCondition>, QueryCondition>> LOGIC_OP_MAP = Map.of(
-            CommonStr.AND,
+            PgrstStrPool.AND,
             queryConditions -> queryConditions.stream().reduce(QueryCondition.createEmpty(), QueryCondition::and),
-            CommonStr.NOT_AND,
+            PgrstStrPool.NOT_AND,
             queryConditions -> QueryMethods
                     .not(queryConditions.stream().reduce(QueryCondition.createEmpty(), QueryCondition::and)),
-            CommonStr.OR,
+            PgrstStrPool.OR,
             queryConditions -> queryConditions.stream().reduce(QueryCondition.createEmpty(), QueryCondition::or),
-            CommonStr.NOT_OR,
+            PgrstStrPool.NOT_OR,
             queryConditions -> QueryMethods
                     .not(queryConditions.stream().reduce(QueryCondition.createEmpty(), QueryCondition::or)));
 
@@ -78,17 +78,17 @@ public class QueryConditionFactory {
         // not.op(op).value
         QueryCondition queryCondition = MTokens.OP_VALUE.keyValue(value)
                 .map(kv -> {
-                    if (kv.key().endsWith(CommonStr.MODIFIER_ALL)) {
-                        String op = CharSequenceUtil.removeSuffix(kv.key(), CommonStr.MODIFIER_ALL);
-                        return handler(queryColumn, kv.value(), op, CommonStr.MODIFIER_ALL);
-                    } else if (kv.key().endsWith(CommonStr.MODIFIER_ANY)) {
-                        String op = CharSequenceUtil.removeSuffix(kv.key(), CommonStr.MODIFIER_ANY);
-                        return handler(queryColumn, kv.value(), op, CommonStr.MODIFIER_ANY);
+                    if (kv.key().endsWith(PgrstStrPool.MODIFIER_ALL)) {
+                        String op = CharSequenceUtil.removeSuffix(kv.key(), PgrstStrPool.MODIFIER_ALL);
+                        return handler(queryColumn, kv.value(), op, PgrstStrPool.MODIFIER_ALL);
+                    } else if (kv.key().endsWith(PgrstStrPool.MODIFIER_ANY)) {
+                        String op = CharSequenceUtil.removeSuffix(kv.key(), PgrstStrPool.MODIFIER_ANY);
+                        return handler(queryColumn, kv.value(), op, PgrstStrPool.MODIFIER_ANY);
                     } else {
                         return handler(queryColumn, kv.value(), kv.key(), null);
                     }
                 }).orElseThrow(PgrstExFactory.exParseFilterError(value));
-        return value.startsWith(CommonStr.NOT_DOT) ? QueryMethods.not(queryCondition) : queryCondition;
+        return value.startsWith(PgrstStrPool.NOT_DOT) ? QueryMethods.not(queryCondition) : queryCondition;
     }
 
     public QueryCondition ofNoLogic(TableInfo tableInfo, String key, String value) {
@@ -128,11 +128,11 @@ public class QueryConditionFactory {
             if (!ALLOW_MODIFIERS.containsKey(op)) {
                 throw PgrstExFactory.exParseFilterError(op).get();
             } else {
-                if (CharSequenceUtil.equals(CommonStr.MODIFIER_ALL, modifier)) {
+                if (CharSequenceUtil.equals(PgrstStrPool.MODIFIER_ALL, modifier)) {
                     return TokenUtils.splitByCommaQuoted(TokenUtils.removeDelim(value))
                             .stream().map(v -> biFunction.apply(queryColumn, v))
                             .reduce(QueryCondition.createEmpty(), QueryCondition::and);
-                } else if (CharSequenceUtil.equals(CommonStr.MODIFIER_ANY, modifier)) {
+                } else if (CharSequenceUtil.equals(PgrstStrPool.MODIFIER_ANY, modifier)) {
                     return TokenUtils.splitByCommaQuoted(TokenUtils.removeDelim(value))
                             .stream().map(v -> biFunction.apply(queryColumn, v))
                             .reduce(QueryCondition.createEmpty(), QueryCondition::or);
@@ -183,69 +183,69 @@ public class QueryConditionFactory {
     }
 
     private static QueryCondition is(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.IS_SQL_OP,
+        return QueryCondition.create(queryColumn, PgrstStrPool.IS_SQL_OP,
                 new RawQueryColumn(ValueUtils.isValue(queryColumn, value)));
     }
 
     private QueryCondition match(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.MATCH_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.MATCH_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private QueryCondition adj(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.ADJ_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.ADJ_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition nxl(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.NXL_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.NXL_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition nxr(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.NXR_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.NXR_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition sr(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.SR_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.SR_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition sl(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.SL_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.SL_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition ov(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.OV_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.OV_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition cd(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.CD_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.CD_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition cs(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.CS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.CS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition wfts(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.WFTS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.WFTS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition phfts(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.PHFTS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.PHFTS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition plfts(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.PLFTS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.PLFTS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition fts(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.FTS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.FTS_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition isdistinct(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.ISDISTINCT_SQL_OP,
+        return QueryCondition.create(queryColumn, PgrstStrPool.ISDISTINCT_SQL_OP,
                 ValueUtils.singleValue(queryColumn, value));
     }
 
     private static QueryCondition imatch(QueryColumn queryColumn, String value) {
-        return QueryCondition.create(queryColumn, CommonStr.IMATCH_SQL_OP, ValueUtils.singleValue(queryColumn, value));
+        return QueryCondition.create(queryColumn, PgrstStrPool.IMATCH_SQL_OP, ValueUtils.singleValue(queryColumn, value));
     }
 
 }

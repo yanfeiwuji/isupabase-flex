@@ -10,7 +10,7 @@ import com.mybatisflex.core.table.TableInfo;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
 import com.mybatisflex.core.table.TableInfoFactory;
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.token.KeyValue;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
@@ -26,8 +26,8 @@ public class QueryExecFactory {
     public QueryExecLookup of(MultiValueMap<String, String> params, TableInfo tableInfo) {
 
         String selectValue = Optional
-                .ofNullable(params.getFirst(CommonStr.SELECT))
-                .orElse(CommonStr.STAR);
+                .ofNullable(params.getFirst(PgrstStrPool.SELECT))
+                .orElse(PgrstStrPool.STAR);
         Map<String, QueryExec> lookup = new HashMap<>();
 
         QueryExec queryExec = QueryExecFactory.of(new QueryExecStuff(selectValue, tableInfo), lookup,
@@ -90,8 +90,8 @@ public class QueryExecFactory {
     }
 
     private QueryExecStuff queryExecStuff(KeyValue keyValue, TableInfo tableInfo) {
-        boolean inner = keyValue.key().endsWith(CommonStr.SELECT_INNER_MARK);
-        String key = CharSequenceUtil.replace(keyValue.key(), CommonStr.SELECT_INNER_MARK, CharSequenceUtil.EMPTY);
+        boolean inner = keyValue.key().endsWith(PgrstStrPool.SELECT_INNER_MARK);
+        String key = CharSequenceUtil.replace(keyValue.key(), PgrstStrPool.SELECT_INNER_MARK, CharSequenceUtil.EMPTY);
         AbstractRelation<?> relation = CacheTableInfoUtils.nNRealRelation(key, tableInfo);
         TableInfo innerTableInfo = TableInfoFactory.ofEntityClass(relation.getTargetEntityClass());
         return new QueryExecStuff(keyValue.value(), innerTableInfo, inner, relation);
@@ -103,7 +103,7 @@ public class QueryExecFactory {
     }
 
     private void selectColumn(QueryExec queryExec, TableInfo tableInfo, String selectItem) {
-        if (CommonStr.STAR.equals(selectItem)) {
+        if (PgrstStrPool.STAR.equals(selectItem)) {
             queryExec.addQueryColumn(CacheTableInfoUtils.nNQueryAllColumns(tableInfo));
         } else {
             final String item = MTokens.SELECT_ITEM.first(selectItem).orElse(CharSequenceUtil.EMPTY);
@@ -136,7 +136,7 @@ public class QueryExecFactory {
     }
 
     private void handlerSubSpread(String selectItem, QueryExec rootQueryExec, QueryExec subQueryExec) {
-        final boolean spread = selectItem.startsWith(CommonStr.SPREAD_MARK);
+        final boolean spread = selectItem.startsWith(PgrstStrPool.SPREAD_MARK);
         if (spread) {
             final AbstractRelation<?> relation = subQueryExec.getRelation();
             if (relation instanceof ToManyRelation<?>) {

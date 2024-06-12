@@ -8,8 +8,6 @@ import java.util.stream.Collectors;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.StrPool;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.NamingBase;
@@ -29,7 +27,7 @@ import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 
 import com.mybatisflex.core.table.TableInfoFactory;
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.*;
 import lombok.experimental.UtilityClass;
 
@@ -302,7 +300,7 @@ public class CacheTableInfoUtils {
     public QueryColumn nNQueryAllColumns(TableInfo tableInfo) {
         return CACHE_CLAZZ_QUERY_ALL_COLUMNS.computeIfAbsent(
                 tableInfo.getEntityClass(),
-                it -> new QueryColumn(nNQueryTable(tableInfo), CommonStr.STAR));
+                it -> new QueryColumn(nNQueryTable(tableInfo), PgrstStrPool.STAR));
     }
 
     public String realDbType(String paramKey, TableInfo tableInfo) {

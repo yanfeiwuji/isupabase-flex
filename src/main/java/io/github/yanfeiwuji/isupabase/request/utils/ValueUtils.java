@@ -13,7 +13,7 @@ import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import lombok.experimental.UtilityClass;
 import org.slf4j.Logger;
@@ -41,13 +41,13 @@ public class ValueUtils {
         ValueUtils.mapper = mapper;
     }
 
-    private static final Map<String, String> IS_VALUE_MAP = Map.of(CommonStr.IS_VALUE_NULL, CommonStr.SQL_NULL,
-            CommonStr.IS_VALUE_UNKNOWN, CommonStr.SQL_UNKNOWN,
-            CommonStr.IS_VALUE_TRUE, CommonStr.SQL_TRUE,
-            CommonStr.IS_VALUE_FALSE, CommonStr.SQL_FALSE);
+    private static final Map<String, String> IS_VALUE_MAP = Map.of(PgrstStrPool.IS_VALUE_NULL, PgrstStrPool.SQL_NULL,
+            PgrstStrPool.IS_VALUE_UNKNOWN, PgrstStrPool.SQL_UNKNOWN,
+            PgrstStrPool.IS_VALUE_TRUE, PgrstStrPool.SQL_TRUE,
+            PgrstStrPool.IS_VALUE_FALSE, PgrstStrPool.SQL_FALSE);
 
-    private static final Map<String, String> IS_BOOLEAN_VALUE = Map.of(CommonStr.IS_VALUE_TRUE, CommonStr.SQL_TRUE,
-            CommonStr.IS_VALUE_FALSE, CommonStr.SQL_FALSE);
+    private static final Map<String, String> IS_BOOLEAN_VALUE = Map.of(PgrstStrPool.IS_VALUE_TRUE, PgrstStrPool.SQL_TRUE,
+            PgrstStrPool.IS_VALUE_FALSE, PgrstStrPool.SQL_FALSE);
 
     public String isValue(QueryColumn queryColumn, String value) {
         String sqlIsValue = IS_VALUE_MAP.get(value);
@@ -73,7 +73,7 @@ public class ValueUtils {
 
     public Object likeValue(QueryColumn queryColumn, String value) {
         Object o = ValueUtils.singleValue(queryColumn, value);
-        return CharSequenceUtil.replace(StrUtil.toString(o), CommonStr.STAR, CommonStr.PERCENT);
+        return CharSequenceUtil.replace(StrUtil.toString(o), PgrstStrPool.STAR, PgrstStrPool.PERCENT);
     }
 
     public Object singleValue(QueryColumn queryColumn, String value) {

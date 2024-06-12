@@ -2,8 +2,6 @@ package io.github.yanfeiwuji.isupabase.rpc;
 
 import io.github.yanfeiwuji.isupabase.request.anno.Rpc;
 import io.github.yanfeiwuji.isupabase.request.anno.RpcMapping;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 

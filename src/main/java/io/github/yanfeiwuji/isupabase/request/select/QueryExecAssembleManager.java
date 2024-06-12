@@ -16,7 +16,7 @@ import com.mybatisflex.core.table.TableInfo;
 
 import cn.hutool.core.util.NumberUtil;
 import io.github.yanfeiwuji.isupabase.constants.CommonLambda;
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.token.MTokens;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
@@ -26,16 +26,16 @@ import lombok.experimental.UtilityClass;
 public class QueryExecAssembleManager {
 
     private static final Map<String, BiConsumer<QueryExec, List<String>>> LIMIT_OFFSET_ORDER_MAP = Map.of(
-            CommonStr.LIMIT, QueryExecAssembleManager::assembleLimit,
-            CommonStr.OFFSET, QueryExecAssembleManager::assembleOffset,
-            CommonStr.ORDER, QueryExecAssembleManager::assembleOrder,
-            CommonStr.SELECT, CommonLambda::emptyQueryExecAssembly,
-            CommonStr.COLUMNS, CommonLambda::emptyQueryExecAssembly,
-            CommonStr.ON_CONFLICT,CommonLambda::emptyQueryExecAssembly);
+            PgrstStrPool.LIMIT, QueryExecAssembleManager::assembleLimit,
+            PgrstStrPool.OFFSET, QueryExecAssembleManager::assembleOffset,
+            PgrstStrPool.ORDER, QueryExecAssembleManager::assembleOrder,
+            PgrstStrPool.SELECT, CommonLambda::emptyQueryExecAssembly,
+            PgrstStrPool.COLUMNS, CommonLambda::emptyQueryExecAssembly,
+            PgrstStrPool.ON_CONFLICT,CommonLambda::emptyQueryExecAssembly);
 
     private static final Map<String, Boolean> EMBEDDING_IS_OP_MAP = Map.of(
-            CommonStr.IS_NULL, Boolean.FALSE,
-            CommonStr.NOT_IS_NULL, Boolean.TRUE);
+            PgrstStrPool.IS_NULL, Boolean.FALSE,
+            PgrstStrPool.NOT_IS_NULL, Boolean.TRUE);
 
     public Optional<BiConsumer<QueryExec, List<String>>> assembleLimitOffsetOrder(String key) {
         return Optional.ofNullable(LIMIT_OFFSET_ORDER_MAP.get(key));

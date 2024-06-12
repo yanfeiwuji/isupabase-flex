@@ -1,6 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request;
 
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstEx;
 import org.springframework.web.servlet.function.*;
 
@@ -12,8 +12,8 @@ import static org.springframework.web.servlet.function.RequestPredicates.*;
 public interface IReqHandler {
 
     String PATH_PARAM = "tableName";
-    String ROUTE_PATH = String.format("%s/{%s}", CommonStr.REST_PATH, PATH_PARAM);
-    Pattern PATH_PATTERN = Pattern.compile(CommonStr.REST_PATH + "/.*[^rpc]");
+    String ROUTE_PATH = String.format("%s/{%s}", PgrstStrPool.REST_PATH, PATH_PARAM);
+    Pattern PATH_PATTERN = Pattern.compile(PgrstStrPool.REST_PATH + "/.*[^rpc]");
 
 
     String REQ_API_REQ_KEY = "reqApiReq";

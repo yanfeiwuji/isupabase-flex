@@ -16,6 +16,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.function.*;
 
@@ -28,6 +29,7 @@ import java.util.List;
 @MapperScan("io.github.yanfeiwuji.isupabase.mapper")
 @EnableAspectJAutoProxy
 @RegisterReflectionForBinding({ClassPathMapperScanner.class})
+@EnableTransactionManagement
 public class IsupabaseApplication {
 
     private final SysUserMapper sysUserMapper;

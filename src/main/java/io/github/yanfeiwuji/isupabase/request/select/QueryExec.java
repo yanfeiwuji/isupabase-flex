@@ -14,7 +14,7 @@ import com.mybatisflex.core.relation.ManyToOne;
 import com.mybatisflex.core.relation.OneToOne;
 
 import com.mybatisflex.core.table.TableInfo;
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 
@@ -168,7 +168,7 @@ public class QueryExec {
         if (all) {
             return;
         }
-        if (CommonStr.STAR.equals(queryColumn.getName())) {
+        if (PgrstStrPool.STAR.equals(queryColumn.getName())) {
             queryColumns = List.of(queryColumn);
             this.all = true;
             this.addPickKeys(CacheTableInfoUtils.allColumns(queryTable));

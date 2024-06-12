@@ -1,11 +1,11 @@
 package io.github.yanfeiwuji.isupabase.constants;
 
-import java.util.List;
-
-public final class CommonStr {
 
 
-    private CommonStr() {
+public final class PgrstStrPool {
+
+
+    private PgrstStrPool() {
     }
 
     public static final String STAR = "*";
@@ -110,15 +110,20 @@ public final class CommonStr {
     public static final String REST_PATH = "rest/v1";
     // restRpc
     public static final String REST_RPC_PATH = "rest/v1/rpc";
+    // auth path
+    public static final String AUTH_RPC_PATH = "auth/v1";
 
 
     public static final String[] EXPOSE_HEADERS =
             new String[]{
                     "Content-Encoding",
                     "Content-Location",
-                    CommonStr.HEADER_RANGE_KEY,
+                    PgrstStrPool.HEADER_RANGE_KEY,
                     "Content-Type",
                     "Date",
                     "Location", "Server", "Transfer-Encoding", "Range-Unit"};
+
+
+
 
 }

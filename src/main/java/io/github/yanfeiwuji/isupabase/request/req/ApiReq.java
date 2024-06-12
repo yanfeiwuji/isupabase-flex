@@ -16,7 +16,7 @@ import com.mybatisflex.core.row.Db;
 import com.mybatisflex.core.table.TableInfo;
 
 import com.mybatisflex.core.update.UpdateChain;
-import io.github.yanfeiwuji.isupabase.constants.CommonStr;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.select.*;
 import io.github.yanfeiwuji.isupabase.request.utils.*;
@@ -25,16 +25,12 @@ import jakarta.servlet.ServletException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.groups.Default;
 import lombok.Data;
-import org.hibernate.validator.internal.engine.ValidatorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.MultiValueMap;
-import org.springframework.validation.Errors;
-import org.springframework.validation.Validator;
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -98,13 +94,13 @@ public class ApiReq {
         this.baseMapper = baseMapper;
         this.httpMethod = request.method();
 
-        this.columns = Optional.ofNullable(params.getFirst(CommonStr.COLUMNS))
+        this.columns = Optional.ofNullable(params.getFirst(PgrstStrPool.COLUMNS))
                 .map(it -> CharSequenceUtil.split(it, StrPool.COMMA))
                 .orElse(List.of())
                 .stream().collect(Collectors.toMap(it -> it, it -> it));
 
-        this.prefers = PreferUtils.pickPrefer(request.headers().firstHeader(CommonStr.PREFER_HEADER_KEY));
-        this.onConflict = params.getFirst(CommonStr.ON_CONFLICT); // not impl
+        this.prefers = PreferUtils.pickPrefer(request.headers().firstHeader(PgrstStrPool.PREFER_HEADER_KEY));
+        this.onConflict = params.getFirst(PgrstStrPool.ON_CONFLICT); // not impl
 
         if (!request.method().equals(HttpMethod.POST)) {
             // post not handler filter and order and limit
@@ -135,7 +131,7 @@ public class ApiReq {
     }
 
     public void post() {
-        if (prefers.containsKey(CommonStr.PREFER_RESOLUTION_MERGE_DUPLICATES)) {
+        if (prefers.containsKey(PgrstStrPool.PREFER_RESOLUTION_MERGE_DUPLICATES)) {
             Db.tx(() -> {
                 FlexUtils.insertOrUpdateSelective(baseMapper, body, queryExec.getTableInfo());
                 return true;
@@ -178,6 +174,7 @@ public class ApiReq {
 
         //    final QueryCondition inIdsCondition = inIdsCondition(queryExec.getTableInfo(), this.body);
         rowNum = this.body.size();
+
         final TableInfo tableInfo = queryExec.getTableInfo();
         final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
         final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
@@ -204,7 +201,7 @@ public class ApiReq {
         queryWrapper.limit(queryExec.getLimit());
         queryWrapper.offset(queryExec.getOffset());
 
-        if (prefers.containsKey(CommonStr.PREFER_RETURN_REPRESENTATION)) {
+        if (prefers.containsKey(PgrstStrPool.PREFER_RETURN_REPRESENTATION)) {
 
             // must query then delete
             final List<?> objects = baseMapper.selectListByQuery(queryWrapper);
@@ -231,12 +228,12 @@ public class ApiReq {
             // get not change
             return;
         }
-        if (prefers.containsKey(CommonStr.PREFER_RETURN_MINIMAL)) {
-            addPreferApplied(CommonStr.PREFER_RETURN_MINIMAL);
+        if (prefers.containsKey(PgrstStrPool.PREFER_RETURN_MINIMAL)) {
+            addPreferApplied(PgrstStrPool.PREFER_RETURN_MINIMAL);
             responseBody = null;
         }
-        if (prefers.containsKey(CommonStr.PREFER_RETURN_REPRESENTATION)) {
-            addPreferApplied(CommonStr.PREFER_RETURN_REPRESENTATION);
+        if (prefers.containsKey(PgrstStrPool.PREFER_RETURN_REPRESENTATION)) {
+            addPreferApplied(PgrstStrPool.PREFER_RETURN_REPRESENTATION);
             if (httpMethod.equals(HttpMethod.DELETE)) {
                 return;
             } else {
@@ -245,7 +242,7 @@ public class ApiReq {
 
             }
         }
-        addPreferApplied(CommonStr.PREFER_RETURN_MINIMAL);
+        addPreferApplied(PgrstStrPool.PREFER_RETURN_MINIMAL);
 
     }
 
@@ -304,7 +301,7 @@ public class ApiReq {
         }
         returnInfo();
 
-        if (prefers.containsKey(CommonStr.PREFER_COUNT_EXACT)) {
+        if (prefers.containsKey(PgrstStrPool.PREFER_COUNT_EXACT)) {
             if (HttpMethod.GET.equals(httpMethod)) {
                 httpStatus = HttpStatus.PARTIAL_CONTENT;
             }
@@ -327,9 +324,9 @@ public class ApiReq {
     }
 
     public void addHeader(HttpHeaders headers) {
-        String count = CommonStr.STAR;
-        if (prefers.containsKey(CommonStr.PREFER_COUNT_EXACT)) {
-            addPreferApplied(CommonStr.PREFER_COUNT_EXACT);
+        String count = PgrstStrPool.STAR;
+        if (prefers.containsKey(PgrstStrPool.PREFER_COUNT_EXACT)) {
+            addPreferApplied(PgrstStrPool.PREFER_COUNT_EXACT);
             if (httpMethod.equals(HttpMethod.GET)) {
                 count = count().toString();
             } else {
@@ -340,15 +337,15 @@ public class ApiReq {
         final Number offset = Optional.ofNullable(queryExec.getOffset()).orElse(0);
         final Number limit = Optional.ofNullable(queryExec.getLimit()).orElse(rowNum);
 
-        headers.add(CommonStr.HEADER_RANGE_KEY,
-                CommonStr.HEADER_RANGE_VALUE_FORMAT.formatted(
+        headers.add(PgrstStrPool.HEADER_RANGE_KEY,
+                PgrstStrPool.HEADER_RANGE_VALUE_FORMAT.formatted(
                         limit.intValue() - 1 >= 0 ?
-                                CommonStr.HEADER_RANGE_VALUE_RANGE_FORMAT
+                                PgrstStrPool.HEADER_RANGE_VALUE_RANGE_FORMAT
                                         .formatted(offset.intValue(), limit.intValue() - 1) :
-                                CommonStr.STAR
+                                PgrstStrPool.STAR
                         , count));
 
-        headers.add(CommonStr.HEADER_PREFERENCE_APPLIED_KEY, CharSequenceUtil.join(StrPool.COMMA, preferApplied));
+        headers.add(PgrstStrPool.HEADER_PREFERENCE_APPLIED_KEY, CharSequenceUtil.join(StrPool.COMMA, preferApplied));
         // headers.setAccessControlAllowHeaders(CommonStr.ACCESS_CONTROL_EXPOSE_HEADERS);
     }
 
