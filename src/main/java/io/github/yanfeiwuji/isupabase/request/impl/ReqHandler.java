@@ -33,7 +33,6 @@ public class ReqHandler implements IReqHandler {
         BaseMapper<Object> baseMapper = (BaseMapper<Object>) Mappers.ofEntityClass(tableInfo.getEntityClass());
         ApiReq apiReq = new ApiReq(request, tableName, baseMapper);
         request.servletRequest().setAttribute(REQ_API_REQ_KEY, apiReq);
-
         return request;
     }
 

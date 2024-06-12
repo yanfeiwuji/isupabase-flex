@@ -7,6 +7,7 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
+import io.github.yanfeiwuji.isupabase.auth.service.GoTureUserService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,9 +26,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
@@ -34,6 +40,7 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -70,32 +77,35 @@ public class SecurityConfig {
                             authorize.anyRequest().authenticated();
                         }
                 ).
-                exceptionHandling(exceptions -> exceptions.defaultAccessDeniedHandlerFor(
-                        new GoTureAccessDeniedHandler(mapper),
-                        new MediaTypeRequestMatcher(MediaType.ALL)
-                )).
                 csrf(AbstractHttpConfigurer::disable);
 
         http.oauth2ResourceServer(resourceServer -> resourceServer
                         .jwt(Customizer.withDefaults()))
-                .exceptionHandling(exceptions -> exceptions.defaultAccessDeniedHandlerFor(
-                        new GoTureAccessDeniedHandler(mapper),
-                        new MediaTypeRequestMatcher(MediaType.ALL)
-                )).csrf(AbstractHttpConfigurer::disable);
+                .exceptionHandling(exceptions ->
+                        exceptions.defaultAccessDeniedHandlerFor(
+                                        new GoTureAccessDeniedHandler(mapper),
+                                        new MediaTypeRequestMatcher(MediaType.ALL)
+                                )
+                                .defaultAuthenticationEntryPointFor(
+                                        new GoTureAuthenticationEntryPoint(mapper),
+                                        new MediaTypeRequestMatcher(MediaType.ALL)
+                                )
+                ).csrf(AbstractHttpConfigurer::disable);
 
         return http.build();
     }
 
-    @Bean
-    public UserDetailsService userDetailsService() {
-        UserDetails userDetails = User.withDefaultPasswordEncoder()
-                .username("user")
-                .password("password")
-                .roles("USER")
-                .build();
-
-        return new InMemoryUserDetailsManager(userDetails);
-    }
+//
+//    @Bean
+//    public UserDetailsService userDetailsService(GoTureUserService service) throws Exception {
+//        UserDetails userDetails = User.withDefaultPasswordEncoder()
+//                .username("user")
+//                .password("password")
+//                .roles("USER")
+//                .build();
+//
+//        return new InMemoryUserDetailsManager(userDetails);
+//    }
 
 
     @ConditionalOnMissingBean
@@ -141,10 +151,24 @@ public class SecurityConfig {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
-    @AllArgsConstructor
-    private static class GoTureAccessDeniedHandler implements AccessDeniedHandler {
 
-        private final ObjectMapper mapper;
+    @Bean
+    public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
+        return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+    }
+
+    @Bean
+    public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
+        return new NimbusJwtEncoder(jwkSource);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
+
+    private record GoTureAccessDeniedHandler(ObjectMapper mapper) implements AccessDeniedHandler {
 
         @Override
         public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
@@ -157,32 +181,18 @@ public class SecurityConfig {
         }
     }
 
-    @Bean
-    public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
-        return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+    private record GoTureAuthenticationEntryPoint(ObjectMapper mapper) implements AuthenticationEntryPoint {
+
+        @Override
+        public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            final PrintWriter out = response.getWriter();
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            out.write(mapper.writeValueAsString(AuthExRes.INVALID_GRANT));
+            out.flush();
+            out.close();
+        }
     }
 
-    @Bean
-    public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
-        return new NimbusJwtEncoder(jwkSource);
-    }
-
-
-    public static void main(String[] args) throws Exception {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
-
-        PrivateKey privateKey = keyPair.getPrivate();
-        PublicKey publicKey = keyPair.getPublic();
-
-        String privateKeyPEM = "-----BEGIN PRIVATE KEY-----\n" +
-                Base64.getEncoder().encodeToString(privateKey.getEncoded()) +
-                "\n-----END PRIVATE KEY-----";
-        String publicKeyPEM = "-----BEGIN PUBLIC KEY-----\n" +
-                Base64.getEncoder().encodeToString(publicKey.getEncoded()) +
-                "\n-----END PUBLIC KEY-----";
-
-    }
 
 }

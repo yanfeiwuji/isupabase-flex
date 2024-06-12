@@ -7,6 +7,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -40,4 +41,26 @@ public class AuthUtil {
     public boolean isAnon() {
         return role().equals(AuthStrPool.ANON_ROLE);
     }
+
+    public Optional<Long> uid() {
+        return Optional.of(SecurityContextHolder.getContext()).map(SecurityContext::getAuthentication)
+                .map(Authentication::getPrincipal)
+                .filter(Jwt.class::isInstance)
+                .map(Jwt.class::cast)
+                .map(Jwt::getSubject)
+                .map(Long::valueOf);
+    }
+
+    public Optional<Long> sessionId() {
+        return Optional.of(SecurityContextHolder.getContext()).map(SecurityContext::getAuthentication)
+                .map(Authentication::getPrincipal)
+                .filter(Jwt.class::isInstance)
+                .map(Jwt.class::cast)
+                .map(Jwt::getClaims)
+                .map(it -> it.get("session_id"))
+                .map(Objects::toString)
+                .map(Long::valueOf);
+    }
+
+
 }

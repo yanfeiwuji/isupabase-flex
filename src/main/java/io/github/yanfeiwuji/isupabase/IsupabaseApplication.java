@@ -26,7 +26,7 @@ import java.util.List;
 @RestController
 @SpringBootApplication
 @AllArgsConstructor
-@MapperScan("io.github.yanfeiwuji.isupabase.mapper")
+@MapperScan({"io.github.yanfeiwuji.isupabase.mapper","io.github.yanfeiwuji.isupabase.auth.mapper"})
 @EnableAspectJAutoProxy
 @RegisterReflectionForBinding({ClassPathMapperScanner.class})
 @EnableTransactionManagement
@@ -39,6 +39,7 @@ public class IsupabaseApplication {
     private final SysRoleUserMapper sysRoleUserMapper;
 
     public static void main(String[] args) {
+
         SpringApplication.run(IsupabaseApplication.class, args);
     }
 

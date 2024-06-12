@@ -172,7 +172,6 @@ public class ApiReq {
                 .orElse(Set.of())
                 .forEach(it -> chain.set(it, bodyMap.get(CharSequenceUtil.toCamelCase(it))));
 
-        //    final QueryCondition inIdsCondition = inIdsCondition(queryExec.getTableInfo(), this.body);
         rowNum = this.body.size();
 
         final TableInfo tableInfo = queryExec.getTableInfo();

@@ -15,4 +15,5 @@ public class ISupabaseProperties {
 
     private String authPrivateKey;
     private String authPublicKey;
+
 }

@@ -71,19 +71,25 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
             ValueUtils.init(mapper);
             ApiReq.init(mapper, validatorAdapter);
             printAnnoToken(jwtEncoder);
-            final RlsPolicy<SysUser> sysUser = new RlsPolicy<SysUser>(() -> {
-
+//            final RlsPolicy<SysUser> sysUser = new RlsPolicy<SysUser>(() -> {
+//
+//                return QueryCondition.createEmpty();
+//            }, (ls) -> {
+//                ls.forEach(it -> {
+//                    final Integer age = it.getAge();
+//                    System.out.println(age + "==");
+//                    System.out.println(it.toString());
+//                    System.out.println(it.getClass().getName());
+//                });
+//
+//            });
+            final RlsPolicy<SysUser> sysUserRlsPolicy = RlsPolicy.<SysUser>of(() -> {
+                final Optional<Long> uid = AuthUtil.uid();
+                System.out.println(uid);
+                AuthUtil.uid().ifPresent(System.out::println);
                 return QueryCondition.createEmpty();
-            }, (ls) -> {
-                ls.forEach(it -> {
-                    final Integer age = it.getAge();
-                    System.out.println(age + "==");
-                    System.out.println(it.toString());
-                    System.out.println(it.getClass().getName());
-                });
-
             });
-            AuthDialectImpl.loadRls(List.of(new RlsPolicyFor("sys_user", OperateType.UPDATE, sysUser)));
+            AuthDialectImpl.loadRls(List.of(new RlsPolicyFor("sys_user", OperateType.SELECT, sysUserRlsPolicy)));
 
         };
     }
@@ -107,7 +113,7 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
                 .expiresAt(Instant.EPOCH.plusSeconds(100L * 365 * 24 * 60 * 60))
                 .build());
         final Jwt encode = jwtEncoder.encode(parameters);
-
+        System.out.println(encode.getTokenValue());
 
     }
 }
