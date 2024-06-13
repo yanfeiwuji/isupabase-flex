@@ -1,12 +1,17 @@
 package io.github.yanfeiwuji.isupabase.auth.service.email;
 
+import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
+import lombok.Builder;
 import lombok.Data;
+
+import java.util.Objects;
 
 /**
  * @author yanfeiwuji
  * @date 2024/6/12 11:50
  */
 @Data
+@Builder
 public class MessageParam {
     private String confirmationURL;
     private String token;
@@ -16,4 +21,11 @@ public class MessageParam {
     private String newEmail;
     private Object data;
     private String redirectTo;
+
+    public void genSignUpConfirmationURL() {
+        if (Objects.nonNull(confirmationURL)) {
+            return;
+        }
+        confirmationURL = AuthStrPool.CONFIRM_SIGN_UP_URL_TEMP.formatted(siteURL, token, redirectTo);
+    }
 }

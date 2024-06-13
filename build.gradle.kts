@@ -39,6 +39,7 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
     implementation("org.springframework.boot:spring-boot-starter-mail")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
 
     runtimeOnly("org.postgresql:postgresql")
 

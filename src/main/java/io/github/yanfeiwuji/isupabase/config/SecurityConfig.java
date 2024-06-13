@@ -7,7 +7,6 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
-import io.github.yanfeiwuji.isupabase.auth.service.GoTureUserService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,10 +26,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -39,13 +34,11 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 
-import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.*;
@@ -74,7 +67,8 @@ public class SecurityConfig {
             throws Exception {
         http
                 .authorizeHttpRequests(authorize -> {
-                            authorize.requestMatchers("/auth/v1/token", "/auth/v1/authorize").authenticated();
+                            authorize.requestMatchers("auth/v1/verify").permitAll();
+                            //     authorize.requestMatchers("/auth/v1/token", "/auth/v1/authorize").authenticated();
                             authorize.anyRequest().authenticated();
                         }
                 ).
@@ -91,7 +85,8 @@ public class SecurityConfig {
                                         new GoTureAuthenticationEntryPoint(mapper),
                                         new MediaTypeRequestMatcher(MediaType.ALL)
                                 )
-                ).csrf(AbstractHttpConfigurer::disable);
+                )
+                .csrf(AbstractHttpConfigurer::disable);
 
         return http.build();
     }

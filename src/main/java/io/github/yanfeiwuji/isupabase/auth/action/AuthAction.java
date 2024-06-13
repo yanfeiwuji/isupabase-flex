@@ -6,16 +6,27 @@ import io.github.yanfeiwuji.isupabase.auth.action.param.RecoverParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.TokenParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
+import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
+import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
 import io.github.yanfeiwuji.isupabase.auth.service.AuthService;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriBuilder;
+import org.springframework.web.util.UriBuilderFactory;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 
@@ -39,11 +50,14 @@ public class AuthAction {
             case "password" -> {
                 return authService.passwordLogin(tokenParam.getEmail(), tokenParam.getPassword());
             }
+            case "refresh_token" -> {
+                return authService.refreshToken(tokenParam.getRefreshToken());
+            }
             case "client_credentials" -> {
                 return "";
             }
             default -> {
-                return "123";
+                return null;
             }
         }
     }
@@ -51,6 +65,27 @@ public class AuthAction {
     @GetMapping("/authorize")
     public Object authorize(@RequestParam("provider") String provider) {
         return provider;
+    }
+
+    @GetMapping("/verify")
+    public void verify(@RequestParam("token") String token,
+                       @RequestParam("type") String type,
+                       @RequestParam("redirect_to") String redirectTo,
+                       HttpServletResponse response) throws IOException {
+        AuthExRes authExRes;
+        switch (type) {
+            case AuthStrPool.VERIFY_TYPE -> authExRes = authService.verifySignUp(token);
+            default -> authExRes = AuthExRes.EMAIL_LINK_ERROR;
+        }
+        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(redirectTo);
+        if (Objects.nonNull(authExRes)) {
+            uriComponentsBuilder
+                    .queryParam(AuthStrPool.QUERY_PARAM_ERROR, authExRes.error())
+                    .queryParam(AuthStrPool.QUERY_PARAM_ERROR_CODE, AuthStrPool.QUERY_PARAM_ERROR_CODE_DEFAULT_VALUE)
+                    .queryParam(AuthStrPool.QUERY_PARAM_ERROR_DESCRIPTION, authExRes.errorDescription());
+        }
+        final String uriString = uriComponentsBuilder.build().toUriString();
+        response.sendRedirect(uriString);
     }
 
     @GetMapping("/user")
@@ -66,7 +101,12 @@ public class AuthAction {
     }
 
     @PostMapping("signup")
-    public Object signUp(@RequestBody SignUpParam signUpParam) {
+    public Object signUp(@RequestBody SignUpParam signUpParam,
+
+                         @RequestParam(value = "redirect_to", required = false) String redirectTo) {
+        Objects.requireNonNull(signUpParam);
+        signUpParam.valid();
+        signUpParam.setRedirectTo(redirectTo);
         if (CharSequenceUtil.isNotBlank(signUpParam.getPhone())) {
             authService.singUpByPhone("");
         } else {
@@ -74,6 +114,7 @@ public class AuthAction {
         }
         return Map.of();
     }
+
 
     @PostMapping("logout")
     public void logout(@RequestParam String scope) {
@@ -84,6 +125,5 @@ public class AuthAction {
             default -> {
             }
         }
-
     }
 }

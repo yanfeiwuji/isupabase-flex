@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.auth.service.email;
 
+import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -22,6 +23,6 @@ public record AuthMimeMessagePreparator(
         internetAddress.setPersonal(personal);
         mimeMessage.setFrom(internetAddress);
         mimeMessage.setSubject(subject);
-        mimeMessage.setText(text);
+        mimeMessage.setContent(text, AuthStrPool.EMAIL_CONTENT_TYPE);
     }
 }

@@ -1,14 +1,14 @@
 package io.github.yanfeiwuji.isupabase.auth.service.email;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
-import java.text.MessageFormat;
 
 /**
  * @author yanfeiwuji
  * @date 2024/6/12 11:35
  */
-
+@Service
 public class AuthMimeMessagePreparationFactory {
     @Value("${spring.mail.username}")
     private String fromEmail;

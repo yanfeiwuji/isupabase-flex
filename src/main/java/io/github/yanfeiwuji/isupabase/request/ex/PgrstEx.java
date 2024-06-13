@@ -8,8 +8,8 @@ import org.springframework.web.servlet.function.ServerResponse;
 @AllArgsConstructor
 @Getter
 public class PgrstEx extends RuntimeException {
-    private final transient ExCodeStatus codeStatus;
-    private final transient ExInfo info;
+    private final transient PgrstExCodeStatus codeStatus;
+    private final transient PgrstExInfo info;
     private final transient Object extInfo;
 
     public ServerResponse toResponse() {

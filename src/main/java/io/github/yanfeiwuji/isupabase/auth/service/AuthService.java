@@ -2,21 +2,27 @@ package io.github.yanfeiwuji.isupabase.auth.service;
 
 import cn.hutool.core.lang.id.NanoId;
 import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.BooleanUtil;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.*;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
-import io.github.yanfeiwuji.isupabase.auth.entity.table.RefreshTokenTableDef;
+import io.github.yanfeiwuji.isupabase.auth.event.SignUpEvent;
+import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
+import io.github.yanfeiwuji.isupabase.auth.ex.AuthExFactory;
+import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
+import io.github.yanfeiwuji.isupabase.auth.mapper.IdentityMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.RefreshTokenMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.SessionMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
 import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtil;
 import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
+import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
-import io.github.yanfeiwuji.isupabase.entity.SysUser;
-import io.github.yanfeiwuji.isupabase.mapper.SysUserMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,11 +33,10 @@ import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.time.OffsetDateTime;
+import java.util.*;
 
+import static io.github.yanfeiwuji.isupabase.auth.entity.table.IdentityTableDef.IDENTITY;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.RefreshTokenTableDef.REFRESH_TOKEN;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.SessionTableDef.SESSION;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.UserTableDef.USER;
@@ -50,15 +55,27 @@ public class AuthService {
 
     private final UserDetailsService userDetailsService;
     private final JwtEncoder jwtEncoder;
-    private final JavaMailSender mailSender;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final SessionMapper sessionMapper;
     private final RefreshTokenMapper refreshTokenMapper;
+    private final IdentityMapper identityMapper;
+    //  private  final AuthMimeMessagePreparationFactory mimeMessagePreparationFactory;
+    private final ApplicationEventPublisher publisher;
+    private final ISupabaseProperties isupabaseProperties;
 
-
-    @Value("${isupabase.jwt-exp}")
     private Long jwtExp;
+    private Long passwordMinLength;
+    private String passwordRequiredCharacters;
+    private Long emailLinkExpiredMinutes;
+
+    @PostConstruct
+    public void init() {
+        this.jwtExp = isupabaseProperties.getJwtExp();
+        this.passwordMinLength = isupabaseProperties.getPasswordMinLength();
+        this.passwordRequiredCharacters = isupabaseProperties.getPasswordRequiredCharacters();
+        this.emailLinkExpiredMinutes = isupabaseProperties.getEmailLinkExpiredMinutes();
+    }
 
 
     public TokenInfo<User> passwordLogin(String username, String password) {
@@ -68,6 +85,12 @@ public class AuthService {
         ));
         //
         final User principal = (User) authenticate.getPrincipal();
+        final OffsetDateTime emailConfirmedAt = principal.getEmailConfirmedAt();
+
+        if (Objects.isNull(emailConfirmedAt)) {
+            throw AuthExFactory.INVALID_GRANT_EMAIL_NOT_CONFIRMED;
+        }
+
         final Session session = new Session();
         session.setUserId(principal.getId());
         session.setAal(EAalLevel.ALL_1);
@@ -87,16 +110,27 @@ public class AuthService {
 
 
     public User singUpByEmail(SignUpParam signUpParam) {
-
+        validPassword(signUpParam.getPassword());
         final User user = userMapper.selectOneByCondition(USER.EMAIL.eq(signUpParam.getEmail()));
         if (Objects.isNull(user)) {
             // reg
+
             final User newUser = signUpParam.toUser();
             newUser.setEncryptedPassword(passwordEncoder.encode(signUpParam.getPassword()));
+            newUser.setConfirmationToken(NanoId.randomNanoId());
+            newUser.setConfirmationSentAt(OffsetDateTime.now());
+            publisher.publishEvent(new SignUpEvent(this, newUser, signUpParam));
             userMapper.insert(newUser);
             return newUser;
         } else {
-            return userMapper.selectOneWithRelationsByCondition(USER.EMAIL.eq(signUpParam.getEmail()));
+
+            final List<Identity> identities = identityMapper.selectListByCondition(IDENTITY.USER_ID.eq(user.getId()));
+            user.setIdentities(identities);
+            user.setConfirmationSentAt(OffsetDateTime.now());
+
+            publisher.publishEvent(new SignUpEvent(this, user, signUpParam));
+            userMapper.update(user);
+            return user;
         }
     }
 
@@ -109,6 +143,64 @@ public class AuthService {
 
     }
 
+
+    public void logoutGlobal() {
+        final Optional<Long> uid = AuthUtil.uid();
+        if (uid.isEmpty()) {
+            return;
+        }
+        sessionMapper.deleteByCondition(SESSION.USER_ID.eq(uid.get()));
+        refreshTokenMapper.deleteByCondition(REFRESH_TOKEN.USER_ID.eq(uid.get()));
+    }
+
+    public void logoutLocal() {
+        final Optional<Long> sessionId = AuthUtil.sessionId();
+
+        if (sessionId.isEmpty()) {
+            return;
+        }
+
+        sessionMapper.deleteById(sessionId.get());
+        refreshTokenMapper.deleteByCondition(REFRESH_TOKEN.SESSION_ID.eq(sessionId.get()));
+    }
+
+
+    public TokenInfo<User> refreshToken(String refreshToken) {
+        final RefreshToken token = refreshTokenMapper.selectOneByCondition(REFRESH_TOKEN.TOKEN.eq(refreshToken));
+        if (Objects.isNull(token)) {
+            throw AuthExFactory.INVALID_GRANT_REFRESH_TOKEN_NOT_FOUND;
+        }
+
+        if (BooleanUtil.isTrue(token.getRevoked())) {
+            throw AuthExFactory.INVALID_GRANT_ALREADY_USED;
+        }
+
+        final Long sessionId = token.getSessionId();
+
+        final Session session = sessionMapper.selectOneById(sessionId);
+        if (Objects.isNull(session)) {
+            refreshTokenMapper.deleteByCondition(REFRESH_TOKEN.SESSION_ID.eq(sessionId));
+            throw AuthExFactory.INVALID_GRANT_REFRESH_TOKEN_NOT_FOUND;
+        }
+
+        session.setRefreshedAt(OffsetDateTime.now());
+
+        sessionMapper.update(session);
+
+        token.setRevoked(true);
+        final RefreshToken newToken = new RefreshToken();
+        newToken.setRevoked(false);
+        newToken.setUserId(token.getUserId());
+        newToken.setParent(token.getToken());
+        newToken.setToken(NanoId.randomNanoId());
+        newToken.setSessionId(session.getId());
+        refreshTokenMapper.insert(newToken);
+
+        final Long userId = session.getUserId();
+        final User user = userMapper.selectOneById(userId);
+
+        return userToJwtClaimsSet(user, session, newToken);
+    }
 
     private TokenInfo<User> userToJwtClaimsSet(User user, Session session, RefreshToken refreshToken) {
         Objects.requireNonNull(user);
@@ -138,29 +230,50 @@ public class AuthService {
                 .user(user)
                 .expiresIn(jwtExp)
                 .expiresAt(Objects.requireNonNull(encode.getExpiresAt()).getEpochSecond())
-                .tokenType("barer").build();
-
+                .tokenType(AuthStrPool.TOKE_TYPE).build();
     }
 
-    public void logoutGlobal() {
-        final Optional<Long> uid = AuthUtil.uid();
-        if (uid.isEmpty()) {
-            return;
+    private void validPassword(String password) {
+        List<String> reason = new ArrayList<>(2);
+        if (password.length() < passwordMinLength) {
+            reason.add(AuthStrPool.WEAK_PASSWORD_LENGTH);
         }
-        sessionMapper.deleteByCondition(SESSION.USER_ID.eq(uid.get()));
-        refreshTokenMapper.deleteByCondition(REFRESH_TOKEN.USER_ID.eq(uid.get()));
-    }
-
-    public void logoutLocal() {
-        final Optional<Long> sessionId = AuthUtil.sessionId();
-
-        if (sessionId.isEmpty()) {
-            return;
+        if (!CharSequenceUtil.isEmpty(passwordRequiredCharacters)) {
+            final String[] split = passwordRequiredCharacters.split("(?<!\\\\):");
+            boolean has = Arrays.stream(split).allMatch(it -> {
+                final char[] charArray = it.toCharArray();
+                for (char c : charArray) {
+                    if (password.indexOf(c) >= 0) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            if (!has) {
+                reason.add(AuthStrPool.WEAK_PASSWORD_CHARACTERS);
+            }
+        }
+        if (!reason.isEmpty()) {
+            throw AuthCmExFactory.weakPassword(reason);
         }
 
-        sessionMapper.deleteById(sessionId.get());
-        refreshTokenMapper.deleteByCondition(REFRESH_TOKEN.SESSION_ID.eq(sessionId.get()));
     }
 
 
+    public AuthExRes verifySignUp(String token) {
+        final User user = userMapper.selectOneByCondition(USER.CONFIRMATION_TOKEN.eq(token));
+        if (Objects.isNull(user)) {
+            // use  in redirect
+            return AuthExRes.EMAIL_LINK_ERROR;
+        }
+        final OffsetDateTime confirmationSentAt = user.getConfirmationSentAt();
+        if (confirmationSentAt == null || confirmationSentAt.plusMinutes(5).isBefore(OffsetDateTime.now())) {
+            return AuthExRes.EMAIL_LINK_ERROR;
+        }
+        final OffsetDateTime now = OffsetDateTime.now();
+        user.setConfirmedAt(now);
+        user.setEmailConfirmedAt(now);
+        userMapper.update(user);
+        return null;
+    }
 }

@@ -7,6 +7,8 @@ import io.github.yanfeiwuji.isupabase.mapper.SysRoleMapper;
 import io.github.yanfeiwuji.isupabase.mapper.SysRoleUserMapper;
 import io.github.yanfeiwuji.isupabase.mapper.SysUserMapper;
 import io.github.yanfeiwuji.isupabase.request.IReqHandler;
+import io.github.yanfeiwuji.isupabase.request.ex.PgrstEx;
+import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import lombok.AllArgsConstructor;
 import org.mybatis.spring.annotation.MapperScan;
 import org.mybatis.spring.mapper.ClassPathMapperScanner;
@@ -14,6 +16,7 @@ import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -23,13 +26,15 @@ import org.springframework.web.servlet.function.*;
 
 import java.util.List;
 
+
 @RestController
 @SpringBootApplication
 @AllArgsConstructor
-@MapperScan({"io.github.yanfeiwuji.isupabase.mapper","io.github.yanfeiwuji.isupabase.auth.mapper"})
+@MapperScan({"io.github.yanfeiwuji.isupabase.mapper", "io.github.yanfeiwuji.isupabase.auth.mapper"})
 @EnableAspectJAutoProxy
 @RegisterReflectionForBinding({ClassPathMapperScanner.class})
 @EnableTransactionManagement
+@EnableCaching
 public class IsupabaseApplication {
 
     private final SysUserMapper sysUserMapper;
@@ -45,14 +50,11 @@ public class IsupabaseApplication {
 
     @GetMapping
     public List<SysUser> user() {
-
         return sysUserMapper.selectAll();
-
     }
 
     @GetMapping("/role")
     public List<SysRole> roleList() {
-
         return List.of();
     }
 
@@ -76,5 +78,6 @@ public class IsupabaseApplication {
     RouterFunction<ServerResponse> routerFunction(IReqHandler reqHandler) {
         return reqHandler.routerFunction();
     }
+
 
 }

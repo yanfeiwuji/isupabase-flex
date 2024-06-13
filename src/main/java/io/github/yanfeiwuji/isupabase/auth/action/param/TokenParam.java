@@ -10,4 +10,5 @@ import lombok.Data;
 public class TokenParam {
     private String email;
     private String password;
+    private String refreshToken;
 }

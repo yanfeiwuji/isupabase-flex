@@ -31,4 +31,13 @@ public class ServletUtil {
                 .map(ServletRequestAttributes::getRequest).map(ServletRequest::getRemoteAddr)
                 .orElse(CharSequenceUtil.EMPTY);
     }
+
+    public String origin() {
+        return Optional.ofNullable(RequestContextHolder.getRequestAttributes()).filter(ServletRequestAttributes.class::isInstance)
+                .map(ServletRequestAttributes.class::cast)
+                .map(ServletRequestAttributes::getRequest)
+                .map(it -> it.getHeader(AuthStrPool.ORIGIN_HEADER_KEY))
+                .orElse(CharSequenceUtil.EMPTY);
+    }
+
 }
