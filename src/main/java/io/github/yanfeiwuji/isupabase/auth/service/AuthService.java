@@ -19,10 +19,9 @@ import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
 import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -36,7 +35,6 @@ import java.time.OffsetDateTime;
 import java.util.*;
 
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.IdentityTableDef.IDENTITY;
-import static io.github.yanfeiwuji.isupabase.auth.entity.table.OneTimeTokenTableDef.ONE_TIME_TOKEN;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.RefreshTokenTableDef.REFRESH_TOKEN;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.SessionTableDef.SESSION;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.UserTableDef.USER;
@@ -271,19 +269,13 @@ public class AuthService {
 
     public AuthExRes verifySignUp(String tokenHash) {
 
-        final Optional<OneTimeToken> oneTimeTokenOptional = oneTimeTokenService.verifyToken(tokenHash);
+        final Optional<OneTimeToken> oneTimeTokenOptional = oneTimeTokenService.verifyToken(tokenHash, ETokenType.CONFIRMATION_TOKEN);
         if (oneTimeTokenOptional.isEmpty()) {
             return AuthExRes.EMAIL_LINK_ERROR;
         }
         final OneTimeToken oneTimeToken = oneTimeTokenOptional.get();
 
-        final ETokenType tokenType = oneTimeToken.getTokenType();
-        AuthExRes authExRes;
-        switch (tokenType) {
-            case CONFIRMATION_TOKEN -> authExRes = verifyConfirmationToken(oneTimeToken);
-            case RECOVERY_TOKEN -> authExRes = verifyRecoveryToken(oneTimeToken);
-            default -> authExRes = AuthExRes.EMAIL_LINK_ERROR;
-        }
+        AuthExRes authExRes = verifyConfirmationToken(oneTimeToken);
         oneTimeTokenMapper.delete(oneTimeToken);
         return authExRes;
 
@@ -306,20 +298,14 @@ public class AuthService {
         return null;
     }
 
-    public AuthExRes verifyRecoveryToken(OneTimeToken oneTimeToken) {
-        //
-        final User user = userMapper.selectOneById(oneTimeToken.getUserId());
-        // todo gen token then set cookie to recorde
 
-        return null;
-    }
+    // todo redirect to
+    public AuthExRes verifyRecovery(String tokenHash) {
+        final Optional<OneTimeToken> oneTimeTokenOptional = oneTimeTokenService.verifyToken(tokenHash, ETokenType.CONFIRMATION_TOKEN);
+        if (oneTimeTokenOptional.isEmpty()) {
+            return AuthExRes.EMAIL_LINK_ERROR;
+        } // todo
 
-    private void verifyOneTimeToken(String token) {
-
-    }
-
-
-    public AuthExRes verifyRecovery(String token) {
         return null;
     }
 }

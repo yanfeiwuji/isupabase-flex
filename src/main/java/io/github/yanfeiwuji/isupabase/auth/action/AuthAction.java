@@ -67,9 +67,11 @@ public class AuthAction {
         AuthExRes authExRes;
         switch (type) {
             case AuthStrPool.VERIFY_TYPE_SIGNUP -> authExRes = authService.verifySignUp(token);
+            // todo
             case AuthStrPool.VERIFY_TYPE_RECOVERY -> authExRes = authService.verifyRecovery(token);
             default -> authExRes = AuthExRes.EMAIL_LINK_ERROR;
         }
+
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(redirectTo);
         if (Objects.nonNull(authExRes)) {
             uriComponentsBuilder

@@ -42,11 +42,12 @@ public class OneTimeTokenService {
         return oneTimeToken;
     }
 
-    public Optional<OneTimeToken> verifyToken(String tokenHash) {
+    public Optional<OneTimeToken> verifyToken(String tokenHash, ETokenType tokenType) {
 
         return Optional.ofNullable(tokenHash)
                 .map(ONE_TIME_TOKEN.TOKEN_HASH::eq)
                 .map(oneTimeTokenMapper::selectOneByCondition)
+                .filter(it -> tokenType.equals(it.getTokenType()))
                 .filter(it -> it.getCreatedAt().plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now()));
     }
 
