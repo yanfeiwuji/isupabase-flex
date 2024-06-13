@@ -32,4 +32,4 @@ isupabase:
   password-min-length: 6
   password-required-characters: ""
   site-url: http://localhost:8080
-  email-link-expired-minutes: 5
+  one-time-expired-minutes: 5

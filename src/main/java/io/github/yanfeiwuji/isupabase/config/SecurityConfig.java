@@ -67,7 +67,7 @@ public class SecurityConfig {
             throws Exception {
         http
                 .authorizeHttpRequests(authorize -> {
-                            authorize.requestMatchers("auth/v1/verify").permitAll();
+                            authorize.requestMatchers("auth/v1/verify", "/auth/v1/authorize").permitAll();
                             //     authorize.requestMatchers("/auth/v1/token", "/auth/v1/authorize").authenticated();
                             authorize.anyRequest().authenticated();
                         }
@@ -90,18 +90,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-//
-//    @Bean
-//    public UserDetailsService userDetailsService(GoTureUserService service) throws Exception {
-//        UserDetails userDetails = User.withDefaultPasswordEncoder()
-//                .username("user")
-//                .password("password")
-//                .roles("USER")
-//                .build();
-//
-//        return new InMemoryUserDetailsManager(userDetails);
-//    }
 
 
     @ConditionalOnMissingBean

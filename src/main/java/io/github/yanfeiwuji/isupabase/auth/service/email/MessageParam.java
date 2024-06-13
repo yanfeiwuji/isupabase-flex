@@ -22,10 +22,25 @@ public class MessageParam {
     private Object data;
     private String redirectTo;
 
+    public static MessageParam of(String siteURL, String email, String tokenHash, String redirectTo) {
+        return MessageParam.builder()
+                .siteURL(siteURL)
+                .email(email)
+                .tokenHash(tokenHash)
+                .redirectTo(redirectTo).build();
+    }
+
     public void genSignUpConfirmationURL() {
         if (Objects.nonNull(confirmationURL)) {
             return;
         }
-        confirmationURL = AuthStrPool.CONFIRM_SIGN_UP_URL_TEMP.formatted(siteURL, token, redirectTo);
+        confirmationURL = AuthStrPool.CONFIRM_SIGN_UP_URL_TEMP.formatted(siteURL, tokenHash, redirectTo);
+    }
+
+    public void genRecoverConfirmationURL() {
+        if (Objects.nonNull(confirmationURL)) {
+            return;
+        }
+        confirmationURL = AuthStrPool.CONFIRM_RECOVER_URL_TEMP.formatted(siteURL, tokenHash, redirectTo);
     }
 }

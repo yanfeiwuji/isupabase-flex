@@ -6,29 +6,22 @@ import io.github.yanfeiwuji.isupabase.auth.action.param.RecoverParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.TokenParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
-import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
 import io.github.yanfeiwuji.isupabase.auth.service.AuthService;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
-import jakarta.servlet.http.HttpServletRequest;
+
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.DefaultUriBuilderFactory;
-import org.springframework.web.util.UriBuilder;
-import org.springframework.web.util.UriBuilderFactory;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-
 
 /**
  * @author yanfeiwuji
@@ -39,7 +32,6 @@ import java.util.Optional;
 @AllArgsConstructor
 public class AuthAction {
     private final AuthService authService;
-    private final JavaMailSender mailSender;
     private final UserMapper userMapper;
 
 
@@ -74,7 +66,8 @@ public class AuthAction {
                        HttpServletResponse response) throws IOException {
         AuthExRes authExRes;
         switch (type) {
-            case AuthStrPool.VERIFY_TYPE -> authExRes = authService.verifySignUp(token);
+            case AuthStrPool.VERIFY_TYPE_SIGNUP -> authExRes = authService.verifySignUp(token);
+            case AuthStrPool.VERIFY_TYPE_RECOVERY -> authExRes = authService.verifyRecovery(token);
             default -> authExRes = AuthExRes.EMAIL_LINK_ERROR;
         }
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(redirectTo);
@@ -94,9 +87,10 @@ public class AuthAction {
     }
 
     @PostMapping("/recover")
-    public Map<String, String> recover(@RequestBody RecoverParam recoverParam) {
+    public Map<String, String> recover(@RequestBody RecoverParam recoverParam, @RequestParam(value = "redirect_to", required = false) String redirectTo) {
 
-        authService.recover(recoverParam.getEmail());
+        recoverParam.setRedirectTo(redirectTo);
+        authService.recover(recoverParam);
         return Map.of();
     }
 

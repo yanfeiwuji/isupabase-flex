@@ -21,6 +21,6 @@ public class ISupabaseProperties {
     private String passwordRequiredCharacters = "";
     private String siteUrl;
 
-    private Long emailLinkExpiredMinutes = 5L;
+    private Long oneTimeExpiredMinutes = 5L;
 
 }

@@ -3,17 +3,16 @@ package io.github.yanfeiwuji.isupabase.auth.service;
 import cn.hutool.core.lang.id.NanoId;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.BooleanUtil;
+import io.github.yanfeiwuji.isupabase.auth.action.param.RecoverParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.*;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
+import io.github.yanfeiwuji.isupabase.auth.event.RecoverEvent;
 import io.github.yanfeiwuji.isupabase.auth.event.SignUpEvent;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
-import io.github.yanfeiwuji.isupabase.auth.mapper.IdentityMapper;
-import io.github.yanfeiwuji.isupabase.auth.mapper.RefreshTokenMapper;
-import io.github.yanfeiwuji.isupabase.auth.mapper.SessionMapper;
-import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
+import io.github.yanfeiwuji.isupabase.auth.mapper.*;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
 import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtil;
 import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
@@ -37,6 +36,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.IdentityTableDef.IDENTITY;
+import static io.github.yanfeiwuji.isupabase.auth.entity.table.OneTimeTokenTableDef.ONE_TIME_TOKEN;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.RefreshTokenTableDef.REFRESH_TOKEN;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.SessionTableDef.SESSION;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.UserTableDef.USER;
@@ -63,18 +63,20 @@ public class AuthService {
     //  private  final AuthMimeMessagePreparationFactory mimeMessagePreparationFactory;
     private final ApplicationEventPublisher publisher;
     private final ISupabaseProperties isupabaseProperties;
+    private final OneTimeTokenMapper oneTimeTokenMapper;
+    private final OneTimeTokenService oneTimeTokenService;
 
     private Long jwtExp;
     private Long passwordMinLength;
     private String passwordRequiredCharacters;
-    private Long emailLinkExpiredMinutes;
+    private Long oneTimeExpiredMinutes;
 
     @PostConstruct
     public void init() {
         this.jwtExp = isupabaseProperties.getJwtExp();
         this.passwordMinLength = isupabaseProperties.getPasswordMinLength();
         this.passwordRequiredCharacters = isupabaseProperties.getPasswordRequiredCharacters();
-        this.emailLinkExpiredMinutes = isupabaseProperties.getEmailLinkExpiredMinutes();
+        this.oneTimeExpiredMinutes = isupabaseProperties.getOneTimeExpiredMinutes();
     }
 
 
@@ -117,10 +119,12 @@ public class AuthService {
 
             final User newUser = signUpParam.toUser();
             newUser.setEncryptedPassword(passwordEncoder.encode(signUpParam.getPassword()));
+
             newUser.setConfirmationToken(NanoId.randomNanoId());
             newUser.setConfirmationSentAt(OffsetDateTime.now());
-            publisher.publishEvent(new SignUpEvent(this, newUser, signUpParam));
             userMapper.insert(newUser);
+
+            publisher.publishEvent(new SignUpEvent(this, newUser, signUpParam));
             return newUser;
         } else {
 
@@ -139,8 +143,13 @@ public class AuthService {
     }
 
     //  @SneakyThrows
-    public void recover(String email) {
+    public void recover(RecoverParam recoverParam) {
 
+        Optional.ofNullable(recoverParam).map(RecoverParam::getEmail)
+                .map(USER.EMAIL::eq)
+                .map(userMapper::selectOneByCondition)
+                .map(it -> new RecoverEvent(this, it, recoverParam))
+                .ifPresent(publisher::publishEvent);
     }
 
 
@@ -260,20 +269,57 @@ public class AuthService {
     }
 
 
-    public AuthExRes verifySignUp(String token) {
-        final User user = userMapper.selectOneByCondition(USER.CONFIRMATION_TOKEN.eq(token));
+    public AuthExRes verifySignUp(String tokenHash) {
+
+        final Optional<OneTimeToken> oneTimeTokenOptional = oneTimeTokenService.verifyToken(tokenHash);
+        if (oneTimeTokenOptional.isEmpty()) {
+            return AuthExRes.EMAIL_LINK_ERROR;
+        }
+        final OneTimeToken oneTimeToken = oneTimeTokenOptional.get();
+
+        final ETokenType tokenType = oneTimeToken.getTokenType();
+        AuthExRes authExRes;
+        switch (tokenType) {
+            case CONFIRMATION_TOKEN -> authExRes = verifyConfirmationToken(oneTimeToken);
+            case RECOVERY_TOKEN -> authExRes = verifyRecoveryToken(oneTimeToken);
+            default -> authExRes = AuthExRes.EMAIL_LINK_ERROR;
+        }
+        oneTimeTokenMapper.delete(oneTimeToken);
+        return authExRes;
+
+    }
+
+    private AuthExRes verifyConfirmationToken(OneTimeToken oneTimeToken) {
+        final User user = userMapper.selectOneById(oneTimeToken.getUserId());
         if (Objects.isNull(user)) {
-            // use  in redirect
             return AuthExRes.EMAIL_LINK_ERROR;
         }
         final OffsetDateTime confirmationSentAt = user.getConfirmationSentAt();
-        if (confirmationSentAt == null || confirmationSentAt.plusMinutes(5).isBefore(OffsetDateTime.now())) {
+        if (confirmationSentAt == null || confirmationSentAt.plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now())) {
             return AuthExRes.EMAIL_LINK_ERROR;
         }
         final OffsetDateTime now = OffsetDateTime.now();
         user.setConfirmedAt(now);
         user.setEmailConfirmedAt(now);
+        user.setConfirmationToken(null);
         userMapper.update(user);
+        return null;
+    }
+
+    public AuthExRes verifyRecoveryToken(OneTimeToken oneTimeToken) {
+        //
+        final User user = userMapper.selectOneById(oneTimeToken.getUserId());
+        // todo gen token then set cookie to recorde
+
+        return null;
+    }
+
+    private void verifyOneTimeToken(String token) {
+
+    }
+
+
+    public AuthExRes verifyRecovery(String token) {
         return null;
     }
 }

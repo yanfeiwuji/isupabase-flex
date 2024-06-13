@@ -30,9 +30,13 @@ public class AuthStrPool {
     public static final String CONFIRM_SIGN_UP_URL_TEMP =
             "%s/" + PgrstStrPool.AUTH_RPC_PATH + "/verify?token=%s&type=signup&redirect_to=%s";
 
+    public static final String CONFIRM_RECOVER_URL_TEMP =
+            "%s/" + PgrstStrPool.AUTH_RPC_PATH + "/verify?token=%s&type=recovery&redirect_to=%s";
+
     public static final String EMAIL_CONTENT_TYPE = "text/html; charset=utf-8";
 
-    public static final String VERIFY_TYPE = "signup";
+    public static final String VERIFY_TYPE_SIGNUP = "signup";
+    public static final String VERIFY_TYPE_RECOVERY = "recovery";
 
     public static final String QUERY_PARAM_ERROR = "error";
     public static final String QUERY_PARAM_ERROR_CODE = "error_code";
