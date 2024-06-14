@@ -22,6 +22,8 @@ public class AuthCmExFactory {
     public static final AuthCmEx VALIDATION_FAILED_EMAIL = AuthCmExRes.VALIDATION_FAILED_EMAIL.authCmEx();
 
     public static final AuthCmEx PHONE_PROVIDER_DISABLE = AuthCmExRes.PHONE_PROVIDER_DISABLE.authCmEx();
+    public static final AuthCmEx SAME_PASSWORD = AuthCmExRes.SAME_PASSWORD.authCmEx();
+    public static final AuthCmEx EMAIL_EXISTS = AuthCmExRes.EMAIL_EXISTS.authCmEx();
 
     public AuthCmEx weakPassword(List<String> reasons) {
         final Map<String, String> stringStringMap = ISupabasePropertiesUtil.weakPasswordMap();

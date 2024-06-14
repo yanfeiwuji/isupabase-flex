@@ -5,6 +5,7 @@ package io.github.yanfeiwuji.isupabase.auth.ex;
  * @date 2024/6/10 10:39
  */
 public record AuthExRes(String error, String errorDescription) {
+    public static AuthExRes NOT_IMPLEMENTED = new AuthExRes("not implement", "not implement");
     public static AuthExRes INVALID_GRANT = new AuthExRes("invalid_grant", "Invalid login credentials");
     public static AuthExRes INVALID_GRANT_REFRESH_TOKEN_NOT_FOUND = new AuthExRes("invalid_grant", "Invalid Refresh Token: Refresh Token Not Found");
     public static AuthExRes INVALID_GRANT_ALREADY_USED = new AuthExRes("invalid_grant", "Invalid Refresh Token: Already Used");

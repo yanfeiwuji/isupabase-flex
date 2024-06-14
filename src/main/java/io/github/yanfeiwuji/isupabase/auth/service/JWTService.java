@@ -2,10 +2,7 @@ package io.github.yanfeiwuji.isupabase.auth.service;
 
 import cn.hutool.core.lang.id.NanoId;
 import cn.hutool.core.text.CharSequenceUtil;
-import io.github.yanfeiwuji.isupabase.auth.entity.EAalLevel;
-import io.github.yanfeiwuji.isupabase.auth.entity.RefreshToken;
-import io.github.yanfeiwuji.isupabase.auth.entity.Session;
-import io.github.yanfeiwuji.isupabase.auth.entity.User;
+import io.github.yanfeiwuji.isupabase.auth.entity.*;
 import io.github.yanfeiwuji.isupabase.auth.mapper.RefreshTokenMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.SessionMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
@@ -40,6 +37,7 @@ public class JWTService {
     private final JwtEncoder jwtEncoder;
     private final SessionMapper sessionMapper;
     private final RefreshTokenMapper refreshTokenMapper;
+    private final UserMapper userMapper;
 
 
     private Long jwtExp;
@@ -64,6 +62,14 @@ public class JWTService {
         this.passwordMinLength = isupabaseProperties.getPasswordMinLength();
         this.passwordRequiredCharacters = isupabaseProperties.getPasswordRequiredCharacters();
         this.oneTimeExpiredMinutes = isupabaseProperties.getOneTimeExpiredMinutes();
+    }
+
+    public Optional<TokenInfo<User>> oneTimeTokenToOTPTokenInfo(OneTimeToken oneTimeToken) {
+        return Optional.ofNullable(oneTimeToken)
+                .map(OneTimeToken::getUserId)
+                .map(userMapper::selectOneById)
+                .map(this::userToOTPTokenInfo);
+
     }
 
 

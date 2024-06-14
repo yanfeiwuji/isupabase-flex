@@ -3,24 +3,27 @@ package io.github.yanfeiwuji.isupabase.auth.service;
 import cn.hutool.core.lang.id.NanoId;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.BooleanUtil;
+import io.github.yanfeiwuji.isupabase.auth.action.param.PutUserParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.RecoverParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.*;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
+import io.github.yanfeiwuji.isupabase.auth.event.ChangeEmailEvent;
+import io.github.yanfeiwuji.isupabase.auth.event.ChangePasswordEvent;
 import io.github.yanfeiwuji.isupabase.auth.event.RecoverEvent;
 import io.github.yanfeiwuji.isupabase.auth.event.SignUpEvent;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExFactory;
-import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
 import io.github.yanfeiwuji.isupabase.auth.mapper.*;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
+import io.github.yanfeiwuji.isupabase.auth.utils.ValueValidUtil;
 import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
 import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
-import io.micrometer.core.instrument.step.StepTuple2;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -28,7 +31,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.*;
 
@@ -58,11 +60,8 @@ public class AuthService {
     //  private  final AuthMimeMessagePreparationFactory mimeMessagePreparationFactory;
     private final ApplicationEventPublisher publisher;
 
-    private final OneTimeTokenMapper oneTimeTokenMapper;
-    private final OneTimeTokenService oneTimeTokenService;
     private final JWTService jwtService;
 
-    private Long jwtExp;
     private Long passwordMinLength;
     private String passwordRequiredCharacters;
     private Long oneTimeExpiredMinutes;
@@ -70,7 +69,6 @@ public class AuthService {
 
     @PostConstruct
     public void init() {
-        this.jwtExp = isupabaseProperties.getJwtExp();
         this.passwordMinLength = isupabaseProperties.getPasswordMinLength();
         this.passwordRequiredCharacters = isupabaseProperties.getPasswordRequiredCharacters();
         this.oneTimeExpiredMinutes = isupabaseProperties.getOneTimeExpiredMinutes();
@@ -136,27 +134,6 @@ public class AuthService {
     }
 
 
-    public void logoutGlobal() {
-        final Optional<Long> uid = AuthUtil.uid();
-        if (uid.isEmpty()) {
-            return;
-        }
-        sessionMapper.deleteByCondition(SESSION.USER_ID.eq(uid.get()));
-        refreshTokenMapper.deleteByCondition(REFRESH_TOKEN.USER_ID.eq(uid.get()));
-    }
-
-    public void logoutLocal() {
-        final Optional<Long> sessionId = AuthUtil.sessionId();
-
-        if (sessionId.isEmpty()) {
-            return;
-        }
-
-        sessionMapper.deleteById(sessionId.get());
-        refreshTokenMapper.deleteByCondition(REFRESH_TOKEN.SESSION_ID.eq(sessionId.get()));
-    }
-
-
     public TokenInfo<User> refreshToken(String refreshToken) {
         final RefreshToken token = refreshTokenMapper.selectOneByCondition(REFRESH_TOKEN.TOKEN.eq(refreshToken));
         if (Objects.isNull(token)) {
@@ -196,6 +173,7 @@ public class AuthService {
 
 
     private void validPassword(String password) {
+
         List<String> reason = new ArrayList<>(2);
         if (password.length() < passwordMinLength) {
             reason.add(AuthStrPool.WEAK_PASSWORD_LENGTH);
@@ -246,5 +224,78 @@ public class AuthService {
                 .map(userMapper::selectOneById)
                 .map(jwtService::userToOTPTokenInfo);
 
+    }
+
+
+    public User putUser(PutUserParam putUserParam) {
+        Long uid = AuthUtil.uid().orElseThrow(() -> new AccessDeniedException(CharSequenceUtil.EMPTY));
+        final User user = userMapper.selectOneById(uid);
+
+        Optional.ofNullable(putUserParam).map(PutUserParam::getPassword).ifPresent(pwd -> {
+            validPassword(pwd);
+            if (passwordEncoder.matches(pwd, user.getPassword())) {
+                throw AuthCmExFactory.SAME_PASSWORD;
+            }
+
+            final String encodeNewPassword = passwordEncoder.encode(pwd);
+            // set new password
+            user.setEncryptedPassword(encodeNewPassword);
+            publisher.publishEvent(new ChangePasswordEvent(this, user));
+        });
+        // change email
+        Optional.ofNullable(putUserParam).map(PutUserParam::getEmail)
+                .filter(ValueValidUtil::isEmail)
+                .ifPresent(email -> {
+                    final long countEmail = userMapper.selectCountByCondition(USER.EMAIL.eq(email));
+                    if (countEmail > 0) {
+                        throw AuthCmExFactory.EMAIL_EXISTS;
+                    }
+
+                    user.setEmailChange(email);
+                    user.setEmailChangeSentAt(OffsetDateTime.now());
+                    user.setEmailChangeTokenCurrent(NanoId.randomNanoId());
+                    user.setEmailChangeTokenNew(NanoId.randomNanoId());
+                    user.setEmailChangeConfirmStatus(0);
+                    publisher.publishEvent(new ChangeEmailEvent(this, user, putUserParam.getRedirectTo()));
+                });
+
+        Optional.ofNullable(putUserParam).map(PutUserParam::getData)
+                .ifPresent(user::setRawUserMetaData);
+
+        userMapper.update(user);
+        return user;
+    }
+
+
+    public Integer verifyEmailChange(OneTimeToken oneTimeToken) {
+        final Optional<User> userOptional = Optional.ofNullable(oneTimeToken).map(OneTimeToken::getUserId)
+                .map(userMapper::selectOneById);
+        if (userOptional.isPresent()) {
+            final User user = userOptional.get();
+            final int status = user.getEmailChangeConfirmStatus();
+            switch (status) {
+                case 0 -> {
+                    user.setEmailChangeConfirmStatus(1);
+                    userMapper.update(user);
+                    return 1;
+                }
+                case 1 -> {
+                    user.setEmailChangeConfirmStatus(0);
+                    final String emailChange = user.getEmailChange();
+                    final long l = userMapper.selectCountByCondition(USER.EMAIL.eq(emailChange));
+                    if (l > 0) {
+                        return -1;
+                    }
+                    user.setEmail(emailChange);
+                    userMapper.update(user);
+                    return 0;
+                }
+                default -> {
+                    return null;
+                }
+            }
+
+        }
+        return null;
     }
 }

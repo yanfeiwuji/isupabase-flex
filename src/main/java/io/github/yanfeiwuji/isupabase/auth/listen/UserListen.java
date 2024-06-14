@@ -1,16 +1,18 @@
 package io.github.yanfeiwuji.isupabase.auth.listen;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
 import io.github.yanfeiwuji.isupabase.auth.action.param.RecoverParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.ETokenType;
 import io.github.yanfeiwuji.isupabase.auth.entity.OneTimeToken;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
+import io.github.yanfeiwuji.isupabase.auth.event.ChangeEmailEvent;
+import io.github.yanfeiwuji.isupabase.auth.event.ChangePasswordEvent;
 import io.github.yanfeiwuji.isupabase.auth.event.RecoverEvent;
 import io.github.yanfeiwuji.isupabase.auth.event.SignUpEvent;
 import io.github.yanfeiwuji.isupabase.auth.mapper.OneTimeTokenMapper;
 import io.github.yanfeiwuji.isupabase.auth.service.OneTimeTokenService;
+import io.github.yanfeiwuji.isupabase.auth.service.SessionService;
 import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparationFactory;
 import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparator;
 import io.github.yanfeiwuji.isupabase.auth.service.email.MessageParam;
@@ -19,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessagePreparator;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +42,7 @@ public class UserListen {
     private final AuthMimeMessagePreparationFactory mimeMessagePreparationFactory;
     private final OneTimeTokenMapper oneTimeTokenMapper;
     private final OneTimeTokenService oneTimeTokenService;
+    private final SessionService sessionService;
 
     @EventListener(SignUpEvent.class)
     @Async
@@ -63,6 +65,44 @@ public class UserListen {
         final OneTimeToken oneTimeToken = oneTimeTokenService.recoverToken(user);
         sendRecoverEmail(user, recoverParam, oneTimeToken);
     }
+
+    @EventListener(ChangeEmailEvent.class)
+    public void onChangeEmail(ChangeEmailEvent event) {
+        final User user = event.getUser();
+        // change email
+        final OneTimeToken emailChangeTokenCurrent = oneTimeTokenService.emailChangeTokenCurrent(user);
+        final OneTimeToken emailChangeTokenNew = oneTimeTokenService.emailChangeTokenNew(user);
+
+        sendEmailChangeTokenCurrent(user, emailChangeTokenCurrent, event.getRedirectTo());
+        sendEmailChangeTokenNew(user, emailChangeTokenNew, event.getRedirectTo());
+    }
+
+    @EventListener(ChangePasswordEvent.class)
+    public void onChangePassword(ChangePasswordEvent event) {
+        sessionService.logoutGlobal();
+    }
+
+    private void sendEmailChangeTokenCurrent(User user, OneTimeToken oneTimeToken, String redirectTo) {
+        final String needRedirectTo = Optional.ofNullable(redirectTo).orElseGet(ServletUtil::origin);
+        final MessageParam messageParam = MessageParam.of(siteUrl, user.getEmail(), user.getEmailChange(), oneTimeToken.getTokenHash(), needRedirectTo);
+        messageParam.genEmailChangeConfirmationURL();
+
+        final AuthMimeMessagePreparator authMimeMessagePreparator =
+                mimeMessagePreparationFactory.ofEmailChange(user.getEmail(), messageParam);
+        mailSender.send(authMimeMessagePreparator);
+    }
+
+    private void sendEmailChangeTokenNew(User user, OneTimeToken oneTimeToken, String redirectTo) {
+
+        final String needRedirectTo = Optional.ofNullable(redirectTo).orElseGet(ServletUtil::origin);
+        final MessageParam messageParam = MessageParam.of(siteUrl, user.getEmail(), user.getEmailChange(), oneTimeToken.getTokenHash(), needRedirectTo);
+        messageParam.genEmailChangeConfirmationURL();
+
+        final AuthMimeMessagePreparator authMimeMessagePreparator =
+                mimeMessagePreparationFactory.ofEmailChange(user.getEmailChange(), messageParam);
+        mailSender.send(authMimeMessagePreparator);
+    }
+
 
     private void sendRecoverEmail(User user, RecoverParam recoverParam, OneTimeToken oneTimeToken) {
         final String redirectTo = Optional.ofNullable(recoverParam).map(RecoverParam::getRedirectTo)

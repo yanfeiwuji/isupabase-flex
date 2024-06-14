@@ -15,4 +15,5 @@ public class PutUserParam {
     private String password;
     private String nonce;
     private Map<String, Object> data;
+    private String redirectTo;
 }

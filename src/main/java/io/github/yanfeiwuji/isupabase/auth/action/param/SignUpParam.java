@@ -3,6 +3,7 @@ package io.github.yanfeiwuji.isupabase.auth.action.param;
 import ch.qos.logback.core.util.StringUtil;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
+import io.github.yanfeiwuji.isupabase.auth.utils.ValueValidUtil;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import jakarta.validation.constraints.Email;
 import lombok.Data;
@@ -17,8 +18,7 @@ import java.util.regex.Pattern;
  */
 @Data
 public class SignUpParam {
-    private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+
     private String codeChallenge;
     private String codeChallengeMethod;
     private Map<String, Object> data;
@@ -50,7 +50,7 @@ public class SignUpParam {
 
     public SignUpParam validEmail() {
         Optional.ofNullable(email)
-                .filter(it -> EMAIL_PATTERN.matcher(it).find())
+                .filter(ValueValidUtil::isEmail)
                 .orElseThrow(() -> AuthCmExFactory.VALIDATION_FAILED_EMAIL);
         return this;
     }

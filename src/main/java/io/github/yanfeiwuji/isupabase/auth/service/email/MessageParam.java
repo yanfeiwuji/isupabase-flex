@@ -30,6 +30,15 @@ public class MessageParam {
                 .redirectTo(redirectTo).build();
     }
 
+    public static MessageParam of(String siteURL, String email, String newEmail, String tokenHash, String redirectTo) {
+        return MessageParam.builder()
+                .siteURL(siteURL)
+                .email(email)
+                .newEmail(newEmail)
+                .tokenHash(tokenHash)
+                .redirectTo(redirectTo).build();
+    }
+
     public void genSignUpConfirmationURL() {
         if (Objects.nonNull(confirmationURL)) {
             return;
@@ -42,5 +51,13 @@ public class MessageParam {
             return;
         }
         confirmationURL = AuthStrPool.CONFIRM_RECOVER_URL_TEMP.formatted(siteURL, tokenHash, redirectTo);
+    }
+
+    public void genEmailChangeConfirmationURL() {
+        if (Objects.nonNull(confirmationURL)) {
+            return;
+        }
+        confirmationURL = AuthStrPool.CONFIRM_EMAIL_CHANGE_URL_TEMP.formatted(siteURL, tokenHash, redirectTo);
+
     }
 }

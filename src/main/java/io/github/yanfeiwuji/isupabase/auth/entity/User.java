@@ -42,7 +42,7 @@ public class User extends AuthBase implements UserDetails {
     private String emailChangeTokenNew;
 
     private String emailChange;
-    private String emailChangeSentAt;
+    private OffsetDateTime emailChangeSentAt;
     private OffsetDateTime lastSignInAt;
 
     @Column(typeHandler = JacksonTypeHandler.class)

@@ -21,6 +21,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
+
 public class AuthDialectImpl extends CommonsDialectImpl {
     private static Map<String, Map<OperateType, RlsPolicy<Object>>> rlsPolicyMap = Map.of();
 
@@ -29,8 +30,14 @@ public class AuthDialectImpl extends CommonsDialectImpl {
     }
 
     @Override
-    public void prepareAuth(QueryWrapper queryWrapper, OperateType operateType) {
+    public String forSelectOneById(String schema, String tableName, String[] primaryKeys, Object[] primaryValues) {
 
+        // todo rewrite use queryWrapper
+        return super.forSelectOneById(schema, tableName, primaryKeys, primaryValues);
+    }
+
+    @Override
+    public void prepareAuth(QueryWrapper queryWrapper, OperateType operateType) {
         final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(queryWrapper);
         applyRls(queryWrapper, operateType);
         conditions(whereQueryCondition, new ArrayList<>()).forEach(it -> {

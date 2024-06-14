@@ -10,10 +10,14 @@ import io.github.yanfeiwuji.isupabase.auth.action.param.TokenParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.ETokenType;
 import io.github.yanfeiwuji.isupabase.auth.entity.OneTimeToken;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
+import io.github.yanfeiwuji.isupabase.auth.ex.AuthEx;
+import io.github.yanfeiwuji.isupabase.auth.ex.AuthExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
 import io.github.yanfeiwuji.isupabase.auth.service.AuthService;
+import io.github.yanfeiwuji.isupabase.auth.service.JWTService;
 import io.github.yanfeiwuji.isupabase.auth.service.OneTimeTokenService;
+import io.github.yanfeiwuji.isupabase.auth.service.SessionService;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
 import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
@@ -41,6 +45,8 @@ public class AuthAction {
     private final AuthService authService;
     private final UserMapper userMapper;
     private final OneTimeTokenService oneTimeTokenService;
+    private final SessionService sessionService;
+    private final JWTService jwtService;
 
 
     @PostMapping("/token")
@@ -74,12 +80,15 @@ public class AuthAction {
                        HttpServletResponse response) throws IOException {
 
         Optional<OneTimeToken> oneTimeTokenOptional;
+
         switch (type) {
             case AuthStrPool.VERIFY_TYPE_SIGNUP ->
                     oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.CONFIRMATION_TOKEN);
 
             case AuthStrPool.VERIFY_TYPE_RECOVERY ->
                     oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.RECOVERY_TOKEN);
+            case AuthStrPool.VERIFY_TYPE_EMAIL_CHANGE ->
+                    oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.EMAIL_CHANGE_TOKEN_CURRENT);
             default -> oneTimeTokenOptional = Optional.empty();
         }
 
@@ -90,7 +99,7 @@ public class AuthAction {
                     return redirectTo;
                 }
                 case AuthStrPool.VERIFY_TYPE_RECOVERY -> {
-                    return authService.verifyRecovery(oneTimeToken).map(tokenInfo -> AuthStrPool.RECOVERY_ACCESS_TOKEN_URL_TEMP.formatted(
+                    return jwtService.oneTimeTokenToOTPTokenInfo(oneTimeToken).map(tokenInfo -> AuthStrPool.RECOVERY_ACCESS_TOKEN_URL_TEMP.formatted(
                                     CharSequenceUtil.removeSuffix(redirectTo, StrPool.SLASH),
                                     tokenInfo.getAccessToken(),
                                     tokenInfo.getExpiresAt(),
@@ -99,15 +108,36 @@ public class AuthAction {
                             )
                             .orElseGet(() -> this.errorEmailLinkUrlString(redirectTo));
                 }
+                case AuthStrPool.VERIFY_TYPE_EMAIL_CHANGE -> {
+                    final Integer i = authService.verifyEmailChange(oneTimeToken);
+                    switch (i) {
+                        case 1 -> {
+                            return AuthStrPool.EMAIL_CHANGE_FIRST_URL.formatted(redirectTo);
+                        }
+                        case 0 -> {
+                            return jwtService.oneTimeTokenToOTPTokenInfo(oneTimeToken).map(tokenInfo -> AuthStrPool.EMAIL_CHANGE_ACCESS_TOKEN_URL_TEMP.formatted(
+                                            CharSequenceUtil.removeSuffix(redirectTo, StrPool.SLASH),
+                                            tokenInfo.getAccessToken(),
+                                            tokenInfo.getExpiresAt(),
+                                            tokenInfo.getExpiresIn(),
+                                            tokenInfo.getRefreshToken())
+                                    )
+                                    .orElseGet(() -> this.errorEmailLinkUrlString(redirectTo));
+                        }
+                        case -1 -> {
+                            return AuthStrPool.SERVER_ERROR_CONFIRM_EMAIL_TEMP.formatted(redirectTo);
+                        }
+                        default -> {
+                            return errorEmailLinkUrlString(redirectTo);
+                        }
+                    }
+                }
                 default -> {
                     return redirectTo;
                 }
             }
         }).orElseGet(() -> this.errorEmailLinkUrlString(redirectTo));
-
         response.sendRedirect(needRedirect);
-
-
     }
 
     @GetMapping("/user")
@@ -116,9 +146,9 @@ public class AuthAction {
     }
 
     @PutMapping("/user")
-    public User putUser(@RequestBody PutUserParam userParam) {
-        // todo edit user
-        return AuthUtil.uid().map(userMapper::selectOneById).orElseThrow();
+    public User putUser(@RequestBody PutUserParam userParam, @RequestParam("redirect_to") String redirectTo) {
+        userParam.setRedirectTo(redirectTo);
+        return authService.putUser(userParam);
     }
 
     @PostMapping("/recover")
@@ -149,15 +179,15 @@ public class AuthAction {
     public void logout(@RequestParam String scope) {
         // session id
         switch (scope) {
-            case AuthStrPool.LOGOUT_SCOPE_GLOBAL, AuthStrPool.LOGOUT_SCOPE_OTHERS -> authService.logoutGlobal();
-            case AuthStrPool.LOGOUT_SCOPE_LOCAL -> authService.logoutLocal();
+            case AuthStrPool.LOGOUT_SCOPE_GLOBAL, AuthStrPool.LOGOUT_SCOPE_OTHERS -> sessionService.logoutGlobal();
+            case AuthStrPool.LOGOUT_SCOPE_LOCAL -> sessionService.logoutLocal();
             default -> {
+                throw AuthExFactory.NOT_IMPLEMENTED;
             }
         }
     }
 
     private String errorEmailLinkUrlString(String redirectTo) {
-
         return AuthStrPool.ERROR_EMAIL_LINK_URL_TEMP.formatted(CharSequenceUtil.removeSuffix(redirectTo, StrPool.SLASH));
     }
 

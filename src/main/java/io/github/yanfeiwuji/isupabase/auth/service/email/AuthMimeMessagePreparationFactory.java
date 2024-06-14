@@ -35,5 +35,15 @@ public class AuthMimeMessagePreparationFactory {
                 .formatted(messageParam.getConfirmationURL()));
     }
 
+    public AuthMimeMessagePreparator ofEmailChange(String email, MessageParam messageParam) {
+        // only simple info
+        return new AuthMimeMessagePreparator("noreply", fromEmail, email, "Confirm Email Change", """
+                <h2>Confirm Change of Email</h2>
+                <p>Follow this link to confirm the update of your email from %s to %s:</p>
+                <p><a href="%s">Change Email</a></p>
+                """
+                .formatted(messageParam.getEmail(), messageParam.getNewEmail(), messageParam.getConfirmationURL()));
+    }
+
 
 }
