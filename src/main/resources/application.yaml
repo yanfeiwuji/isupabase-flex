@@ -11,7 +11,7 @@ spring:
     port: 587
     username: 1327800522@qq.com
     password: rrilnhgcfirpibbb
-    test-connection: true
+    test-connection: false
 
 mybatis-flex:
   configuration:

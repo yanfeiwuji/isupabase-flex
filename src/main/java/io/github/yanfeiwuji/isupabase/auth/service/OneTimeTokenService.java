@@ -29,7 +29,8 @@ public class OneTimeTokenService {
 
     @PostConstruct
     public void init() {
-        Long oneTimeExpiredMinutes = iSupabaseProperties.getOneTimeExpiredMinutes();
+        oneTimeExpiredMinutes = iSupabaseProperties.getOneTimeExpiredMinutes();
+
     }
 
     public OneTimeToken recoverToken(User user) {
@@ -43,12 +44,13 @@ public class OneTimeTokenService {
     }
 
     public Optional<OneTimeToken> verifyToken(String tokenHash, ETokenType tokenType) {
-
-        return Optional.ofNullable(tokenHash)
-                .map(ONE_TIME_TOKEN.TOKEN_HASH::eq)
+        final Optional<OneTimeToken> oneTimeTokenOptional = Optional.ofNullable(tokenHash)
+                .map(it -> ONE_TIME_TOKEN.TOKEN_HASH.eq(it).and(ONE_TIME_TOKEN.TOKEN_TYPE.eq(tokenType)))
                 .map(oneTimeTokenMapper::selectOneByCondition)
-                .filter(it -> tokenType.equals(it.getTokenType()))
                 .filter(it -> it.getCreatedAt().plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now()));
+        oneTimeTokenOptional.ifPresent(oneTimeTokenMapper::delete);
+        return oneTimeTokenOptional;
     }
+
 
 }

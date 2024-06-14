@@ -59,23 +59,16 @@ public class UserListen {
     @Async
     public void onRecover(RecoverEvent event) {
         final User user = event.getUser();
+        final RecoverParam recoverParam = event.getRecoverParam();
         final OneTimeToken oneTimeToken = oneTimeTokenService.recoverToken(user);
-
-
-        // todo add one time token
-//        final SignUpParam signUpParam = event.getSignUpParam();
-//        if (CharSequenceUtil.isNotEmpty(user.getEmail()) && Objects.isNull(user.getEmailConfirmedAt())) {
-//            sendSingUpByEmail(user, signUpParam);
-//        }
+        sendRecoverEmail(user, recoverParam, oneTimeToken);
     }
 
     private void sendRecoverEmail(User user, RecoverParam recoverParam, OneTimeToken oneTimeToken) {
         final String redirectTo = Optional.ofNullable(recoverParam).map(RecoverParam::getRedirectTo)
                 .orElseGet(ServletUtil::origin);
-        //  https://vxguqjxsufwgzhcnojsc.supabase.co/auth/v1/verify?
-        //  token=0f3186b9e85f51b12a9649c65f038c8a0c5c309df99d213380497139&type=recovery&redirect_to=http://localhost:5173/
-        final MessageParam messageParam = MessageParam.of(siteUrl, user.getEmail(), oneTimeToken.getTokenHash(), redirectTo);
 
+        final MessageParam messageParam = MessageParam.of(siteUrl, user.getEmail(), oneTimeToken.getTokenHash(), redirectTo);
         messageParam.genRecoverConfirmationURL();
         final AuthMimeMessagePreparator authMimeMessagePreparator =
                 mimeMessagePreparationFactory.ofResetPassword(user.getEmail(), messageParam);

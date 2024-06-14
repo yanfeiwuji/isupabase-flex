@@ -14,18 +14,16 @@ import io.github.yanfeiwuji.isupabase.auth.ex.AuthExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
 import io.github.yanfeiwuji.isupabase.auth.mapper.*;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
-import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtil;
 import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
 import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
+import io.micrometer.core.instrument.step.StepTuple2;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
@@ -50,8 +48,7 @@ public class AuthService {
 
     private final AuthenticationManager authenticationManager;
 
-
-    private final UserDetailsService userDetailsService;
+    private final ISupabaseProperties isupabaseProperties;
     private final JwtEncoder jwtEncoder;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
@@ -60,14 +57,16 @@ public class AuthService {
     private final IdentityMapper identityMapper;
     //  private  final AuthMimeMessagePreparationFactory mimeMessagePreparationFactory;
     private final ApplicationEventPublisher publisher;
-    private final ISupabaseProperties isupabaseProperties;
+
     private final OneTimeTokenMapper oneTimeTokenMapper;
     private final OneTimeTokenService oneTimeTokenService;
+    private final JWTService jwtService;
 
     private Long jwtExp;
     private Long passwordMinLength;
     private String passwordRequiredCharacters;
     private Long oneTimeExpiredMinutes;
+
 
     @PostConstruct
     public void init() {
@@ -91,21 +90,7 @@ public class AuthService {
             throw AuthExFactory.INVALID_GRANT_EMAIL_NOT_CONFIRMED;
         }
 
-        final Session session = new Session();
-        session.setUserId(principal.getId());
-        session.setAal(EAalLevel.ALL_1);
-        session.setUserAgent(ServletUtil.userAgent());
-        session.setIp(ServletUtil.ip());
-        sessionMapper.insert(session);
-
-        final RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setRevoked(false);
-        refreshToken.setUserId(principal.getId());
-        refreshToken.setToken(NanoId.randomNanoId());
-        refreshToken.setSessionId(session.getId());
-        refreshTokenMapper.insert(refreshToken);
-
-        return userToJwtClaimsSet(principal, session, refreshToken);
+        return jwtService.userToTokenInfo(principal);
     }
 
 
@@ -195,50 +180,20 @@ public class AuthService {
         sessionMapper.update(session);
 
         token.setRevoked(true);
-        final RefreshToken newToken = new RefreshToken();
-        newToken.setRevoked(false);
-        newToken.setUserId(token.getUserId());
-        newToken.setParent(token.getToken());
-        newToken.setToken(NanoId.randomNanoId());
-        newToken.setSessionId(session.getId());
-        refreshTokenMapper.insert(newToken);
+        final RefreshToken newRefreshToken = new RefreshToken();
+        newRefreshToken.setRevoked(false);
+        newRefreshToken.setUserId(token.getUserId());
+        newRefreshToken.setParent(token.getToken());
+        newRefreshToken.setToken(NanoId.randomNanoId());
+        newRefreshToken.setSessionId(session.getId());
+        refreshTokenMapper.insert(newRefreshToken);
 
         final Long userId = session.getUserId();
         final User user = userMapper.selectOneById(userId);
 
-        return userToJwtClaimsSet(user, session, newToken);
+        return jwtService.userToTokenInfo(user, session, newRefreshToken);
     }
 
-    private TokenInfo<User> userToJwtClaimsSet(User user, Session session, RefreshToken refreshToken) {
-        Objects.requireNonNull(user);
-        Objects.requireNonNull(session);
-        Objects.requireNonNull(refreshToken);
-        final JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
-                .audience(List.of(AuthStrPool.AUTHENTICATED_AUD))
-                .expiresAt(Instant.now().plusSeconds(jwtExp))
-                .issuedAt(Instant.now())
-                .issuer("https://github.com")
-                .subject(user.getId().toString())
-                .claim("email", Optional.ofNullable(user.getEmail()).orElse(CharSequenceUtil.EMPTY))
-                .claim("phone", Optional.ofNullable(user.getPhone()).orElse(CharSequenceUtil.EMPTY))
-                .claim("app_metadata", Optional.ofNullable(user.getRawAppMetaData()).orElse(Map.of()))
-                .claim("user_metadata", Optional.ofNullable(user.getRawAppMetaData()).orElse(Map.of()))
-                .claim("role", Optional.ofNullable(user.getRole()).orElse(AuthStrPool.ANON_ROLE))
-                .claim("aal", Optional.of(session).map(Session::getAal).map(EAalLevel::getCode).orElse(EAalLevel.ALL_1.getCode()))
-                .claim("amr", List.of(Map.of("method", "password")))
-                .claim("session_id", session.getId())
-                .claim("is_anonymous", user.isAnonymous())
-
-                .build();
-        final Jwt encode = jwtEncoder.encode(JwtEncoderParameters.from(jwtClaimsSet));
-        final String tokenValue = encode.getTokenValue();
-        return TokenInfo.<User>builder().accessToken(tokenValue)
-                .refreshToken(refreshToken.getToken())
-                .user(user)
-                .expiresIn(jwtExp)
-                .expiresAt(Objects.requireNonNull(encode.getExpiresAt()).getEpochSecond())
-                .tokenType(AuthStrPool.TOKE_TYPE).build();
-    }
 
     private void validPassword(String password) {
         List<String> reason = new ArrayList<>(2);
@@ -267,45 +222,29 @@ public class AuthService {
     }
 
 
-    public AuthExRes verifySignUp(String tokenHash) {
-
-        final Optional<OneTimeToken> oneTimeTokenOptional = oneTimeTokenService.verifyToken(tokenHash, ETokenType.CONFIRMATION_TOKEN);
-        if (oneTimeTokenOptional.isEmpty()) {
-            return AuthExRes.EMAIL_LINK_ERROR;
-        }
-        final OneTimeToken oneTimeToken = oneTimeTokenOptional.get();
-
-        AuthExRes authExRes = verifyConfirmationToken(oneTimeToken);
-        oneTimeTokenMapper.delete(oneTimeToken);
-        return authExRes;
-
-    }
-
-    private AuthExRes verifyConfirmationToken(OneTimeToken oneTimeToken) {
+    public void verifyConfirmationToken(OneTimeToken oneTimeToken) {
         final User user = userMapper.selectOneById(oneTimeToken.getUserId());
         if (Objects.isNull(user)) {
-            return AuthExRes.EMAIL_LINK_ERROR;
+            return;
         }
         final OffsetDateTime confirmationSentAt = user.getConfirmationSentAt();
         if (confirmationSentAt == null || confirmationSentAt.plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now())) {
-            return AuthExRes.EMAIL_LINK_ERROR;
+            return;
         }
         final OffsetDateTime now = OffsetDateTime.now();
         user.setConfirmedAt(now);
         user.setEmailConfirmedAt(now);
         user.setConfirmationToken(null);
         userMapper.update(user);
-        return null;
     }
 
 
-    // todo redirect to
-    public AuthExRes verifyRecovery(String tokenHash) {
-        final Optional<OneTimeToken> oneTimeTokenOptional = oneTimeTokenService.verifyToken(tokenHash, ETokenType.CONFIRMATION_TOKEN);
-        if (oneTimeTokenOptional.isEmpty()) {
-            return AuthExRes.EMAIL_LINK_ERROR;
-        } // todo
+    public Optional<TokenInfo<User>> verifyRecovery(OneTimeToken oneTimeToken) {
 
-        return null;
+        return Optional.ofNullable(oneTimeToken)
+                .map(OneTimeToken::getUserId)
+                .map(userMapper::selectOneById)
+                .map(jwtService::userToOTPTokenInfo);
+
     }
 }

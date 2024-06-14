@@ -27,7 +27,7 @@ public class AuthMimeMessagePreparationFactory {
 
     public AuthMimeMessagePreparator ofResetPassword(String email, MessageParam messageParam) {
         // only simple info
-        return new AuthMimeMessagePreparator("noreply", fromEmail, email, "Confirm Your Signup", """
+        return new AuthMimeMessagePreparator("noreply", fromEmail, email, "Reset Your Password", """
                 <h2>Reset Password</h2>
                 <p>Follow this link to reset the password for your user:</p>
                 <p><a href="%s">Reset Password</a></p>

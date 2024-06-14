@@ -1,27 +1,34 @@
 package io.github.yanfeiwuji.isupabase.auth.action;
 
 import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.StrUtil;
+import io.github.yanfeiwuji.isupabase.auth.action.param.PutUserParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.RecoverParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.TokenParam;
+import io.github.yanfeiwuji.isupabase.auth.entity.ETokenType;
+import io.github.yanfeiwuji.isupabase.auth.entity.OneTimeToken;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExRes;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
 import io.github.yanfeiwuji.isupabase.auth.service.AuthService;
+import io.github.yanfeiwuji.isupabase.auth.service.OneTimeTokenService;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
+import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author yanfeiwuji
@@ -33,6 +40,7 @@ import java.util.Objects;
 public class AuthAction {
     private final AuthService authService;
     private final UserMapper userMapper;
+    private final OneTimeTokenService oneTimeTokenService;
 
 
     @PostMapping("/token")
@@ -64,27 +72,52 @@ public class AuthAction {
                        @RequestParam("type") String type,
                        @RequestParam("redirect_to") String redirectTo,
                        HttpServletResponse response) throws IOException {
-        AuthExRes authExRes;
+
+        Optional<OneTimeToken> oneTimeTokenOptional;
         switch (type) {
-            case AuthStrPool.VERIFY_TYPE_SIGNUP -> authExRes = authService.verifySignUp(token);
-            // todo
-            case AuthStrPool.VERIFY_TYPE_RECOVERY -> authExRes = authService.verifyRecovery(token);
-            default -> authExRes = AuthExRes.EMAIL_LINK_ERROR;
+            case AuthStrPool.VERIFY_TYPE_SIGNUP ->
+                    oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.CONFIRMATION_TOKEN);
+
+            case AuthStrPool.VERIFY_TYPE_RECOVERY ->
+                    oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.RECOVERY_TOKEN);
+            default -> oneTimeTokenOptional = Optional.empty();
         }
 
-        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(redirectTo);
-        if (Objects.nonNull(authExRes)) {
-            uriComponentsBuilder
-                    .queryParam(AuthStrPool.QUERY_PARAM_ERROR, authExRes.error())
-                    .queryParam(AuthStrPool.QUERY_PARAM_ERROR_CODE, AuthStrPool.QUERY_PARAM_ERROR_CODE_DEFAULT_VALUE)
-                    .queryParam(AuthStrPool.QUERY_PARAM_ERROR_DESCRIPTION, authExRes.errorDescription());
-        }
-        final String uriString = uriComponentsBuilder.build().toUriString();
-        response.sendRedirect(uriString);
+        final String needRedirect = oneTimeTokenOptional.map(oneTimeToken -> {
+            switch (type) {
+                case AuthStrPool.VERIFY_TYPE_SIGNUP -> {
+                    authService.verifyConfirmationToken(oneTimeToken);
+                    return redirectTo;
+                }
+                case AuthStrPool.VERIFY_TYPE_RECOVERY -> {
+                    return authService.verifyRecovery(oneTimeToken).map(tokenInfo -> AuthStrPool.RECOVERY_ACCESS_TOKEN_URL_TEMP.formatted(
+                                    CharSequenceUtil.removeSuffix(redirectTo, StrPool.SLASH),
+                                    tokenInfo.getAccessToken(),
+                                    tokenInfo.getExpiresAt(),
+                                    tokenInfo.getExpiresIn(),
+                                    tokenInfo.getRefreshToken())
+                            )
+                            .orElseGet(() -> this.errorEmailLinkUrlString(redirectTo));
+                }
+                default -> {
+                    return redirectTo;
+                }
+            }
+        }).orElseGet(() -> this.errorEmailLinkUrlString(redirectTo));
+
+        response.sendRedirect(needRedirect);
+
+
     }
 
     @GetMapping("/user")
     public User user() {
+        return AuthUtil.uid().map(userMapper::selectOneById).orElseThrow();
+    }
+
+    @PutMapping("/user")
+    public User putUser(@RequestBody PutUserParam userParam) {
+        // todo edit user
         return AuthUtil.uid().map(userMapper::selectOneById).orElseThrow();
     }
 
@@ -122,4 +155,11 @@ public class AuthAction {
             }
         }
     }
+
+    private String errorEmailLinkUrlString(String redirectTo) {
+
+        return AuthStrPool.ERROR_EMAIL_LINK_URL_TEMP.formatted(CharSequenceUtil.removeSuffix(redirectTo, StrPool.SLASH));
+    }
+
+
 }
