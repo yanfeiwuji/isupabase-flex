@@ -87,8 +87,7 @@ public class AuthAction {
 
             case AuthStrPool.VERIFY_TYPE_RECOVERY ->
                     oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.RECOVERY_TOKEN);
-            case AuthStrPool.VERIFY_TYPE_EMAIL_CHANGE ->
-                    oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.EMAIL_CHANGE_TOKEN_CURRENT);
+            case AuthStrPool.VERIFY_TYPE_EMAIL_CHANGE -> oneTimeTokenOptional = oneTimeTokenService.verifyToken(token);
             default -> oneTimeTokenOptional = Optional.empty();
         }
 
@@ -146,7 +145,7 @@ public class AuthAction {
     }
 
     @PutMapping("/user")
-    public User putUser(@RequestBody PutUserParam userParam, @RequestParam("redirect_to") String redirectTo) {
+    public User putUser(@RequestBody PutUserParam userParam, @RequestParam(value = "redirect_to", required = false) String redirectTo) {
         userParam.setRedirectTo(redirectTo);
         return authService.putUser(userParam);
     }

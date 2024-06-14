@@ -73,5 +73,14 @@ public class OneTimeTokenService {
         return oneTimeTokenOptional;
     }
 
+    public Optional<OneTimeToken> verifyToken(String tokenHash) {
+        final Optional<OneTimeToken> oneTimeTokenOptional = Optional.ofNullable(tokenHash)
+                .map(ONE_TIME_TOKEN.TOKEN_HASH::eq)
+                .map(oneTimeTokenMapper::selectOneByCondition)
+                .filter(it -> it.getCreatedAt().plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now()));
+        oneTimeTokenOptional.ifPresent(oneTimeTokenMapper::delete);
+        return oneTimeTokenOptional;
+    }
+
 
 }
