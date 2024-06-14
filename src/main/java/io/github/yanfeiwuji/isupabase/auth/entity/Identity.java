@@ -27,9 +27,10 @@ public class Identity extends AuthBase {
     @Column(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> identityData;
     private String provider;
+    private String providerId;
     private OffsetDateTime lastSignInAt;
 
 
-    private OffsetDateTime email;
+    private String email;
 
 }

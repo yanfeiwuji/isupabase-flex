@@ -3,6 +3,7 @@ package io.github.yanfeiwuji.isupabase.auth.service;
 import cn.hutool.core.lang.id.NanoId;
 import cn.hutool.core.text.CharSequenceUtil;
 import io.github.yanfeiwuji.isupabase.auth.entity.*;
+import io.github.yanfeiwuji.isupabase.auth.event.EmailVerifiedEvent;
 import io.github.yanfeiwuji.isupabase.auth.mapper.RefreshTokenMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.SessionMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
@@ -12,6 +13,7 @@ import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -19,7 +21,6 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,6 +39,7 @@ public class JWTService {
     private final SessionMapper sessionMapper;
     private final RefreshTokenMapper refreshTokenMapper;
     private final UserMapper userMapper;
+    private final ApplicationEventPublisher publisher;
 
 
     private Long jwtExp;
@@ -65,10 +67,13 @@ public class JWTService {
     }
 
     public Optional<TokenInfo<User>> oneTimeTokenToOTPTokenInfo(OneTimeToken oneTimeToken) {
-        return Optional.ofNullable(oneTimeToken)
+        final Optional<TokenInfo<User>> userTokenInfoOptional = Optional.ofNullable(oneTimeToken)
                 .map(OneTimeToken::getUserId)
                 .map(userMapper::selectOneById)
                 .map(this::userToOTPTokenInfo);
+        userTokenInfoOptional.map(TokenInfo::getUser).map(it -> new EmailVerifiedEvent(this, it))
+                .ifPresent(publisher::publishEvent);
+        return userTokenInfoOptional;
 
     }
 
@@ -83,7 +88,7 @@ public class JWTService {
                 .claim("email", Optional.ofNullable(user.getEmail()).orElse(CharSequenceUtil.EMPTY))
                 .claim("phone", Optional.ofNullable(user.getPhone()).orElse(CharSequenceUtil.EMPTY))
                 .claim("app_metadata", Optional.ofNullable(user.getRawAppMetaData()).orElse(Map.of()))
-                .claim("user_metadata", Optional.ofNullable(user.getRawAppMetaData()).orElse(Map.of()))
+                .claim("user_metadata", Optional.ofNullable(user.getRawUserMetaData()).orElse(Map.of()))
                 .claim("role", Optional.ofNullable(user.getRole()).orElse(AuthStrPool.ANON_ROLE))
                 .claim("aal", Optional.of(session).map(Session::getAal).map(EAalLevel::getCode).orElse(EAalLevel.ALL_1.getCode()))
                 .claim("amr", Amr.of(amr))
@@ -131,5 +136,9 @@ public class JWTService {
 
     public TokenInfo<User> userToOTPTokenInfo(User user) {
         return userToTokenInfo(user, List.of(AuthStrPool.OTP));
+    }
+
+    public static void main(String[] args) {
+
     }
 }

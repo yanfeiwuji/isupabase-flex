@@ -65,6 +65,7 @@ public class OneTimeTokenService {
 
 
     public Optional<OneTimeToken> verifyToken(String tokenHash, ETokenType tokenType) {
+
         final Optional<OneTimeToken> oneTimeTokenOptional = Optional.ofNullable(tokenHash)
                 .map(it -> ONE_TIME_TOKEN.TOKEN_HASH.eq(it).and(ONE_TIME_TOKEN.TOKEN_TYPE.eq(tokenType)))
                 .map(oneTimeTokenMapper::selectOneByCondition)

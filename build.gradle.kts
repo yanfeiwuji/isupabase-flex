@@ -48,6 +48,7 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("com.mybatis-flex:mybatis-flex-processor:$mybatisFlexVersion")
     annotationProcessor("org.projectlombok:lombok")
+    runtimeOnly("com.mysql:mysql-connector-j")
 
     // developmentOnly("org.springframework.boot:spring-boot-devtools")
 }

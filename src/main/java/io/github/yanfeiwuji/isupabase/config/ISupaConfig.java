@@ -41,9 +41,9 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     @Bean
     public MyBatisFlexCustomizer myBatisFlexCustomizer() {
         return configuration -> {
-            configuration.setDbType(DbType.POSTGRE_SQL);
-            DialectFactory.registerDialect(DbType.POSTGRE_SQL,
-                    new AuthDialectImpl(KeywordWrap.DOUBLE_QUOTATION, LimitOffsetProcessor.POSTGRESQL)
+            //   configuration.setDbType(DbType.POSTGRE_SQL);
+            DialectFactory.registerDialect(DbType.MYSQL,
+                    new AuthDialectImpl(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL)
             );
         };
     }
@@ -71,18 +71,7 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
             ValueUtils.init(mapper);
             ApiReq.init(mapper, validatorAdapter);
             printAnnoToken(jwtEncoder);
-//            final RlsPolicy<SysUser> sysUser = new RlsPolicy<SysUser>(() -> {
-//
-//                return QueryCondition.createEmpty();
-//            }, (ls) -> {
-//                ls.forEach(it -> {
-//                    final Integer age = it.getAge();
-//                    System.out.println(age + "==");
-//                    System.out.println(it.toString());
-//                    System.out.println(it.getClass().getName());
-//                });
-//
-//            });
+
             final RlsPolicy<SysUser> sysUserRlsPolicy = RlsPolicy.<SysUser>of(() -> {
                 final Optional<Long> uid = AuthUtil.uid();
                 System.out.println(uid);

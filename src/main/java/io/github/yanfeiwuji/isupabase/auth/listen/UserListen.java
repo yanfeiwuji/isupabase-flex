@@ -4,19 +4,21 @@ import cn.hutool.core.text.CharSequenceUtil;
 import io.github.yanfeiwuji.isupabase.auth.action.param.RecoverParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.ETokenType;
+import io.github.yanfeiwuji.isupabase.auth.entity.Identity;
 import io.github.yanfeiwuji.isupabase.auth.entity.OneTimeToken;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
-import io.github.yanfeiwuji.isupabase.auth.event.ChangeEmailEvent;
-import io.github.yanfeiwuji.isupabase.auth.event.ChangePasswordEvent;
-import io.github.yanfeiwuji.isupabase.auth.event.RecoverEvent;
-import io.github.yanfeiwuji.isupabase.auth.event.SignUpEvent;
+import io.github.yanfeiwuji.isupabase.auth.event.*;
+import io.github.yanfeiwuji.isupabase.auth.mapper.IdentityMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.OneTimeTokenMapper;
+import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
+import io.github.yanfeiwuji.isupabase.auth.service.IdentityService;
 import io.github.yanfeiwuji.isupabase.auth.service.OneTimeTokenService;
 import io.github.yanfeiwuji.isupabase.auth.service.SessionService;
 import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparationFactory;
 import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparator;
 import io.github.yanfeiwuji.isupabase.auth.service.email.MessageParam;
 import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtil;
+import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
@@ -24,6 +26,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -43,6 +46,8 @@ public class UserListen {
     private final OneTimeTokenMapper oneTimeTokenMapper;
     private final OneTimeTokenService oneTimeTokenService;
     private final SessionService sessionService;
+    private final UserMapper userMapper;
+    private final IdentityService identityService;
 
     @EventListener(SignUpEvent.class)
     @Async
@@ -53,7 +58,15 @@ public class UserListen {
             putOneTimeToken(user);
             sendSingUpEmail(user, signUpParam);
         }
+    }
 
+
+    @EventListener(PreIdentityEvent.class)
+    public void onPreIdentityEvent(PreIdentityEvent event) {
+        final User user = event.getUser();
+        switch (event.provider) {
+            case AuthStrPool.IDENTITY_PROVIDER_EMAIL -> identityService.createEmailIdentity(user);
+        }
 
     }
 
@@ -67,6 +80,7 @@ public class UserListen {
     }
 
     @EventListener(ChangeEmailEvent.class)
+    @Async
     public void onChangeEmail(ChangeEmailEvent event) {
         final User user = event.getUser();
         // change email
@@ -80,6 +94,25 @@ public class UserListen {
     @EventListener(ChangePasswordEvent.class)
     public void onChangePassword(ChangePasswordEvent event) {
         sessionService.logoutGlobal();
+    }
+
+    @EventListener(FetchTokenEvent.class)
+    public void onFetchToken(FetchTokenEvent event) {
+        final User user = event.getUser();
+        user.setLastSignInAt(OffsetDateTime.now());
+        userMapper.update(user);
+    }
+
+    @EventListener(EmailVerifiedEvent.class)
+    public void onOneTimeTokenToJwt(EmailVerifiedEvent event) {
+        final User user = event.getUser();
+        //  use one time token then user’s  email confirmed
+        if (Objects.isNull(user.getEmailConfirmedAt())) {
+            user.setEmailConfirmedAt(OffsetDateTime.now());
+            userMapper.update(user);
+        }
+        identityService.emailVerifiedUserEmail(user);
+
     }
 
     private void sendEmailChangeTokenCurrent(User user, OneTimeToken oneTimeToken, String redirectTo) {

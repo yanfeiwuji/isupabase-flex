@@ -25,6 +25,7 @@ import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -50,6 +51,7 @@ public class AuthAction {
 
 
     @PostMapping("/token")
+    @Transactional
     public Object token(@RequestParam("grant_type") String grantType, @RequestBody TokenParam tokenParam) {
 
         switch (grantType) {
@@ -69,11 +71,13 @@ public class AuthAction {
     }
 
     @GetMapping("/authorize")
+    @Transactional
     public Object authorize(@RequestParam("provider") String provider) {
         return provider;
     }
 
     @GetMapping("/verify")
+    @Transactional
     public void verify(@RequestParam("token") String token,
                        @RequestParam("type") String type,
                        @RequestParam("redirect_to") String redirectTo,
@@ -84,7 +88,6 @@ public class AuthAction {
         switch (type) {
             case AuthStrPool.VERIFY_TYPE_SIGNUP ->
                     oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.CONFIRMATION_TOKEN);
-
             case AuthStrPool.VERIFY_TYPE_RECOVERY ->
                     oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.RECOVERY_TOKEN);
             case AuthStrPool.VERIFY_TYPE_EMAIL_CHANGE -> oneTimeTokenOptional = oneTimeTokenService.verifyToken(token);
@@ -136,21 +139,26 @@ public class AuthAction {
                 }
             }
         }).orElseGet(() -> this.errorEmailLinkUrlString(redirectTo));
+
+
         response.sendRedirect(needRedirect);
     }
 
     @GetMapping("/user")
+    @Transactional
     public User user() {
-        return AuthUtil.uid().map(userMapper::selectOneById).orElseThrow();
+        return AuthUtil.uid().map(userMapper::selectOneWithRelationsById).orElseThrow();
     }
 
     @PutMapping("/user")
+    @Transactional
     public User putUser(@RequestBody PutUserParam userParam, @RequestParam(value = "redirect_to", required = false) String redirectTo) {
         userParam.setRedirectTo(redirectTo);
         return authService.putUser(userParam);
     }
 
     @PostMapping("/recover")
+    @Transactional
     public Map<String, String> recover(@RequestBody RecoverParam recoverParam, @RequestParam(value = "redirect_to", required = false) String redirectTo) {
 
         recoverParam.setRedirectTo(redirectTo);
@@ -159,6 +167,7 @@ public class AuthAction {
     }
 
     @PostMapping("signup")
+    @Transactional
     public Object signUp(@RequestBody SignUpParam signUpParam,
 
                          @RequestParam(value = "redirect_to", required = false) String redirectTo) {
@@ -175,6 +184,7 @@ public class AuthAction {
 
 
     @PostMapping("logout")
+    @Transactional
     public void logout(@RequestParam String scope) {
         // session id
         switch (scope) {

@@ -9,10 +9,10 @@ import org.springframework.context.ApplicationEvent;
  * @date 2024/6/14 13:55
  */
 @Getter
-public abstract class ChangeUserEvent extends ApplicationEvent {
+public abstract class UserEvent extends ApplicationEvent {
     private final User user;
 
-    protected ChangeUserEvent(Object source, User user) {
+    protected UserEvent(Object source, User user) {
         super(source);
         this.user = user;
     }

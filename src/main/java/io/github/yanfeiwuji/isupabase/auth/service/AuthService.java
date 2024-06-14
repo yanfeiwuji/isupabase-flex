@@ -8,10 +8,7 @@ import io.github.yanfeiwuji.isupabase.auth.action.param.RecoverParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.*;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
-import io.github.yanfeiwuji.isupabase.auth.event.ChangeEmailEvent;
-import io.github.yanfeiwuji.isupabase.auth.event.ChangePasswordEvent;
-import io.github.yanfeiwuji.isupabase.auth.event.RecoverEvent;
-import io.github.yanfeiwuji.isupabase.auth.event.SignUpEvent;
+import io.github.yanfeiwuji.isupabase.auth.event.*;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExFactory;
 import io.github.yanfeiwuji.isupabase.auth.mapper.*;
@@ -36,7 +33,7 @@ import java.util.*;
 
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.IdentityTableDef.IDENTITY;
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.RefreshTokenTableDef.REFRESH_TOKEN;
-import static io.github.yanfeiwuji.isupabase.auth.entity.table.SessionTableDef.SESSION;
+
 import static io.github.yanfeiwuji.isupabase.auth.entity.table.UserTableDef.USER;
 
 /**
@@ -51,13 +48,12 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     private final ISupabaseProperties isupabaseProperties;
-    private final JwtEncoder jwtEncoder;
+
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final SessionMapper sessionMapper;
     private final RefreshTokenMapper refreshTokenMapper;
     private final IdentityMapper identityMapper;
-    //  private  final AuthMimeMessagePreparationFactory mimeMessagePreparationFactory;
     private final ApplicationEventPublisher publisher;
 
     private final JWTService jwtService;
@@ -87,7 +83,9 @@ public class AuthService {
         if (Objects.isNull(emailConfirmedAt)) {
             throw AuthExFactory.INVALID_GRANT_EMAIL_NOT_CONFIRMED;
         }
-
+        final List<Identity> identities = identityMapper.selectListByCondition(IDENTITY.USER_ID.eq(principal.getId()));
+        principal.setIdentities(identities);
+        publisher.publishEvent(new FetchTokenEvent(this, principal));
         return jwtService.userToTokenInfo(principal);
     }
 
@@ -97,24 +95,26 @@ public class AuthService {
         final User user = userMapper.selectOneByCondition(USER.EMAIL.eq(signUpParam.getEmail()));
         if (Objects.isNull(user)) {
             // reg
-
             final User newUser = signUpParam.toUser();
             newUser.setEncryptedPassword(passwordEncoder.encode(signUpParam.getPassword()));
 
             newUser.setConfirmationToken(NanoId.randomNanoId());
             newUser.setConfirmationSentAt(OffsetDateTime.now());
+
             userMapper.insert(newUser);
 
             publisher.publishEvent(new SignUpEvent(this, newUser, signUpParam));
+            publisher.publishEvent(new PreIdentityEvent(this, newUser, AuthStrPool.IDENTITY_PROVIDER_EMAIL));
             return newUser;
         } else {
 
-            final List<Identity> identities = identityMapper.selectListByCondition(IDENTITY.USER_ID.eq(user.getId()));
-            user.setIdentities(identities);
-            user.setConfirmationSentAt(OffsetDateTime.now());
+            if (Objects.isNull(user.getEmailConfirmedAt())) {
 
-            publisher.publishEvent(new SignUpEvent(this, user, signUpParam));
-            userMapper.update(user);
+                user.setConfirmationSentAt(OffsetDateTime.now());
+                publisher.publishEvent(new SignUpEvent(this, user, signUpParam));
+                userMapper.update(user);
+
+            }
             return user;
         }
     }
@@ -166,8 +166,9 @@ public class AuthService {
         refreshTokenMapper.insert(newRefreshToken);
 
         final Long userId = session.getUserId();
-        final User user = userMapper.selectOneById(userId);
+        final User user = userMapper.selectOneWithRelationsById(userId);
 
+        publisher.publishEvent(new FetchTokenEvent(this, user));
         return jwtService.userToTokenInfo(user, session, newRefreshToken);
     }
 
@@ -202,28 +203,13 @@ public class AuthService {
 
     public void verifyConfirmationToken(OneTimeToken oneTimeToken) {
         final User user = userMapper.selectOneById(oneTimeToken.getUserId());
-        if (Objects.isNull(user)) {
-            return;
-        }
-        final OffsetDateTime confirmationSentAt = user.getConfirmationSentAt();
-        if (confirmationSentAt == null || confirmationSentAt.plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now())) {
-            return;
-        }
+
         final OffsetDateTime now = OffsetDateTime.now();
         user.setConfirmedAt(now);
         user.setEmailConfirmedAt(now);
         user.setConfirmationToken(null);
+        publisher.publishEvent(new EmailVerifiedEvent(this, user));
         userMapper.update(user);
-    }
-
-
-    public Optional<TokenInfo<User>> verifyRecovery(OneTimeToken oneTimeToken) {
-
-        return Optional.ofNullable(oneTimeToken)
-                .map(OneTimeToken::getUserId)
-                .map(userMapper::selectOneById)
-                .map(jwtService::userToOTPTokenInfo);
-
     }
 
 
