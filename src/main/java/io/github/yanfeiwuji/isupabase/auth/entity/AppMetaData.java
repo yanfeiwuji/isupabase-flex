@@ -5,10 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author yanfeiwuji
@@ -19,22 +18,24 @@ import java.util.Optional;
 @NoArgsConstructor
 public class AppMetaData {
     private String provider;
-    private List<String> providers;
+    private Set<String> providers;
 
     public AppMetaData(String provider) {
-        this(provider, List.of(provider));
+        this(provider, Set.of(provider));
     }
 
     public static final AppMetaData EMAIL_APP_META_DATA = new AppMetaData(AuthStrPool.IDENTITY_PROVIDER_EMAIL);
 
     public static AppMetaData addProvider(AppMetaData appMetaData, String provider) {
-
-        final List<String> providers = Optional.ofNullable(appMetaData)
-                .map(AppMetaData::getProviders).orElse(Collections.singletonList(provider));
-        final AppMetaData need = Optional.ofNullable(appMetaData).orElse(new AppMetaData(provider));
-        need.setProviders(providers);
-        return need;
-
-
+        if (Objects.isNull(appMetaData)) {
+            return new AppMetaData(provider);
+        } else {
+            final Set<String> needProviders = appMetaData.getProviders();
+            final Set<String> collect = Stream.concat(needProviders.stream(), Stream.of(provider)).collect(Collectors.toSet());
+            appMetaData.setProviders(collect);
+            return appMetaData;
+        }
     }
+
+
 }
