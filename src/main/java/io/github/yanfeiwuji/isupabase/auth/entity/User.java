@@ -56,7 +56,7 @@ public class User extends AuthBase implements UserDetails {
 
     @Column(typeHandler = JacksonTypeHandler.class)
     @JsonProperty("app_metadata")
-    private Map<String, Object> rawAppMetaData;
+    private AppMetaData rawAppMetaData;
 
     @Column(typeHandler = JacksonTypeHandler.class)
     @JsonProperty("user_metadata")

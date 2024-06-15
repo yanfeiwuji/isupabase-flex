@@ -15,7 +15,7 @@ import java.util.Optional;
  * @date 2024/6/10 17:01
  */
 @UtilityClass
-public class AuthUtil {
+public class AuthUtils {
     public Optional<Jwt> jwt() {
         return Optional.of(SecurityContextHolder.getContext()).map(SecurityContext::getAuthentication)
                 .map(Authentication::getPrincipal)

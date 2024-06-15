@@ -27,6 +27,10 @@ public class AuthStrPool {
 
 
     public static final String ORIGIN_HEADER_KEY = "Origin";
+    public static final String REFERER_HEADER_KEY = "Referer";
+
+
+    public static final String AUTH_CALL_BACK_URL_TEMP = "%s/" + PgrstStrPool.AUTH_RPC_PATH + "/callback";
 
     public static final String CONFIRM_SIGN_UP_URL_TEMP =
             "%s/" + PgrstStrPool.AUTH_RPC_PATH + "/verify?token=%s&type=signup&redirect_to=%s";
@@ -43,8 +47,8 @@ public class AuthStrPool {
 
     public static final String RECOVERY_ACCESS_TOKEN_URL_TEMP = "%s/#access_token=%s&expires_at=%d&expires_in=%d&refresh_token=%s&token_type=bearer&type=recovery";
     public static final String EMAIL_CHANGE_ACCESS_TOKEN_URL_TEMP = "%s/#access_token=%s&expires_at=%d&expires_in=%d&refresh_token=%s&token_type=bearer&type=email_change";
-    public static final String EMAIL_CHANGE_FIRST_URL = "%s/#message=Confirmation+link+accepted.+Please+proceed+to+confirm+link+sent+to+the+other+email";
-
+    public static final String EMAIL_CHANGE_FIRST_URL_TEMP = "%s/#message=Confirmation+link+accepted.+Please+proceed+to+confirm+link+sent+to+the+other+email";
+    public static final String ERROR_GETTING_USER_PROFILE_FROM_EXTERNAL_PROVIDER_URL_TEMP = "%s/error=server_error&error_code=500&error_description=Error+getting+user+profile+from+external+provider#error=server_error&error_code=500&error_description=Error+getting+user+profile+from+external+provider";
     public static final String EMAIL_CONTENT_TYPE = "text/html; charset=utf-8";
 
     public static final String VERIFY_TYPE_SIGNUP = "signup";
@@ -61,5 +65,17 @@ public class AuthStrPool {
     public static final String OTP = "otp";
 
     public static final String IDENTITY_PROVIDER_EMAIL = "email";
+
+
+    public static final String KEY_SITE_URL = "site_url";
+    public static final String KEY_STATE_TOKEN_ID = "id";
+    public static final String KEY_PROVIDER = "provider";
+
+    public static final String KEY_PROVIDERS = "providers";
+    public static final String KEY_REFERRER = "referrer";
+    public static final String KEY_FLOW_STATE_ID = "flow_state_id";
+    public static final String KEY_FUNCTION_HOOKS = "function_hooks";
+
+    public static final String VALUE_STATE_TOKEN_ID = "00000000-0000-0000-0000-000000000000";
 
 }

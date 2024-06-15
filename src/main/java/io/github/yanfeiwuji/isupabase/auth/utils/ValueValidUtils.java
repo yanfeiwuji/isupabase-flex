@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
  * @date 2024/6/14 13:37
  */
 @UtilityClass
-public class ValueValidUtil {
+public class ValueValidUtils {
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
 

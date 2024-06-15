@@ -2,7 +2,7 @@ package io.github.yanfeiwuji.isupabase.auth.service;
 
 import io.github.yanfeiwuji.isupabase.auth.mapper.RefreshTokenMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.SessionMapper;
-import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
+import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +22,7 @@ public class SessionService {
     private final RefreshTokenMapper refreshTokenMapper;
 
     public void logoutGlobal() {
-        final Optional<Long> uid = AuthUtil.uid();
+        final Optional<Long> uid = AuthUtils.uid();
         if (uid.isEmpty()) {
             return;
         }
@@ -31,7 +31,7 @@ public class SessionService {
     }
 
     public void logoutLocal() {
-        final Optional<Long> sessionId = AuthUtil.sessionId();
+        final Optional<Long> sessionId = AuthUtils.sessionId();
 
         if (sessionId.isEmpty()) {
             return;

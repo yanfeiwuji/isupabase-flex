@@ -9,7 +9,5 @@ import com.mybatisflex.annotation.UpdateListener;
 public class UpdateI implements UpdateListener {
     @Override
     public void onUpdate(Object o) {
-        System.out.println("update");
-        System.out.println(o);
     }
 }

@@ -1,14 +1,12 @@
 package io.github.yanfeiwuji.isupabase.auth.ex;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
-import io.github.yanfeiwuji.isupabase.auth.utils.ISupabasePropertiesUtil;
+import io.github.yanfeiwuji.isupabase.auth.utils.ISupabasePropertiesUtils;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -24,9 +22,10 @@ public class AuthCmExFactory {
     public static final AuthCmEx PHONE_PROVIDER_DISABLE = AuthCmExRes.PHONE_PROVIDER_DISABLE.authCmEx();
     public static final AuthCmEx SAME_PASSWORD = AuthCmExRes.SAME_PASSWORD.authCmEx();
     public static final AuthCmEx EMAIL_EXISTS = AuthCmExRes.EMAIL_EXISTS.authCmEx();
+    private static final AuthCmEx UNSUPPORTED_PROVIDER = AuthCmExRes.UNSUPPORTED_PROVIDER.authCmEx();
 
     public AuthCmEx weakPassword(List<String> reasons) {
-        final Map<String, String> stringStringMap = ISupabasePropertiesUtil.weakPasswordMap();
+        final Map<String, String> stringStringMap = ISupabasePropertiesUtils.weakPasswordMap();
         final String message = reasons.stream().map(stringStringMap::get)
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(CharSequenceUtil.SPACE));
@@ -41,5 +40,9 @@ public class AuthCmExFactory {
 
     public AuthCmEx validateEmail() {
         return VALIDATION_FAILED_EMAIL;
+    }
+
+    public AuthCmEx unsupportedProvider() {
+        return UNSUPPORTED_PROVIDER;
     }
 }

@@ -22,7 +22,7 @@ repositories {
 var mybatisFlexVersion = "1.9.2"
 var hutoolVersion = "5.8.26"
 var guavaVersion = "33.2.0-jre"
-
+var justAuthVersion = "1.16.6"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -31,6 +31,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("cn.hutool:hutool-core:$hutoolVersion")
+    implementation("cn.hutool:hutool-http:$hutoolVersion")
     implementation("com.mybatis-flex:mybatis-flex-spring-boot3-starter:$mybatisFlexVersion")
     // implementation("com.google.guava:guava:$guavaVersion")
 
@@ -39,9 +40,11 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
     implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("org.springframework.boot:spring-boot-starter-cache")
+// https://mvnrepository.com/artifact/me.zhyd.oauth/JustAuth
+    implementation("me.zhyd.oauth:JustAuth:$justAuthVersion")
 
-    runtimeOnly("org.postgresql:postgresql")
+
+//    runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 

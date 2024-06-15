@@ -50,7 +50,7 @@ public class ReqHandler implements IReqHandler {
 
     @Override
     public ServerResponse onError(Throwable throwable, ServerRequest request) {
-        System.out.println("dd on error " + throwable.getMessage());
+
         return Optional.of(throwable)
                 .filter(PgrstEx.class::isInstance)
                 .map(PgrstEx.class::cast)

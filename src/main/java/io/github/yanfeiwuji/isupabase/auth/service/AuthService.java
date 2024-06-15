@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.auth.service;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.id.NanoId;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.BooleanUtil;
@@ -12,20 +13,21 @@ import io.github.yanfeiwuji.isupabase.auth.event.*;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExFactory;
 import io.github.yanfeiwuji.isupabase.auth.mapper.*;
-import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
-import io.github.yanfeiwuji.isupabase.auth.utils.ValueValidUtil;
+import io.github.yanfeiwuji.isupabase.auth.utils.AuthProviderUtils;
+import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
+import io.github.yanfeiwuji.isupabase.auth.utils.ValueValidUtils;
 import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
 import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import me.zhyd.oauth.model.AuthUser;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -100,20 +102,17 @@ public class AuthService {
 
             newUser.setConfirmationToken(NanoId.randomNanoId());
             newUser.setConfirmationSentAt(OffsetDateTime.now());
+            newUser.setRawAppMetaData(AppMetaData.EMAIL_APP_META_DATA);
 
             userMapper.insert(newUser);
-
             publisher.publishEvent(new SignUpEvent(this, newUser, signUpParam));
-            publisher.publishEvent(new PreIdentityEvent(this, newUser, AuthStrPool.IDENTITY_PROVIDER_EMAIL));
             return newUser;
         } else {
 
             if (Objects.isNull(user.getEmailConfirmedAt())) {
-
                 user.setConfirmationSentAt(OffsetDateTime.now());
                 publisher.publishEvent(new SignUpEvent(this, user, signUpParam));
                 userMapper.update(user);
-
             }
             return user;
         }
@@ -214,15 +213,17 @@ public class AuthService {
 
 
     public User putUser(PutUserParam putUserParam) {
-        Long uid = AuthUtil.uid().orElseThrow(() -> new AccessDeniedException(CharSequenceUtil.EMPTY));
+        Long uid = AuthUtils.uid().orElseThrow(() -> new AccessDeniedException(CharSequenceUtil.EMPTY));
         final User user = userMapper.selectOneById(uid);
 
         Optional.ofNullable(putUserParam).map(PutUserParam::getPassword).ifPresent(pwd -> {
             validPassword(pwd);
-            if (passwordEncoder.matches(pwd, user.getPassword())) {
-                throw AuthCmExFactory.SAME_PASSWORD;
-            }
-
+            Optional.ofNullable(user.getPassword())
+                    .ifPresent(userCurrentPwd -> {
+                        if (passwordEncoder.matches(pwd, userCurrentPwd)) {
+                            throw AuthCmExFactory.SAME_PASSWORD;
+                        }
+                    });
             final String encodeNewPassword = passwordEncoder.encode(pwd);
             // set new password
             user.setEncryptedPassword(encodeNewPassword);
@@ -230,7 +231,7 @@ public class AuthService {
         });
         // change email
         Optional.ofNullable(putUserParam).map(PutUserParam::getEmail)
-                .filter(ValueValidUtil::isEmail)
+                .filter(ValueValidUtils::isEmail)
                 .ifPresent(email -> {
                     final long countEmail = userMapper.selectCountByCondition(USER.EMAIL.eq(email));
                     if (countEmail > 0) {
@@ -283,5 +284,22 @@ public class AuthService {
 
         }
         return null;
+    }
+
+    public void identityConfirmByEmail(String provider, AuthUser authUser) {
+
+        User user = userMapper.selectOneByCondition(USER.EMAIL.eq(authUser.getEmail()));
+        if (Objects.isNull(user)) {
+            user = new User();
+            user.setEmail(authUser.getEmail());
+            user.setRole(AuthStrPool.AUTHENTICATED_ROLE);
+            user.setAud(AuthStrPool.AUTHENTICATED_AUD);
+            user.setEmail(authUser.getEmail());
+            user.setAnonymous(false);
+            user.setRawUserMetaData(Map.of(AuthStrPool.KEY_PROVIDER, provider, AuthStrPool.KEY_PROVIDERS, List.of(provider)));
+            user.setEmailConfirmedAt(OffsetDateTime.now());
+            userMapper.insert(user);
+        }
+        publisher.publishEvent(new OauthIdentityConfirmEvent(this, user, provider, authUser));
     }
 }

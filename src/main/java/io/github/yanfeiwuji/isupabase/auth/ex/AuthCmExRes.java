@@ -24,6 +24,8 @@ public record AuthCmExRes(String code, String message,
 
     public static final AuthCmExRes SAME_PASSWORD = new AuthCmExRes("same_password", "New password should be different from the old password.");
 
+    public static final AuthCmExRes UNSUPPORTED_PROVIDER = new AuthCmExRes("400", "validation_failed", Map.of("msg", "Unsupported provider: provider is not enabled"));
+
     public AuthCmEx authCmEx() {
         return new AuthCmEx(this);
     }

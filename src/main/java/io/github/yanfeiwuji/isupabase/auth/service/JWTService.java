@@ -2,22 +2,21 @@ package io.github.yanfeiwuji.isupabase.auth.service;
 
 import cn.hutool.core.lang.id.NanoId;
 import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.StrUtil;
 import io.github.yanfeiwuji.isupabase.auth.entity.*;
 import io.github.yanfeiwuji.isupabase.auth.event.EmailVerifiedEvent;
 import io.github.yanfeiwuji.isupabase.auth.mapper.RefreshTokenMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.SessionMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
-import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtil;
+import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtils;
+import io.github.yanfeiwuji.isupabase.auth.vo.StateTokenInfo;
 import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
 import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -36,6 +35,7 @@ public class JWTService {
 
     private final ISupabaseProperties isupabaseProperties;
     private final JwtEncoder jwtEncoder;
+    private final JwtDecoder jwtDecoder;
     private final SessionMapper sessionMapper;
     private final RefreshTokenMapper refreshTokenMapper;
     private final UserMapper userMapper;
@@ -46,6 +46,7 @@ public class JWTService {
     private Long passwordMinLength;
     private String passwordRequiredCharacters;
     private Long oneTimeExpiredMinutes;
+    private String siteUrl;
 
     private record Amr(String method, Long timestamp) {
         public Amr(String method) {
@@ -64,6 +65,7 @@ public class JWTService {
         this.passwordMinLength = isupabaseProperties.getPasswordMinLength();
         this.passwordRequiredCharacters = isupabaseProperties.getPasswordRequiredCharacters();
         this.oneTimeExpiredMinutes = isupabaseProperties.getOneTimeExpiredMinutes();
+        this.siteUrl = isupabaseProperties.getSiteUrl();
     }
 
     public Optional<TokenInfo<User>> oneTimeTokenToOTPTokenInfo(OneTimeToken oneTimeToken) {
@@ -87,13 +89,13 @@ public class JWTService {
                 .subject(user.getId().toString())
                 .claim("email", Optional.ofNullable(user.getEmail()).orElse(CharSequenceUtil.EMPTY))
                 .claim("phone", Optional.ofNullable(user.getPhone()).orElse(CharSequenceUtil.EMPTY))
-                .claim("app_metadata", Optional.ofNullable(user.getRawAppMetaData()).orElse(Map.of()))
                 .claim("user_metadata", Optional.ofNullable(user.getRawUserMetaData()).orElse(Map.of()))
                 .claim("role", Optional.ofNullable(user.getRole()).orElse(AuthStrPool.ANON_ROLE))
                 .claim("aal", Optional.of(session).map(Session::getAal).map(EAalLevel::getCode).orElse(EAalLevel.ALL_1.getCode()))
                 .claim("amr", Amr.of(amr))
                 .claim("session_id", session.getId())
                 .claim("is_anonymous", user.isAnonymous())
+                .claims(map -> map.put("app_metadata", user.getRawAppMetaData()))
                 .build();
 
         final Jwt encode = jwtEncoder.encode(JwtEncoderParameters.from(jwtClaimsSet));
@@ -112,8 +114,8 @@ public class JWTService {
         final Session session = new Session();
         session.setUserId(user.getId());
         session.setAal(EAalLevel.ALL_1);
-        session.setUserAgent(ServletUtil.userAgent());
-        session.setIp(ServletUtil.ip());
+        session.setUserAgent(ServletUtils.userAgent());
+        session.setIp(ServletUtils.ip());
         sessionMapper.insert(session);
 
         final RefreshToken refreshToken = new RefreshToken();
@@ -136,6 +138,27 @@ public class JWTService {
 
     public TokenInfo<User> userToOTPTokenInfo(User user) {
         return userToTokenInfo(user, List.of(AuthStrPool.OTP));
+    }
+
+
+    public String stateToken(String provider, String referrer) {
+        final JwtClaimsSet claimsSet = JwtClaimsSet.builder().expiresAt(Instant.now().plusSeconds(jwtExp))
+                .claim(AuthStrPool.KEY_SITE_URL, siteUrl)
+                // from supabase
+                .claim(AuthStrPool.KEY_STATE_TOKEN_ID, AuthStrPool.VALUE_STATE_TOKEN_ID)
+                .claim(AuthStrPool.KEY_PROVIDER, provider)
+                .claim(AuthStrPool.KEY_REFERRER, referrer)
+                .claim(AuthStrPool.KEY_FLOW_STATE_ID, CharSequenceUtil.EMPTY)
+                .claims(m -> m.put(AuthStrPool.KEY_FUNCTION_HOOKS, null))
+                .build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(claimsSet)).getTokenValue();
+    }
+
+    public StateTokenInfo decodeStateToken(String token) {
+        final Jwt jwt = jwtDecoder.decode(token);
+        // final Instant expiresAt = jwt.getExpiresAt();
+
+        return StateTokenInfo.of(jwt);
     }
 
     public static void main(String[] args) {

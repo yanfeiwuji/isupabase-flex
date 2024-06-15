@@ -11,13 +11,12 @@ import org.springframework.context.ApplicationEvent;
  * @date 2024/6/13 15:41
  */
 @Getter
-public class SignUpEvent extends ApplicationEvent {
-    private final User user;
-    private final SignUpParam signUpParam;
+public class SignUpEvent extends UserEvent {
+    private final transient SignUpParam signUpParam;
 
     public SignUpEvent(Object source, User user, SignUpParam signUpParam) {
-        super(source);
-        this.user = user;
+        super(source, user);
+
         this.signUpParam = signUpParam;
     }
 }

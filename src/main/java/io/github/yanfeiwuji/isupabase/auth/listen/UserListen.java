@@ -4,11 +4,9 @@ import cn.hutool.core.text.CharSequenceUtil;
 import io.github.yanfeiwuji.isupabase.auth.action.param.RecoverParam;
 import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.ETokenType;
-import io.github.yanfeiwuji.isupabase.auth.entity.Identity;
 import io.github.yanfeiwuji.isupabase.auth.entity.OneTimeToken;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
 import io.github.yanfeiwuji.isupabase.auth.event.*;
-import io.github.yanfeiwuji.isupabase.auth.mapper.IdentityMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.OneTimeTokenMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
 import io.github.yanfeiwuji.isupabase.auth.service.IdentityService;
@@ -17,9 +15,10 @@ import io.github.yanfeiwuji.isupabase.auth.service.SessionService;
 import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparationFactory;
 import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparator;
 import io.github.yanfeiwuji.isupabase.auth.service.email.MessageParam;
-import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtil;
+import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtils;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import lombok.RequiredArgsConstructor;
+import me.zhyd.oauth.model.AuthUser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -27,6 +26,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -61,14 +62,7 @@ public class UserListen {
     }
 
 
-    @EventListener(PreIdentityEvent.class)
-    public void onPreIdentityEvent(PreIdentityEvent event) {
-        final User user = event.getUser();
-        switch (event.provider) {
-            case AuthStrPool.IDENTITY_PROVIDER_EMAIL -> identityService.createEmailIdentity(user);
-        }
 
-    }
 
     @EventListener(RecoverEvent.class)
     @Async
@@ -96,6 +90,18 @@ public class UserListen {
         sessionService.logoutGlobal();
     }
 
+
+    // identityConfirm
+    @EventListener(OauthIdentityConfirmEvent.class)
+    public void onOauthIdentityConfirm(OauthIdentityConfirmEvent event) {
+        final User user = event.getUser();
+        final String provider = event.getProvider();
+        final AuthUser userInfo = event.getUserInfo();
+        final Map<String, Object> identityData = event.getIdentityData();
+
+        identityService.identityConfirm(user, provider, userInfo.getUuid(), identityData);
+    }
+
     @EventListener(FetchTokenEvent.class)
     public void onFetchToken(FetchTokenEvent event) {
         final User user = event.getUser();
@@ -104,19 +110,19 @@ public class UserListen {
     }
 
     @EventListener(EmailVerifiedEvent.class)
-    public void onOneTimeTokenToJwt(EmailVerifiedEvent event) {
+    public void onEmailVerified(EmailVerifiedEvent event) {
         final User user = event.getUser();
         //  use one time token then user’s  email confirmed
         if (Objects.isNull(user.getEmailConfirmedAt())) {
             user.setEmailConfirmedAt(OffsetDateTime.now());
             userMapper.update(user);
         }
-        identityService.emailVerifiedUserEmail(user);
+        identityService.identityConfirm(user, AuthStrPool.IDENTITY_PROVIDER_EMAIL, String.valueOf(user.getId()), new HashMap<>());
 
     }
 
     private void sendEmailChangeTokenCurrent(User user, OneTimeToken oneTimeToken, String redirectTo) {
-        final String needRedirectTo = Optional.ofNullable(redirectTo).orElseGet(ServletUtil::origin);
+        final String needRedirectTo = Optional.ofNullable(redirectTo).orElseGet(ServletUtils::origin);
         final MessageParam messageParam = MessageParam.of(siteUrl, user.getEmail(), user.getEmailChange(), oneTimeToken.getTokenHash(), needRedirectTo);
         messageParam.genEmailChangeConfirmationURL();
 
@@ -127,7 +133,7 @@ public class UserListen {
 
     private void sendEmailChangeTokenNew(User user, OneTimeToken oneTimeToken, String redirectTo) {
 
-        final String needRedirectTo = Optional.ofNullable(redirectTo).orElseGet(ServletUtil::origin);
+        final String needRedirectTo = Optional.ofNullable(redirectTo).orElseGet(ServletUtils::origin);
         final MessageParam messageParam = MessageParam.of(siteUrl, user.getEmail(), user.getEmailChange(), oneTimeToken.getTokenHash(), needRedirectTo);
         messageParam.genEmailChangeConfirmationURL();
 
@@ -139,7 +145,7 @@ public class UserListen {
 
     private void sendRecoverEmail(User user, RecoverParam recoverParam, OneTimeToken oneTimeToken) {
         final String redirectTo = Optional.ofNullable(recoverParam).map(RecoverParam::getRedirectTo)
-                .orElseGet(ServletUtil::origin);
+                .orElseGet(ServletUtils::origin);
 
         final MessageParam messageParam = MessageParam.of(siteUrl, user.getEmail(), oneTimeToken.getTokenHash(), redirectTo);
         messageParam.genRecoverConfirmationURL();
@@ -162,7 +168,7 @@ public class UserListen {
     private void sendSingUpEmail(User user, SignUpParam signUpParam) {
 
         final String redirectTo = Optional.ofNullable(signUpParam).map(SignUpParam::getRedirectTo)
-                .orElseGet(ServletUtil::origin);
+                .orElseGet(ServletUtils::origin);
 
         final MessageParam messageParam =
                 MessageParam.of(siteUrl, user.getEmail(), user.getConfirmationToken(), redirectTo);

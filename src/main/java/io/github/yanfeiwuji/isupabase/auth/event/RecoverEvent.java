@@ -11,8 +11,8 @@ import org.springframework.context.ApplicationEvent;
  */
 @Getter
 public class RecoverEvent extends ApplicationEvent {
-    private final User user;
-    private final RecoverParam recoverParam;
+    private final transient User user;
+    private final transient RecoverParam recoverParam;
 
     public RecoverEvent(Object source, User user, RecoverParam recoverParam) {
         super(source);

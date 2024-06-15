@@ -10,7 +10,7 @@ import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 
-import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtil;
+import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.entity.SysUser;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
@@ -18,6 +18,8 @@ import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 
+import me.zhyd.oauth.cache.AuthDefaultStateCache;
+import me.zhyd.oauth.cache.AuthStateCache;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -32,7 +34,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Configuration
@@ -73,9 +74,9 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
             printAnnoToken(jwtEncoder);
 
             final RlsPolicy<SysUser> sysUserRlsPolicy = RlsPolicy.<SysUser>of(() -> {
-                final Optional<Long> uid = AuthUtil.uid();
+                final Optional<Long> uid = AuthUtils.uid();
                 System.out.println(uid);
-                AuthUtil.uid().ifPresent(System.out::println);
+                AuthUtils.uid().ifPresent(System.out::println);
                 return QueryCondition.createEmpty();
             });
             AuthDialectImpl.loadRls(List.of(new RlsPolicyFor("sys_user", OperateType.SELECT, sysUserRlsPolicy)));
@@ -102,7 +103,11 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
                 .expiresAt(Instant.EPOCH.plusSeconds(100L * 365 * 24 * 60 * 60))
                 .build());
         final Jwt encode = jwtEncoder.encode(parameters);
-        System.out.println(encode.getTokenValue());
 
+    }
+
+    @Bean
+    public AuthStateCache authStateCache() {
+        return AuthDefaultStateCache.INSTANCE;
     }
 }

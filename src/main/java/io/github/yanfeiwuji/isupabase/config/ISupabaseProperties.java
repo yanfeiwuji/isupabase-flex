@@ -1,8 +1,17 @@
 package io.github.yanfeiwuji.isupabase.config;
 
+import com.xkcoding.http.config.HttpConfig;
+import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
+import me.zhyd.oauth.config.AuthConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author yanfeiwuji
@@ -22,5 +31,20 @@ public class ISupabaseProperties {
     private String siteUrl;
 
     private Long oneTimeExpiredMinutes = 5L;
+    private List<String> redirectUrls = List.of();
+    private Map<String, AuthConfig> authProviders = Map.of();
 
+
+    @PostConstruct
+    public void init() {
+//        final HttpConfig httpConfig = HttpConfig.builder()
+//                .timeout(15000)
+//                .proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 1082)))
+//                .build();
+        authProviders.forEach((k, v) -> {
+            v.setRedirectUri(AuthStrPool.AUTH_CALL_BACK_URL_TEMP.formatted(this.siteUrl));
+         //   v.setHttpConfig(httpConfig); //v.setHttpConfig();
+        });
+
+    }
 }

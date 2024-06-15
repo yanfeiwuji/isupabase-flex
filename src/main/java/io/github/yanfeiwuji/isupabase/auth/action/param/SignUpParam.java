@@ -3,14 +3,13 @@ package io.github.yanfeiwuji.isupabase.auth.action.param;
 import ch.qos.logback.core.util.StringUtil;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
-import io.github.yanfeiwuji.isupabase.auth.utils.ValueValidUtil;
+import io.github.yanfeiwuji.isupabase.auth.utils.ValueValidUtils;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import jakarta.validation.constraints.Email;
 import lombok.Data;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * @author yanfeiwuji
@@ -50,7 +49,7 @@ public class SignUpParam {
 
     public SignUpParam validEmail() {
         Optional.ofNullable(email)
-                .filter(ValueValidUtil::isEmail)
+                .filter(ValueValidUtils::isEmail)
                 .orElseThrow(() -> AuthCmExFactory.VALIDATION_FAILED_EMAIL);
         return this;
     }

@@ -4,6 +4,7 @@ import io.github.yanfeiwuji.isupabase.request.anno.Rpc;
 import io.github.yanfeiwuji.isupabase.request.anno.RpcMapping;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * @author yanfeiwuji
@@ -15,4 +16,5 @@ public class RpcController {
     public List<String> a() {
         return List.of("test");
     }
+
 }

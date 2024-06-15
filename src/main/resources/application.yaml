@@ -34,5 +34,18 @@ isupabase:
   jwt-exp: 3600
   password-min-length: 6
   password-required-characters: ""
-  site-url: http://localhost:8080
+  site-url: https://385b-2610-150-3b21-0-216-3cff-fe09-e1be.ngrok-free.app
   one-time-expired-minutes: 5
+  auth-providers:
+    github:
+      client-id: Iv23liJHJk6CCEs9PmFa
+      client-secret: 04d6cfdb49cbe3119bbdd1e643a4ca98180706b4
+      scopes:
+        - user:email
+    gitee:
+      client-id: 23b803a4405cc613438532233c565d10be8c062f3ab2e1675665b255db83598f
+      client-secret: 8f18b25f223102bd7ac059ffe4b9fe0f4c51bc7350027ddc9921019764ba5c07
+      scopes:
+        - emails
+  redirect-urls:
+    - http://*.baidu.com

@@ -1,7 +1,6 @@
 package io.github.yanfeiwuji.isupabase.auth.service;
 
 import cn.hutool.core.lang.id.NanoId;
-import com.mybatisflex.core.query.QueryCondition;
 import io.github.yanfeiwuji.isupabase.auth.entity.ETokenType;
 import io.github.yanfeiwuji.isupabase.auth.entity.OneTimeToken;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
@@ -9,6 +8,8 @@ import io.github.yanfeiwuji.isupabase.auth.mapper.OneTimeTokenMapper;
 import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -23,6 +24,7 @@ import static io.github.yanfeiwuji.isupabase.auth.entity.table.OneTimeTokenTable
 @Service
 @RequiredArgsConstructor
 public class OneTimeTokenService {
+    private static final Logger log = LoggerFactory.getLogger(OneTimeTokenService.class);
     private final OneTimeTokenMapper oneTimeTokenMapper;
 
     private final ISupabaseProperties iSupabaseProperties;
@@ -65,22 +67,20 @@ public class OneTimeTokenService {
 
 
     public Optional<OneTimeToken> verifyToken(String tokenHash, ETokenType tokenType) {
-
         final Optional<OneTimeToken> oneTimeTokenOptional = Optional.ofNullable(tokenHash)
                 .map(it -> ONE_TIME_TOKEN.TOKEN_HASH.eq(it).and(ONE_TIME_TOKEN.TOKEN_TYPE.eq(tokenType)))
-                .map(oneTimeTokenMapper::selectOneByCondition)
-                .filter(it -> it.getCreatedAt().plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now()));
+                .map(oneTimeTokenMapper::selectOneByCondition);
+        // has then delete
         oneTimeTokenOptional.ifPresent(oneTimeTokenMapper::delete);
-        return oneTimeTokenOptional;
+        return oneTimeTokenOptional.filter(it -> it.getCreatedAt().plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now()));
     }
 
     public Optional<OneTimeToken> verifyToken(String tokenHash) {
         final Optional<OneTimeToken> oneTimeTokenOptional = Optional.ofNullable(tokenHash)
                 .map(ONE_TIME_TOKEN.TOKEN_HASH::eq)
-                .map(oneTimeTokenMapper::selectOneByCondition)
-                .filter(it -> it.getCreatedAt().plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now()));
+                .map(oneTimeTokenMapper::selectOneByCondition);
         oneTimeTokenOptional.ifPresent(oneTimeTokenMapper::delete);
-        return oneTimeTokenOptional;
+        return oneTimeTokenOptional.filter(it -> it.getCreatedAt().plusMinutes(oneTimeExpiredMinutes).isAfter(OffsetDateTime.now()));
     }
 
 
