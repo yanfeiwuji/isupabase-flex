@@ -7,8 +7,6 @@ import io.github.yanfeiwuji.isupabase.mapper.SysRoleMapper;
 import io.github.yanfeiwuji.isupabase.mapper.SysRoleUserMapper;
 import io.github.yanfeiwuji.isupabase.mapper.SysUserMapper;
 import io.github.yanfeiwuji.isupabase.request.IReqHandler;
-import io.github.yanfeiwuji.isupabase.request.ex.PgrstEx;
-import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import lombok.AllArgsConstructor;
 import org.mybatis.spring.annotation.MapperScan;
 import org.mybatis.spring.mapper.ClassPathMapperScanner;
@@ -23,16 +21,14 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.function.*;
 
-
 import java.util.List;
-
 
 @RestController
 @SpringBootApplication
 @AllArgsConstructor
-@MapperScan({"io.github.yanfeiwuji.isupabase.mapper", "io.github.yanfeiwuji.isupabase.auth.mapper"})
+@MapperScan({ "io.github.yanfeiwuji.isupabase.mapper", "io.github.yanfeiwuji.isupabase.auth.mapper" })
 @EnableAspectJAutoProxy
-@RegisterReflectionForBinding({ClassPathMapperScanner.class})
+@RegisterReflectionForBinding({ ClassPathMapperScanner.class })
 @EnableTransactionManagement
 @EnableCaching
 public class IsupabaseApplication {
@@ -78,6 +74,5 @@ public class IsupabaseApplication {
     RouterFunction<ServerResponse> routerFunction(IReqHandler reqHandler) {
         return reqHandler.routerFunction();
     }
-
 
 }

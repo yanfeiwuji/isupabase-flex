@@ -40,11 +40,7 @@ public class JWTService {
     private final UserMapper userMapper;
     private final ApplicationEventPublisher publisher;
 
-
     private Long jwtExp;
-    private Long passwordMinLength;
-    private String passwordRequiredCharacters;
-    private Long oneTimeExpiredMinutes;
     private String siteUrl;
 
     private record Amr(String method, Long timestamp) {
@@ -61,9 +57,6 @@ public class JWTService {
     @PostConstruct
     public void init() {
         this.jwtExp = isupabaseProperties.getJwtExp();
-        this.passwordMinLength = isupabaseProperties.getPasswordMinLength();
-        this.passwordRequiredCharacters = isupabaseProperties.getPasswordRequiredCharacters();
-        this.oneTimeExpiredMinutes = isupabaseProperties.getOneTimeExpiredMinutes();
         this.siteUrl = isupabaseProperties.getSiteUrl();
     }
 
@@ -78,7 +71,6 @@ public class JWTService {
 
     }
 
-
     public TokenInfo<User> userToTokenInfo(User user, Session session, RefreshToken refreshToken, List<String> amr) {
         final JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
                 .audience(List.of(AuthStrPool.AUTHENTICATED_AUD))
@@ -90,7 +82,9 @@ public class JWTService {
                 .claim("phone", Optional.ofNullable(user.getPhone()).orElse(CharSequenceUtil.EMPTY))
                 .claim("user_metadata", Optional.ofNullable(user.getRawUserMetaData()).orElse(Map.of()))
                 .claim("role", Optional.ofNullable(user.getRole()).orElse(AuthStrPool.ANON_ROLE))
-                .claim("aal", Optional.of(session).map(Session::getAal).map(EAalLevel::getCode).orElse(EAalLevel.ALL_1.getCode()))
+                .claim("aal",
+                        Optional.of(session).map(Session::getAal).map(EAalLevel::getCode)
+                                .orElse(EAalLevel.ALL_1.getCode()))
                 .claim("amr", Amr.of(amr))
                 .claim("session_id", session.getId())
                 .claim("is_anonymous", user.isAnonymous())
@@ -130,7 +124,6 @@ public class JWTService {
         return this.userToTokenInfo(user, List.of(AuthStrPool.PASSWORD));
     }
 
-
     public TokenInfo<User> userToTokenInfo(User user, Session session, RefreshToken refreshToken) {
         return userToTokenInfo(user, session, refreshToken, List.of(AuthStrPool.PASSWORD));
     }
@@ -138,7 +131,6 @@ public class JWTService {
     public TokenInfo<User> userToOTPTokenInfo(User user) {
         return userToTokenInfo(user, List.of(AuthStrPool.OTP));
     }
-
 
     public String stateToken(String provider, String referrer) {
         final JwtClaimsSet claimsSet = JwtClaimsSet.builder().expiresAt(Instant.now().plusSeconds(jwtExp))
@@ -160,7 +152,4 @@ public class JWTService {
         return StateTokenInfo.of(jwt);
     }
 
-    public static void main(String[] args) {
-
-    }
 }

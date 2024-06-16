@@ -1,8 +1,6 @@
 package io.github.yanfeiwuji.isupabase.config;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.lang.Opt;
-import cn.hutool.core.util.ReferenceUtil;
 import com.mybatisflex.core.dialect.KeywordWrap;
 import com.mybatisflex.core.dialect.LimitOffsetProcessor;
 import com.mybatisflex.core.dialect.OperateType;
@@ -48,8 +46,8 @@ public class AuthDialectImpl extends CommonsDialectImpl {
         super.prepareAuth(queryWrapper, operateType);
     }
 
-
-    public List<OperatorSelectCondition> conditions(QueryCondition queryCondition, List<OperatorSelectCondition> selectConditions) {
+    public List<OperatorSelectCondition> conditions(QueryCondition queryCondition,
+            List<OperatorSelectCondition> selectConditions) {
         if (Objects.isNull(queryCondition)) {
             return selectConditions;
         }
@@ -63,28 +61,23 @@ public class AuthDialectImpl extends CommonsDialectImpl {
         return selectConditions;
     }
 
-
     private void applyRls(QueryWrapper queryWrapper, OperateType operateType) {
 
         List<QueryTable> queryTables = CPI.getQueryTables(queryWrapper);
 
-        queryTables.forEach(it ->
-                Optional.ofNullable(rlsPolicyMap).map(map -> map.get(it.getName()))
-                        .map(map -> map.get(operateType))
-                        .map(RlsPolicy::using)
-                        .map(Supplier::get)
+        queryTables.forEach(it -> Optional.ofNullable(rlsPolicyMap).map(map -> map.get(it.getName()))
+                .map(map -> map.get(operateType))
+                .map(RlsPolicy::using)
+                .map(Supplier::get)
 
-                        .ifPresent(queryWrapper::and)
-        );
+                .ifPresent(queryWrapper::and));
     }
 
-    // todo change  to config chain
+    // todo change to config chain
     public static synchronized void loadRls(List<RlsPolicyFor> rlsPolicies) {
         AuthDialectImpl.rlsPolicyMap = rlsPolicies.stream().collect(Collectors.groupingBy(RlsPolicyFor::tableName,
                 Collectors.mapping(it -> it,
-                        Collectors.toMap(RlsPolicyFor::operateType, RlsPolicyFor::rlsPolicy)
-                )
-        ));
+                        Collectors.toMap(RlsPolicyFor::operateType, RlsPolicyFor::rlsPolicy))));
     }
 
     @Override
@@ -117,13 +110,13 @@ public class AuthDialectImpl extends CommonsDialectImpl {
         return super.forInsertEntityWithPk(tableInfo, entity, ignoreNulls);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public String forInsertEntityBatch(TableInfo tableInfo, List<?> entities) {
 
         beforeInsertCheck(tableInfo.getTableName(), (List<Object>) entities);
         return super.forInsertEntityBatch(tableInfo, entities);
     }
-
 
     @Override
     public String forUpdateById(String schema, String tableName, Row row) {
@@ -161,16 +154,17 @@ public class AuthDialectImpl extends CommonsDialectImpl {
     }
 
     @Override
-    public String forUpdateEntityByQuery(TableInfo tableInfo, Object entity, boolean ignoreNulls, QueryWrapper queryWrapper) {
+    public String forUpdateEntityByQuery(TableInfo tableInfo, Object entity, boolean ignoreNulls,
+            QueryWrapper queryWrapper) {
 
         final List<Object> objects = toUpdateEntity(tableInfo, queryWrapper).orElse(List.of(entity));
         beforeUpdateCheck(tableInfo.getTableName(), objects);
         return super.forUpdateEntityByQuery(tableInfo, entity, ignoreNulls, queryWrapper);
     }
 
-
     /**
-     * use list because we may need to check all id in other table, but you don't want load list's size times query
+     * use list because we may need to check all id in other table, but you don't
+     * want load list's size times query
      *
      * @param tableName
      * @param entities

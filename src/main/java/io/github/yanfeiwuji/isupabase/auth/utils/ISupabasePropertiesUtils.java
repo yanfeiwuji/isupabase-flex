@@ -2,18 +2,17 @@ package io.github.yanfeiwuji.isupabase.auth.utils;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.StrUtil;
 import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author yanfeiwuji
@@ -23,25 +22,24 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ISupabasePropertiesUtils {
 
-
     private final ISupabaseProperties isupabaseProperties;
 
     private static ISupabaseProperties staticIsupabaseProperties;
     private static Map<String, String> weakPasswordMap;
-    private static List<Pattern> redirectUrlPatterns;
+    private static final List<Pattern> redirectUrlPatterns = new ArrayList<>();
     private static String siteUrl;
 
-
     @PostConstruct
-    public void init() {
+    public synchronized void init() {
         ISupabasePropertiesUtils.staticIsupabaseProperties = isupabaseProperties;
         ISupabasePropertiesUtils.weakPasswordMap = Map.of(
-                AuthStrPool.WEAK_PASSWORD_LENGTH, "Password should be at least %d characters.".formatted(isupabaseProperties.getPasswordMinLength()),
-                AuthStrPool.WEAK_PASSWORD_CHARACTERS, "Password should contain at least one character of each: %s.".formatted(isupabaseProperties.getPasswordRequiredCharacters())
-        );
-        this.redirectUrlPatterns = isupabaseProperties.getRedirectUrls()
+                AuthStrPool.WEAK_PASSWORD_LENGTH,
+                "Password should be at least %d characters.".formatted(isupabaseProperties.getPasswordMinLength()),
+                AuthStrPool.WEAK_PASSWORD_CHARACTERS, "Password should contain at least one character of each: %s."
+                        .formatted(isupabaseProperties.getPasswordRequiredCharacters()));
+        isupabaseProperties.getRedirectUrls()
                 .stream().map(ISupabasePropertiesUtils::wildcardToRegex)
-                .map(Pattern::compile).toList();
+                .map(Pattern::compile).forEach(redirectUrlPatterns::add);
         this.siteUrl = isupabaseProperties.getSiteUrl();
     }
 
@@ -69,7 +67,6 @@ public class ISupabasePropertiesUtils {
         return sb.toString();
     }
 
-
     public static Long passwordMinLength() {
         return staticIsupabaseProperties.getPasswordMinLength();
     }
@@ -85,7 +82,8 @@ public class ISupabasePropertiesUtils {
     public static String redirectTo(String redirectTo) {
         final String nonRedirectTo = Optional.ofNullable(redirectTo).orElseGet(ServletUtils::origin);
         String result = Optional.ofNullable(nonRedirectTo)
-                .filter(it -> redirectUrlPatterns.stream().anyMatch(pattern -> pattern.matcher(it).matches()) || it.startsWith("http://localhost:"))
+                .filter(it -> redirectUrlPatterns.stream().anyMatch(pattern -> pattern.matcher(it).matches())
+                        || it.startsWith("http://localhost:"))
                 .orElse(siteUrl);
         return CharSequenceUtil.removeSuffix(result, StrPool.SLASH);
     }

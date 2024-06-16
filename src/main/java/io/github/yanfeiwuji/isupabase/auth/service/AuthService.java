@@ -1,6 +1,5 @@
 package io.github.yanfeiwuji.isupabase.auth.service;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.id.NanoId;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.BooleanUtil;
@@ -13,7 +12,6 @@ import io.github.yanfeiwuji.isupabase.auth.event.*;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExFactory;
 import io.github.yanfeiwuji.isupabase.auth.mapper.*;
-import io.github.yanfeiwuji.isupabase.auth.utils.AuthProviderUtils;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.auth.utils.ValueValidUtils;
 import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
@@ -62,22 +60,18 @@ public class AuthService {
 
     private Long passwordMinLength;
     private String passwordRequiredCharacters;
-    private Long oneTimeExpiredMinutes;
-
 
     @PostConstruct
     public void init() {
         this.passwordMinLength = isupabaseProperties.getPasswordMinLength();
         this.passwordRequiredCharacters = isupabaseProperties.getPasswordRequiredCharacters();
-        this.oneTimeExpiredMinutes = isupabaseProperties.getOneTimeExpiredMinutes();
-    }
 
+    }
 
     public TokenInfo<User> passwordLogin(String username, String password) {
 
         final Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-                username, password
-        ));
+                username, password));
         //
         final User principal = (User) authenticate.getPrincipal();
         final OffsetDateTime emailConfirmedAt = principal.getEmailConfirmedAt();
@@ -90,7 +84,6 @@ public class AuthService {
         publisher.publishEvent(new FetchTokenEvent(this, principal));
         return jwtService.userToTokenInfo(principal);
     }
-
 
     public User singUpByEmail(SignUpParam signUpParam) {
         validPassword(signUpParam.getPassword());
@@ -119,10 +112,10 @@ public class AuthService {
     }
 
     public void singUpByPhone(String email) {
-
+        // todo
     }
 
-    //  @SneakyThrows
+    // @SneakyThrows
     public void recover(RecoverParam recoverParam) {
 
         Optional.ofNullable(recoverParam).map(RecoverParam::getEmail)
@@ -131,7 +124,6 @@ public class AuthService {
                 .map(it -> new RecoverEvent(this, it, recoverParam))
                 .ifPresent(publisher::publishEvent);
     }
-
 
     public TokenInfo<User> refreshToken(String refreshToken) {
         final RefreshToken token = refreshTokenMapper.selectOneByCondition(REFRESH_TOKEN.TOKEN.eq(refreshToken));
@@ -171,7 +163,6 @@ public class AuthService {
         return jwtService.userToTokenInfo(user, session, newRefreshToken);
     }
 
-
     private void validPassword(String password) {
 
         List<String> reason = new ArrayList<>(2);
@@ -199,7 +190,6 @@ public class AuthService {
 
     }
 
-
     public void verifyConfirmationToken(OneTimeToken oneTimeToken) {
         final User user = userMapper.selectOneById(oneTimeToken.getUserId());
 
@@ -210,7 +200,6 @@ public class AuthService {
         publisher.publishEvent(new EmailVerifiedEvent(this, user));
         userMapper.update(user);
     }
-
 
     public User putUser(PutUserParam putUserParam) {
         Long uid = AuthUtils.uid().orElseThrow(() -> new AccessDeniedException(CharSequenceUtil.EMPTY));
@@ -252,7 +241,6 @@ public class AuthService {
         userMapper.update(user);
         return user;
     }
-
 
     public Integer verifyEmailChange(OneTimeToken oneTimeToken) {
         final Optional<User> userOptional = Optional.ofNullable(oneTimeToken).map(OneTimeToken::getUserId)
@@ -296,7 +284,8 @@ public class AuthService {
             user.setAud(AuthStrPool.AUTHENTICATED_AUD);
             user.setEmail(authUser.getEmail());
             user.setAnonymous(false);
-            user.setRawUserMetaData(Map.of(AuthStrPool.KEY_PROVIDER, provider, AuthStrPool.KEY_PROVIDERS, List.of(provider)));
+            user.setRawUserMetaData(
+                    Map.of(AuthStrPool.KEY_PROVIDER, provider, AuthStrPool.KEY_PROVIDERS, List.of(provider)));
             user.setEmailConfirmedAt(OffsetDateTime.now());
             userMapper.insert(user);
         }

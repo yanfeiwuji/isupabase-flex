@@ -4,7 +4,6 @@ import io.github.yanfeiwuji.isupabase.auth.action.param.SignUpParam;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
 
 import lombok.Getter;
-import org.springframework.context.ApplicationEvent;
 
 /**
  * @author yanfeiwuji

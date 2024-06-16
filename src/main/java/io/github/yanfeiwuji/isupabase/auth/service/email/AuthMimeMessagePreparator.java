@@ -4,6 +4,8 @@ import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+
+import org.springframework.lang.NonNull;
 import org.springframework.mail.javamail.MimeMessagePreparator;
 
 /**
@@ -16,8 +18,9 @@ public record AuthMimeMessagePreparator(
         String to,
         String subject,
         String text) implements MimeMessagePreparator {
+
     @Override
-    public void prepare(MimeMessage mimeMessage) throws Exception {
+    public void prepare(@NonNull MimeMessage mimeMessage) throws Exception {
         mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
         final InternetAddress internetAddress = new InternetAddress(from);
         internetAddress.setPersonal(personal);

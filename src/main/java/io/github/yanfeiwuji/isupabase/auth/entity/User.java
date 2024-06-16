@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mybatisflex.annotation.*;
 import com.mybatisflex.core.handler.JacksonTypeHandler;
-import com.mybatisflex.core.keygen.KeyGenerators;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.security.core.GrantedAuthority;
@@ -34,7 +33,6 @@ public class User extends AuthBase implements UserDetails {
     @JsonIgnore
     private String encryptedPassword;
     private String email;
-
 
     private OffsetDateTime emailConfirmedAt;
 
@@ -98,7 +96,6 @@ public class User extends AuthBase implements UserDetails {
 
     @JsonProperty("is_anonymous")
     private boolean isAnonymous;
-
 
     @RelationOneToMany(selfField = "id", targetField = "userId")
     private List<Identity> identities;

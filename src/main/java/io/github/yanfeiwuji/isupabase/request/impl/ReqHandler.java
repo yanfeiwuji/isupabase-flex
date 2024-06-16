@@ -11,7 +11,6 @@ import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.validation.Validator;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -20,7 +19,6 @@ import java.util.Optional;
 @Component
 @AllArgsConstructor
 public class ReqHandler implements IReqHandler {
-    private final Validator validator;
 
     @Override
     public ServerRequest before(ServerRequest request) {
@@ -30,12 +28,12 @@ public class ReqHandler implements IReqHandler {
                 .map(TableInfoFactory::ofTableName)
                 .orElseThrow(PgrstExFactory.exTableNotFound(tableName));
 
+        @SuppressWarnings("unchecked")
         BaseMapper<Object> baseMapper = (BaseMapper<Object>) Mappers.ofEntityClass(tableInfo.getEntityClass());
         ApiReq apiReq = new ApiReq(request, tableName, baseMapper);
         request.servletRequest().setAttribute(REQ_API_REQ_KEY, apiReq);
         return request;
     }
-
 
     @Override
     public ServerResponse handler(ServerRequest request) {

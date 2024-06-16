@@ -25,7 +25,7 @@ import java.util.function.Function;
 public class AuthProviderUtils {
     private final ISupabaseProperties iSupabaseProperties;
     private static final Map<String, Function<AuthConfig, AuthRequest>> GEN_REQ_MAP = new HashMap<>();
-    private static Map<String, AuthConfig> AUTH_CONFIG_MAP = new HashMap<>();
+    private static final Map<String, AuthConfig> AUTH_CONFIG_MAP = new HashMap<>();
 
     static {
 
@@ -35,7 +35,8 @@ public class AuthProviderUtils {
 
     @PostConstruct
     private void init() {
-        AuthProviderUtils.AUTH_CONFIG_MAP = iSupabaseProperties.getAuthProviders();
+        final Map<String, AuthConfig> authProviders = iSupabaseProperties.getAuthProviders();
+        AUTH_CONFIG_MAP.putAll(authProviders);
     }
 
     private static AuthGithubRequest githubRequest(AuthConfig config) {

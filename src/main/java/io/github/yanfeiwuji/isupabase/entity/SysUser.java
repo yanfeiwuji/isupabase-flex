@@ -2,7 +2,6 @@ package io.github.yanfeiwuji.isupabase.entity;
 
 import com.mybatisflex.annotation.*;
 import com.mybatisflex.core.keygen.KeyGenerators;
-import io.github.yanfeiwuji.isupabase.config.UpdateI;
 import io.github.yanfeiwuji.isupabase.request.validate.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

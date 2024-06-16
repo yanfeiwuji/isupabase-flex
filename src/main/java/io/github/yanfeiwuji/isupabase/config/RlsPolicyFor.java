@@ -6,6 +6,6 @@ import com.mybatisflex.core.dialect.OperateType;
  * @author yanfeiwuji
  * @date 2024/6/10 17:45
  */
-public record RlsPolicyFor(String tableName, OperateType operateType, RlsPolicy rlsPolicy) {
+public record RlsPolicyFor<T>(String tableName, OperateType operateType, RlsPolicy<T> rlsPolicy) {
 
 }

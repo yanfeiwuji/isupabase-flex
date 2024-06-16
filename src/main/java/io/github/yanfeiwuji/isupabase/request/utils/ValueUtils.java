@@ -16,8 +16,6 @@ import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import lombok.experimental.UtilityClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -27,7 +25,6 @@ import java.util.function.Function;
 
 @UtilityClass
 public class ValueUtils {
-    private static final Logger log = LoggerFactory.getLogger(ValueUtils.class);
     private static ObjectMapper mapper;
 
     public static final Map<String, Function<Object, Object>> CASTING_MAP = Map.of(
@@ -46,7 +43,8 @@ public class ValueUtils {
             PgrstStrPool.IS_VALUE_TRUE, PgrstStrPool.SQL_TRUE,
             PgrstStrPool.IS_VALUE_FALSE, PgrstStrPool.SQL_FALSE);
 
-    private static final Map<String, String> IS_BOOLEAN_VALUE = Map.of(PgrstStrPool.IS_VALUE_TRUE, PgrstStrPool.SQL_TRUE,
+    private static final Map<String, String> IS_BOOLEAN_VALUE = Map.of(PgrstStrPool.IS_VALUE_TRUE,
+            PgrstStrPool.SQL_TRUE,
             PgrstStrPool.IS_VALUE_FALSE, PgrstStrPool.SQL_FALSE);
 
     public String isValue(QueryColumn queryColumn, String value) {

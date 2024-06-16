@@ -25,8 +25,6 @@ import jakarta.servlet.ServletException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.groups.Default;
 import lombok.Data;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -57,7 +55,6 @@ import org.springframework.web.servlet.function.ServerResponse;
 @Data
 public class ApiReq {
 
-    private static final Logger log = LoggerFactory.getLogger(ApiReq.class);
     private static ObjectMapper mapper;
     private static SpringValidatorAdapter validator;
 
@@ -66,6 +63,7 @@ public class ApiReq {
 
     private Map<String, String> columns;
     private Map<String, String> prefers;
+
     private String onConflict;
     private Set<String> preferApplied;
     // use to update
@@ -179,7 +177,6 @@ public class ApiReq {
         final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
         final QueryWrapper updateWrapper = QueryWrapper.create().select(idColumn).from(queryTable);
 
-
         updateWrapper.where(queryCondition);
         orders.forEach(updateWrapper::orderBy);
         updateWrapper.limit(queryExec.getLimit());
@@ -211,10 +208,9 @@ public class ApiReq {
 
         final QueryColumn queryColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
         final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
-        final QueryWrapper deleteWithOrderLimit =
-                QueryWrapper.create().select(queryColumn)
-                        .from(queryTable)
-                        .where(queryExec.getQueryCondition());
+        final QueryWrapper deleteWithOrderLimit = QueryWrapper.create().select(queryColumn)
+                .from(queryTable)
+                .where(queryExec.getQueryCondition());
         orders.forEach(deleteWithOrderLimit::orderBy);
         deleteWithOrderLimit.limit(queryExec.getLimit());
         deleteWithOrderLimit.offset(queryExec.getOffset());
@@ -245,7 +241,7 @@ public class ApiReq {
 
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private void readBody(ServerRequest request, TableInfo tableInfo) {
         if (request.method().equals(HttpMethod.GET) || request.method().equals(HttpMethod.DELETE)) {
             return;
@@ -271,7 +267,6 @@ public class ApiReq {
             // validator
             validatorBody();
 
-
             if (!columns.isEmpty()) {
                 final CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, o) -> {
                     final String paramKey = CacheTableInfoUtils.propertyToParamKey(f.getName());
@@ -296,14 +291,13 @@ public class ApiReq {
             // case "PUT" -> put();
             case "DELETE" -> delete();
             default -> {
+                // todo
             }
         }
         returnInfo();
 
-        if (prefers.containsKey(PgrstStrPool.PREFER_COUNT_EXACT)) {
-            if (HttpMethod.GET.equals(httpMethod)) {
-                httpStatus = HttpStatus.PARTIAL_CONTENT;
-            }
+        if (prefers.containsKey(PgrstStrPool.PREFER_COUNT_EXACT) && HttpMethod.GET.equals(httpMethod)) {
+            httpStatus = HttpStatus.PARTIAL_CONTENT;
         }
 
         if (Objects.nonNull(responseBody)) {
@@ -338,11 +332,9 @@ public class ApiReq {
 
         headers.add(PgrstStrPool.HEADER_RANGE_KEY,
                 PgrstStrPool.HEADER_RANGE_VALUE_FORMAT.formatted(
-                        limit.intValue() - 1 >= 0 ?
-                                PgrstStrPool.HEADER_RANGE_VALUE_RANGE_FORMAT
-                                        .formatted(offset.intValue(), limit.intValue() - 1) :
-                                PgrstStrPool.STAR
-                        , count));
+                        limit.intValue() - 1 >= 0 ? PgrstStrPool.HEADER_RANGE_VALUE_RANGE_FORMAT
+                                .formatted(offset.intValue(), limit.intValue() - 1) : PgrstStrPool.STAR,
+                        count));
 
         headers.add(PgrstStrPool.HEADER_PREFERENCE_APPLIED_KEY, CharSequenceUtil.join(StrPool.COMMA, preferApplied));
         // headers.setAccessControlAllowHeaders(CommonStr.ACCESS_CONTROL_EXPOSE_HEADERS);
@@ -350,13 +342,12 @@ public class ApiReq {
 
     private List<?> readIdsThenLoad(BaseMapper<?> baseMapper, TableInfo tableInfo, List<?> body) {
 
-
         final QueryCondition queryCondition = inIdsCondition(tableInfo, body);
         if (Objects.isNull(queryCondition)) {
             return List.of();
         }
         queryExec.setQueryCondition(queryCondition);
-        final List<?> invoke = QueryExecInvoke.invoke(queryExec, baseMapper);
+        // final List<?> invoke = QueryExecInvoke.invoke(queryExec, baseMapper);
 
         return QueryExecInvoke.invoke(queryExec, baseMapper);
     }

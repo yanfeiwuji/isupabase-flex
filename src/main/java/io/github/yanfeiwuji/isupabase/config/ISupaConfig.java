@@ -42,13 +42,11 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     @Bean
     public MyBatisFlexCustomizer myBatisFlexCustomizer() {
         return configuration -> {
-            //   configuration.setDbType(DbType.POSTGRE_SQL);
+            // configuration.setDbType(DbType.POSTGRE_SQL);
             DialectFactory.registerDialect(DbType.MYSQL,
-                    new AuthDialectImpl(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL)
-            );
+                    new AuthDialectImpl(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL));
         };
     }
-
 
     @Override
     public void customize(FlexConfiguration flexConfiguration) {
@@ -65,8 +63,8 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
 
     @Bean
     CommandLineRunner commandLineRunner(ObjectMapper mapper,
-                                        SpringValidatorAdapter validatorAdapter,
-                                        JwtEncoder jwtEncoder) {
+            SpringValidatorAdapter validatorAdapter,
+            JwtEncoder jwtEncoder) {
         return arg -> {
             CacheTableInfoUtils.init(mapper);
             ValueUtils.init(mapper);
@@ -79,13 +77,14 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
                 AuthUtils.uid().ifPresent(System.out::println);
                 return QueryCondition.createEmpty();
             });
-            AuthDialectImpl.loadRls(List.of(new RlsPolicyFor("sys_user", OperateType.SELECT, sysUserRlsPolicy)));
+            AuthDialectImpl
+                    .loadRls(List.of(new RlsPolicyFor<SysUser>("sys_user", OperateType.SELECT, sysUserRlsPolicy)));
 
         };
     }
 
     @Override
-    public void addCorsMappings(CorsRegistry registry) {
+    public void addCorsMappings(@SuppressWarnings("null") CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowCredentials(true)
                 .maxAge(3600)
@@ -103,6 +102,7 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
                 .expiresAt(Instant.EPOCH.plusSeconds(100L * 365 * 24 * 60 * 60))
                 .build());
         final Jwt encode = jwtEncoder.encode(parameters);
+        System.out.println(encode);
 
     }
 

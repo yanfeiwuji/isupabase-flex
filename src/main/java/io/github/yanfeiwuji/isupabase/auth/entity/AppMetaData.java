@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,7 +17,7 @@ import java.util.stream.Stream;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AppMetaData {
+public class AppMetaData implements Serializable {
     private String provider;
     private Set<String> providers;
 
@@ -31,11 +32,11 @@ public class AppMetaData {
             return new AppMetaData(provider);
         } else {
             final Set<String> needProviders = appMetaData.getProviders();
-            final Set<String> collect = Stream.concat(needProviders.stream(), Stream.of(provider)).collect(Collectors.toSet());
+            final Set<String> collect = Stream.concat(needProviders.stream(), Stream.of(provider))
+                    .collect(Collectors.toSet());
             appMetaData.setProviders(collect);
             return appMetaData;
         }
     }
-
 
 }
