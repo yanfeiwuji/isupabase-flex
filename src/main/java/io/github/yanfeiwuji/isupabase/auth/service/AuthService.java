@@ -286,7 +286,7 @@ public class AuthService {
         return null;
     }
 
-    public void identityConfirmByEmail(String provider, AuthUser authUser) {
+    public User identityConfirmByEmail(String provider, AuthUser authUser) {
 
         User user = userMapper.selectOneByCondition(USER.EMAIL.eq(authUser.getEmail()));
         if (Objects.isNull(user)) {
@@ -301,5 +301,6 @@ public class AuthService {
             userMapper.insert(user);
         }
         publisher.publishEvent(new OauthIdentityConfirmEvent(this, user, provider, authUser));
+        return user;
     }
 }

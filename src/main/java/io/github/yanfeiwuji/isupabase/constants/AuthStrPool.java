@@ -42,13 +42,14 @@ public class AuthStrPool {
 
     public static final String CONFIRM_EMAIL_CHANGE_URL_TEMP = "%s/" + PgrstStrPool.AUTH_RPC_PATH + "/verify?token=%s&type=email_change&redirect_to=%s";
     public static final String ERROR_EMAIL_LINK_URL_TEMP = "%s/#error=access_denied&error_code=403&error_description=Email+link+is+invalid+or+has+expired";
-
     public static final String SERVER_ERROR_CONFIRM_EMAIL_TEMP = "%s/#error=server_error&error_code=500&error_description=Error+confirm+email";
-
     public static final String RECOVERY_ACCESS_TOKEN_URL_TEMP = "%s/#access_token=%s&expires_at=%d&expires_in=%d&refresh_token=%s&token_type=bearer&type=recovery";
+    public static final String OAUTH_ACCESS_TOKEN_URL_TEMP = "%s/#access_token=%s&expires_at=%d&expires_in=%d&provider_refresh_token=%s&provider_token=%s&refresh_token=%s&token_type=bearer";
+
     public static final String EMAIL_CHANGE_ACCESS_TOKEN_URL_TEMP = "%s/#access_token=%s&expires_at=%d&expires_in=%d&refresh_token=%s&token_type=bearer&type=email_change";
     public static final String EMAIL_CHANGE_FIRST_URL_TEMP = "%s/#message=Confirmation+link+accepted.+Please+proceed+to+confirm+link+sent+to+the+other+email";
     public static final String ERROR_GETTING_USER_PROFILE_FROM_EXTERNAL_PROVIDER_URL_TEMP = "%s/error=server_error&error_code=500&error_description=Error+getting+user+profile+from+external+provider#error=server_error&error_code=500&error_description=Error+getting+user+profile+from+external+provider";
+
     public static final String EMAIL_CONTENT_TYPE = "text/html; charset=utf-8";
 
     public static final String VERIFY_TYPE_SIGNUP = "signup";

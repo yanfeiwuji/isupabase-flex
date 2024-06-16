@@ -27,9 +27,6 @@ public class IdentityService {
     private final UserMapper userMapper;
 
 
-
-
-
 //    public void emailVerifiedUserEmail(User user) {
 //        Identity identity = identityMapper.selectOneByCondition(IDENTITY.USER_ID.eq(user.getId()).and(IDENTITY.PROVIDER.eq(AuthStrPool.IDENTITY_PROVIDER_EMAIL)));
 //
@@ -60,8 +57,12 @@ public class IdentityService {
     }
 
     private void updateUserIdentity(User user, Identity identity) {
+
         final AppMetaData rawAppMetaData = user.getRawAppMetaData();
         final AppMetaData appMetaData = AppMetaData.addProvider(rawAppMetaData, identity.getProvider());
+        if (Objects.isNull(user.getEmailConfirmedAt())) {
+            user.setEmailConfirmedAt(OffsetDateTime.now());
+        }
         user.setRawAppMetaData(appMetaData);
         user.setRawUserMetaData(identity.getIdentityData());
         userMapper.update(user);

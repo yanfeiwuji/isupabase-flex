@@ -20,14 +20,18 @@ import io.github.yanfeiwuji.isupabase.auth.service.SessionService;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthProviderUtils;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.auth.utils.ISupabasePropertiesUtils;
+import io.github.yanfeiwuji.isupabase.auth.utils.JwtTokenUtils;
 import io.github.yanfeiwuji.isupabase.auth.vo.StateTokenInfo;
+import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 
+import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import me.zhyd.oauth.model.AuthCallback;
 import me.zhyd.oauth.model.AuthResponse;
+import me.zhyd.oauth.model.AuthToken;
 import me.zhyd.oauth.model.AuthUser;
 import me.zhyd.oauth.request.AuthGithubRequest;
 import me.zhyd.oauth.request.AuthRequest;
@@ -53,7 +57,6 @@ public class AuthAction {
     private final OneTimeTokenService oneTimeTokenService;
     private final SessionService sessionService;
     private final JWTService jwtService;
-    private final ApplicationEventPublisher publisher;
 
 
     @PostMapping("/token")
@@ -83,18 +86,13 @@ public class AuthAction {
                           String redirectTo,
                           HttpServletResponse response) throws IOException {
         final String needRedirectTo = ISupabasePropertiesUtils.redirectTo(redirectTo);
-
         AuthRequest authRequest = AuthProviderUtils.authRequest(provider).orElseThrow(AuthCmExFactory::unsupportedProvider);
-
         final String authorize = authRequest.authorize(jwtService.stateToken(provider, needRedirectTo));
-
-
         response.sendRedirect(authorize);
     }
 
     @GetMapping("/callback")
     public void callback(AuthCallback callback, HttpServletResponse response) throws IOException {
-
 
         final String state = callback.getState();
         final StateTokenInfo stateTokenInfo = jwtService.decodeStateToken(state);
@@ -105,7 +103,6 @@ public class AuthAction {
         final AuthResponse<AuthUser> authResponse;
         try {
             authResponse = authRequest.login(callback);
-
         } catch (Exception e) {
             e.printStackTrace();
             response.sendRedirect(AuthStrPool.ERROR_GETTING_USER_PROFILE_FROM_EXTERNAL_PROVIDER_URL_TEMP.formatted(referrer));
@@ -118,10 +115,14 @@ public class AuthAction {
 
         if (CharSequenceUtil.isEmpty(email)) {
             response.sendRedirect(AuthStrPool.ERROR_GETTING_USER_PROFILE_FROM_EXTERNAL_PROVIDER_URL_TEMP.formatted(referrer));
+            return;
         }
-        authService.identityConfirmByEmail(provider,data);
-
-
+        User user = authService.identityConfirmByEmail(provider, data);
+        // gen token
+        final TokenInfo<User> userTokenInfo = jwtService.userToTokenInfo(user);
+        final AuthToken token = data.getToken();
+        String redirectTo = JwtTokenUtils.oauthTokenToRedirectTo(userTokenInfo, referrer, token.getRefreshToken(), token.getAccessToken());
+        response.sendRedirect(redirectTo);
     }
 
     @GetMapping("/verify")
@@ -151,13 +152,8 @@ public class AuthAction {
                     return finalRedirectTo;
                 }
                 case AuthStrPool.VERIFY_TYPE_RECOVERY -> {
-                    return jwtService.oneTimeTokenToOTPTokenInfo(oneTimeToken).map(tokenInfo -> AuthStrPool.RECOVERY_ACCESS_TOKEN_URL_TEMP.formatted(
-                                    finalRedirectTo,
-                                    tokenInfo.getAccessToken(),
-                                    tokenInfo.getExpiresAt(),
-                                    tokenInfo.getExpiresIn(),
-                                    tokenInfo.getRefreshToken())
-                            )
+                    return jwtService.oneTimeTokenToOTPTokenInfo(oneTimeToken)
+                            .map(tokenInfo -> JwtTokenUtils.recoveryTokenToRedirectTo(tokenInfo, finalRedirectTo))
                             .orElseGet(() -> this.errorEmailLinkUrlString(finalRedirectTo));
                 }
                 case AuthStrPool.VERIFY_TYPE_EMAIL_CHANGE -> {
@@ -167,13 +163,8 @@ public class AuthAction {
                             return AuthStrPool.EMAIL_CHANGE_FIRST_URL_TEMP.formatted(finalRedirectTo);
                         }
                         case 0 -> {
-                            return jwtService.oneTimeTokenToOTPTokenInfo(oneTimeToken).map(tokenInfo -> AuthStrPool.EMAIL_CHANGE_ACCESS_TOKEN_URL_TEMP.formatted(
-                                            finalRedirectTo,
-                                            tokenInfo.getAccessToken(),
-                                            tokenInfo.getExpiresAt(),
-                                            tokenInfo.getExpiresIn(),
-                                            tokenInfo.getRefreshToken())
-                                    )
+                            return jwtService.oneTimeTokenToOTPTokenInfo(oneTimeToken)
+                                    .map(tokenInfo -> JwtTokenUtils.emailChangeTokenToRedirectTo(tokenInfo, finalRedirectTo))
                                     .orElseGet(() -> this.errorEmailLinkUrlString(finalRedirectTo));
                         }
                         case -1 -> {
@@ -190,7 +181,6 @@ public class AuthAction {
             }
         }).orElseGet(() -> this.errorEmailLinkUrlString(finalRedirectTo));
 
-
         response.sendRedirect(needRedirect);
     }
 
@@ -202,14 +192,16 @@ public class AuthAction {
 
     @PutMapping("/user")
     @Transactional
-    public User putUser(@RequestBody PutUserParam userParam, @RequestParam(value = "redirect_to", required = false) String redirectTo) {
+    public User putUser(@RequestBody PutUserParam
+                                userParam, @RequestParam(value = "redirect_to", required = false) String redirectTo) {
         userParam.setRedirectTo(redirectTo);
         return authService.putUser(userParam);
     }
 
     @PostMapping("/recover")
     @Transactional
-    public Map<String, String> recover(@RequestBody RecoverParam recoverParam, @RequestParam(value = "redirect_to", required = false) String redirectTo) {
+    public Map<String, String> recover(@RequestBody RecoverParam
+                                               recoverParam, @RequestParam(value = "redirect_to", required = false) String redirectTo) {
 
         recoverParam.setRedirectTo(redirectTo);
         authService.recover(recoverParam);
@@ -240,9 +232,7 @@ public class AuthAction {
         switch (scope) {
             case AuthStrPool.LOGOUT_SCOPE_GLOBAL, AuthStrPool.LOGOUT_SCOPE_OTHERS -> sessionService.logoutGlobal();
             case AuthStrPool.LOGOUT_SCOPE_LOCAL -> sessionService.logoutLocal();
-            default -> {
-                throw AuthExFactory.NOT_IMPLEMENTED;
-            }
+            default -> throw AuthExFactory.NOT_IMPLEMENTED;
         }
     }
 

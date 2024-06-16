@@ -2,7 +2,6 @@ package io.github.yanfeiwuji.isupabase.auth.service;
 
 import cn.hutool.core.lang.id.NanoId;
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
 import io.github.yanfeiwuji.isupabase.auth.entity.*;
 import io.github.yanfeiwuji.isupabase.auth.event.EmailVerifiedEvent;
 import io.github.yanfeiwuji.isupabase.auth.mapper.RefreshTokenMapper;
