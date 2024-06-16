@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.auth.service;
 
+import com.mybatisflex.core.mask.MaskManager;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,9 +21,7 @@ public class GoTureUserService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
-        return userMapper.selectOneByCondition(USER.EMAIL.eq(username));
-
+        return MaskManager.execWithoutMask(() -> userMapper.selectOneByCondition(USER.EMAIL.eq(username)));
     }
 
 }

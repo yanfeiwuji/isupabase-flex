@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mybatisflex.annotation.*;
 import com.mybatisflex.core.handler.JacksonTypeHandler;
+import com.mybatisflex.core.mask.Masks;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.security.core.GrantedAuthority;

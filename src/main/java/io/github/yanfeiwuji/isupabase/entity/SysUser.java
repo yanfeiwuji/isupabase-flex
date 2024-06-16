@@ -16,6 +16,7 @@ public class SysUser {
 
     @Id(keyType = KeyType.Generator, value = KeyGenerators.flexId)
     private Long id;
+
     @NotBlank(groups = Valid.Insert.class, message = "not blank")
     @NotNull(groups = Valid.Insert.class, message = "not nul")
     private String userName;

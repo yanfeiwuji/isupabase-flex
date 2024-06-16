@@ -6,13 +6,12 @@ import com.mybatisflex.core.audit.ConsoleMessageCollector;
 import com.mybatisflex.core.audit.MessageCollector;
 import com.mybatisflex.core.dialect.*;
 import com.mybatisflex.core.mybatis.FlexConfiguration;
-import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 
-import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
-import io.github.yanfeiwuji.isupabase.entity.SysUser;
+import io.github.yanfeiwuji.isupabase.flex.AuthDialectImpl;
+import io.github.yanfeiwuji.isupabase.flex.TableOneOperateConfigFor;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
@@ -22,8 +21,11 @@ import me.zhyd.oauth.cache.AuthDefaultStateCache;
 import me.zhyd.oauth.cache.AuthStateCache;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -35,6 +37,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
+import static io.github.yanfeiwuji.isupabase.auth.entity.table.UserTableDef.USER;
 
 @Configuration
 public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
@@ -61,24 +65,24 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
         };
     }
 
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady(ApplicationReadyEvent event) {
+        final ConfigurableApplicationContext applicationContext = event.getApplicationContext();
+        final List<TableOneOperateConfigFor> load = TableConfigUtils.load(applicationContext);
+        System.out.println(load.size());
+        AuthDialectImpl.loadRls(load);
+    }
+
     @Bean
     CommandLineRunner commandLineRunner(ObjectMapper mapper,
-            SpringValidatorAdapter validatorAdapter,
-            JwtEncoder jwtEncoder) {
+                                        SpringValidatorAdapter validatorAdapter,
+                                        JwtEncoder jwtEncoder) {
         return arg -> {
             CacheTableInfoUtils.init(mapper);
             ValueUtils.init(mapper);
             ApiReq.init(mapper, validatorAdapter);
             printAnnoToken(jwtEncoder);
 
-            final RlsPolicy<SysUser> sysUserRlsPolicy = RlsPolicy.<SysUser>of(() -> {
-                final Optional<Long> uid = AuthUtils.uid();
-                System.out.println(uid);
-                AuthUtils.uid().ifPresent(System.out::println);
-                return QueryCondition.createEmpty();
-            });
-            AuthDialectImpl
-                    .loadRls(List.of(new RlsPolicyFor<SysUser>("sys_user", OperateType.SELECT, sysUserRlsPolicy)));
 
         };
     }
@@ -102,7 +106,7 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
                 .expiresAt(Instant.EPOCH.plusSeconds(100L * 365 * 24 * 60 * 60))
                 .build());
         final Jwt encode = jwtEncoder.encode(parameters);
-        System.out.println(encode);
+        System.out.println(encode.getTokenValue());
 
     }
 

@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase;
 
+
 import io.github.yanfeiwuji.isupabase.entity.SysRole;
 import io.github.yanfeiwuji.isupabase.entity.SysRoleUser;
 import io.github.yanfeiwuji.isupabase.entity.SysUser;
@@ -26,9 +27,9 @@ import java.util.List;
 @RestController
 @SpringBootApplication
 @AllArgsConstructor
-@MapperScan({ "io.github.yanfeiwuji.isupabase.mapper", "io.github.yanfeiwuji.isupabase.auth.mapper" })
+@MapperScan({ "io.github.yanfeiwuji.isupabase.auth.mapper","io.github.yanfeiwuji.isupabase.mapper"})
 @EnableAspectJAutoProxy
-@RegisterReflectionForBinding({ ClassPathMapperScanner.class })
+@RegisterReflectionForBinding({ClassPathMapperScanner.class})
 @EnableTransactionManagement
 @EnableCaching
 public class IsupabaseApplication {
@@ -46,7 +47,13 @@ public class IsupabaseApplication {
 
     @GetMapping
     public List<SysUser> user() {
-        return sysUserMapper.selectAll();
+        final SysUser sysUser = new SysUser();
+      //  sysUserMapper.insert(sysUser);
+
+        sysUserMapper.insert(sysUser);
+        sysRoleMapper.selectAll();
+        // final List<SysUser> sysUsers = sysUserMapper.selectListByQuery(QueryWrapper.create());
+        return List.of();
     }
 
     @GetMapping("/role")

@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 
 import com.mybatisflex.core.BaseMapper;
@@ -13,7 +14,6 @@ import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import lombok.experimental.UtilityClass;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,9 +36,7 @@ public class QueryExecInvoke {
         List<? extends Map> targetObjectList = preList;
         if (Objects.isNull(queryExec.getRelation())) {
             QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
-            targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class)
-                    .stream().map(it -> new TreeMap<String, Object>(it)).toList();
-
+            targetObjectList = fetchTargetList(baseMapper, queryWrapper);
         } else {
             AbstractRelation<?> relation = queryExec.getRelation();
             choiceDs(relation);
@@ -52,8 +50,7 @@ public class QueryExecInvoke {
             } else {
                 QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
                 queryExec.handler(queryWrapper);
-                targetObjectList = baseMapper.selectListByQueryAs(queryWrapper, Map.class)
-                        .stream().map(it -> new TreeMap<String, Object>(it)).toList();
+                targetObjectList = fetchTargetList(baseMapper, queryWrapper);
                 RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
             }
 
@@ -153,5 +150,11 @@ public class QueryExecInvoke {
         });
     }
 
+    private List<Map<String, Object>> fetchTargetList(BaseMapper<?> baseMapper, QueryWrapper queryWrapper) {
+        // handler bean not use type but can't use jsonColumn
+        return baseMapper.selectListByQuery(queryWrapper)
+                .stream().map(it -> BeanUtil.beanToMap(it, new TreeMap<>(), true, true))
+                .toList();
+    }
 
 }

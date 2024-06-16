@@ -114,7 +114,6 @@ public class SecurityConfig {
                     Builder((RSAPublicKey) publicKey)
                     .privateKey((RSAPrivateKey) privateKey)
                     .keyID("yanfeiwuji")
-
                     .build();
             JWKSet jwkSet = new JWKSet(rsaKey);
             return new ImmutableJWKSet<>(jwkSet);

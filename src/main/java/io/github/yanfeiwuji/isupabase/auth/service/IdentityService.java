@@ -5,6 +5,7 @@ import io.github.yanfeiwuji.isupabase.auth.entity.Identity;
 import io.github.yanfeiwuji.isupabase.auth.entity.User;
 import io.github.yanfeiwuji.isupabase.auth.mapper.IdentityMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
+import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,21 +25,6 @@ import static io.github.yanfeiwuji.isupabase.auth.entity.table.IdentityTableDef.
 public class IdentityService {
     private final IdentityMapper identityMapper;
     private final UserMapper userMapper;
-
-    // public void emailVerifiedUserEmail(User user) {
-    // Identity identity =
-    // identityMapper.selectOneByCondition(IDENTITY.USER_ID.eq(user.getId()).and(IDENTITY.PROVIDER.eq(AuthStrPool.IDENTITY_PROVIDER_EMAIL)));
-    //
-    // if (Objects.isNull(identity)) {
-    // // not
-    // return;
-    // }
-    //
-    // identity.setIdentityData(emailVerifiedIdentityDate(user));
-    // updateUserIdentity(user, identity);
-    //
-    // identityMapper.update(identity);
-    // }
 
     public void identityConfirm(User user, String provider, String providerId, Map<String, Object> identityData) {
         Identity identity = identityMapper
@@ -69,30 +55,31 @@ public class IdentityService {
     }
 
     private Map<String, Object> fillEmailVerifiedIdentityData(String providerId, User user,
-            Map<String, Object> identityData) {
+                                                              Map<String, Object> identityData) {
         TreeMap<String, Object> data = new TreeMap<>(identityData);
-        data.put("sub", String.valueOf(providerId));
-        data.put("email", user.getEmail());
-        data.put("email_verified", true);
-        data.put("phone_verified", false);
+
+        data.put(AuthStrPool.KEY_SUB, String.valueOf(providerId));
+        data.put(AuthStrPool.KEY_EMAIL, user.getEmail());
+        data.put(AuthStrPool.KEY_EMAIL_VERIFIED, true);
+        data.put(AuthStrPool.KEY_PHONE_VERIFIED, false);
         return data;
     }
 
     private Map<String, Object> defaultIdentityDate(User user) {
         TreeMap<String, Object> data = new TreeMap<>();
-        data.put("sub", String.valueOf(user.getId()));
-        data.put("email", user.getEmail());
-        data.put("email_verified", false);
-        data.put("phone_verified", false);
+        data.put(AuthStrPool.KEY_SUB, String.valueOf(user.getId()));
+        data.put(AuthStrPool.KEY_EMAIL, user.getEmail());
+        data.put(AuthStrPool.KEY_EMAIL_VERIFIED, false);
+        data.put(AuthStrPool.KEY_PHONE_VERIFIED, false);
         return data;
     }
 
     private Map<String, Object> emailVerifiedIdentityDate(User user) {
         TreeMap<String, Object> data = new TreeMap<>();
-        data.put("sub", String.valueOf(user.getId()));
-        data.put("email", user.getEmail());
-        data.put("email_verified", true);
-        data.put("phone_verified", false);
+        data.put(AuthStrPool.KEY_SUB, String.valueOf(user.getId()));
+        data.put(AuthStrPool.KEY_EMAIL, user.getEmail());
+        data.put(AuthStrPool.KEY_EMAIL_VERIFIED, true);
+        data.put(AuthStrPool.KEY_PHONE_VERIFIED, false);
         return data;
     }
 }

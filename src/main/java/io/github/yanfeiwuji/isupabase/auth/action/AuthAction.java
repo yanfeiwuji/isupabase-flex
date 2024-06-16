@@ -97,7 +97,7 @@ public class AuthAction {
         try {
             authResponse = authRequest.login(callback);
         } catch (Exception e) {
-            // e.printStackTrace();
+
             response.sendRedirect(
                     AuthStrPool.ERROR_GETTING_USER_PROFILE_FROM_EXTERNAL_PROVIDER_URL_TEMP.formatted(referrer));
             return;

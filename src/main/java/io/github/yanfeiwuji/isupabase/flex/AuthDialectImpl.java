@@ -1,4 +1,4 @@
-package io.github.yanfeiwuji.isupabase.config;
+package io.github.yanfeiwuji.isupabase.flex;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.dialect.KeywordWrap;
@@ -11,43 +11,46 @@ import com.mybatisflex.core.row.RowUtil;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.update.UpdateChain;
 import com.mybatisflex.core.update.UpdateWrapper;
+import io.github.yanfeiwuji.isupabase.config.RlsPolicy;
+import io.github.yanfeiwuji.isupabase.config.RlsPolicyFor;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+/**
+ * option by id not do  any rls , develop should use qw to do anything
+ */
 @Slf4j
-
 public class AuthDialectImpl extends CommonsDialectImpl {
-    private static Map<String, Map<OperateType, RlsPolicy<Object>>> rlsPolicyMap = Map.of();
+
+    private static final Map<String, Map<OperateType, TableOneOperateConfig<Object>>> TABLE_CONFIG_MAP = new ConcurrentHashMap<>();
 
     public AuthDialectImpl(KeywordWrap keywordWrap, LimitOffsetProcessor limitOffsetProcessor) {
         super(keywordWrap, limitOffsetProcessor);
     }
 
-    @Override
-    public String forSelectOneById(String schema, String tableName, String[] primaryKeys, Object[] primaryValues) {
-
-        // todo rewrite use queryWrapper
-        return super.forSelectOneById(schema, tableName, primaryKeys, primaryValues);
-    }
 
     @Override
     public void prepareAuth(QueryWrapper queryWrapper, OperateType operateType) {
+        log.info("prepareAuth qw operateType: {}", operateType);
         final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(queryWrapper);
+
         applyRls(queryWrapper, operateType);
         conditions(whereQueryCondition, new ArrayList<>()).forEach(it -> {
             final QueryWrapper qw = it.getQueryWrapper();
             applyRls(qw, operateType);
         });
-
         super.prepareAuth(queryWrapper, operateType);
     }
 
-    public List<OperatorSelectCondition> conditions(QueryCondition queryCondition,
-            List<OperatorSelectCondition> selectConditions) {
+
+    private List<OperatorSelectCondition> conditions(QueryCondition queryCondition,
+                                                     List<OperatorSelectCondition> selectConditions) {
         if (Objects.isNull(queryCondition)) {
             return selectConditions;
         }
@@ -62,27 +65,29 @@ public class AuthDialectImpl extends CommonsDialectImpl {
     }
 
     private void applyRls(QueryWrapper queryWrapper, OperateType operateType) {
-
         List<QueryTable> queryTables = CPI.getQueryTables(queryWrapper);
+        final InvokeContext invokeContext = InvokeContextHolder.get();
 
-        queryTables.forEach(it -> Optional.ofNullable(rlsPolicyMap).map(map -> map.get(it.getName()))
+        queryTables.forEach(it -> Optional.of(TABLE_CONFIG_MAP).map(map -> map.get(it.getName()))
                 .map(map -> map.get(operateType))
-                .map(RlsPolicy::using)
-                .map(Supplier::get)
-
-                .ifPresent(queryWrapper::and));
+                .map(TableOneOperateConfig::getUsing)
+                .map(func -> func.apply(invokeContext))
+                .ifPresent(queryCondition -> queryWrapper.and(qw -> {
+                            qw.and(queryCondition);
+                        })
+                ));
     }
 
-    // todo change to config chain
-    public static synchronized void loadRls(List<RlsPolicyFor> rlsPolicies) {
-        AuthDialectImpl.rlsPolicyMap = rlsPolicies.stream().collect(Collectors.groupingBy(RlsPolicyFor::tableName,
+
+    public static synchronized void loadRls(List<TableOneOperateConfigFor> tableOneOperateConfigs) {
+        final Map<String, Map<OperateType, TableOneOperateConfig<Object>>> collect = tableOneOperateConfigs.stream().collect(Collectors.groupingBy(TableOneOperateConfigFor::tableName,
                 Collectors.mapping(it -> it,
-                        Collectors.toMap(RlsPolicyFor::operateType, RlsPolicyFor::rlsPolicy))));
+                        Collectors.toMap(TableOneOperateConfigFor::operateType, TableOneOperateConfigFor::config))));
+        TABLE_CONFIG_MAP.putAll(collect);
     }
 
     @Override
     public String forInsertRow(String schema, String tableName, Row row) {
-
         final Class<?> entityClass = CacheTableInfoUtils.nNRealTableInfo(tableName).getEntityClass();
         beforeInsertCheck(tableName, List.of(RowUtil.toEntity(row, entityClass)));
         return super.forInsertRow(schema, tableName, row);
@@ -90,11 +95,9 @@ public class AuthDialectImpl extends CommonsDialectImpl {
 
     @Override
     public String forInsertBatchWithFirstRowColumns(String schema, String tableName, List<Row> rows) {
-
         final Class<?> entityClass = CacheTableInfoUtils.nNRealTableInfo(tableName).getEntityClass();
         final List<?> entityList = RowUtil.toEntityList(rows, entityClass);
         beforeInsertCheck(tableName, (List<Object>) entityList);
-
         return super.forInsertBatchWithFirstRowColumns(schema, tableName, rows);
     }
 
@@ -155,7 +158,7 @@ public class AuthDialectImpl extends CommonsDialectImpl {
 
     @Override
     public String forUpdateEntityByQuery(TableInfo tableInfo, Object entity, boolean ignoreNulls,
-            QueryWrapper queryWrapper) {
+                                         QueryWrapper queryWrapper) {
 
         final List<Object> objects = toUpdateEntity(tableInfo, queryWrapper).orElse(List.of(entity));
         beforeUpdateCheck(tableInfo.getTableName(), objects);
@@ -170,17 +173,19 @@ public class AuthDialectImpl extends CommonsDialectImpl {
      * @param entities
      */
     private void beforeInsertCheck(String tableName, List<Object> entities) {
-        Optional.ofNullable(rlsPolicyMap).map(map -> map.get(tableName))
+        final InvokeContext invokeContext = InvokeContextHolder.get();
+        Optional.of(TABLE_CONFIG_MAP).map(map -> map.get(tableName))
                 .map(map -> map.get(OperateType.INSERT))
-                .map(RlsPolicy::check)
-                .ifPresent(it -> it.accept(entities));
+                .map(TableOneOperateConfig::getChecking)
+                .ifPresent(it -> it.accept(invokeContext, entities));
     }
 
     private void beforeUpdateCheck(String tableName, List<Object> entities) {
-        Optional.ofNullable(rlsPolicyMap).map(map -> map.get(tableName))
+        final InvokeContext invokeContext = InvokeContextHolder.get();
+        Optional.ofNullable(TABLE_CONFIG_MAP).map(map -> map.get(tableName))
                 .map(map -> map.get(OperateType.UPDATE))
-                .map(RlsPolicy::check)
-                .ifPresent(it -> it.accept(entities));
+                .map(TableOneOperateConfig::getChecking)
+                .ifPresent(it -> it.accept(invokeContext, entities));
     }
 
     private Optional<List<Object>> toUpdateEntity(TableInfo tableInfo, QueryWrapper queryWrapper) {

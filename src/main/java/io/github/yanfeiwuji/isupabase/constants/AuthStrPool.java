@@ -6,11 +6,13 @@ package io.github.yanfeiwuji.isupabase.constants;
  */
 public class AuthStrPool {
 
+
     private AuthStrPool() {
     }
 
     public static final String JWT_ROLE_KEY = "role";
     public static final String ANON_ROLE = "anon";
+    public static final String SERVICE_ROLE = "service_role";
     public static final String AUTHENTICATED_ROLE = "authenticated";
 
     public static final String AUTHENTICATED_AUD = "authenticated";
@@ -57,16 +59,17 @@ public class AuthStrPool {
 
     public static final String VERIFY_TYPE_EMAIL_CHANGE = "email_change";
 
-    public static final String QUERY_PARAM_ERROR = "error";
-    public static final String QUERY_PARAM_ERROR_CODE = "error_code";
-    public static final String QUERY_PARAM_ERROR_CODE_DEFAULT_VALUE = "403";
-    public static final String QUERY_PARAM_ERROR_DESCRIPTION = "error_description";
 
     public static final String PASSWORD = "password";
     public static final String OTP = "otp";
 
     public static final String IDENTITY_PROVIDER_EMAIL = "email";
 
+    // key info
+    public static final String KEY_SUB = "sub";
+    public static final String KEY_EMAIL = "email";
+    public static final String KEY_EMAIL_VERIFIED = "email_verified";
+    public static final String KEY_PHONE_VERIFIED = "phone_verified";
 
     public static final String KEY_SITE_URL = "site_url";
     public static final String KEY_STATE_TOKEN_ID = "id";

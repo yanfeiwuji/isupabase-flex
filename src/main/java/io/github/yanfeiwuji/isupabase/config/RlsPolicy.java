@@ -17,4 +17,8 @@ public record RlsPolicy<T>(Supplier<QueryCondition> using,
         return new RlsPolicy<>(using, ls -> {
         });
     }
+
+    public static <T> RlsPolicy<T> of(Supplier<QueryCondition> using, Consumer<List<T>> check) {
+        return new RlsPolicy<>(using, check);
+    }
 }
