@@ -9,9 +9,12 @@ import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 
+import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
+import io.github.yanfeiwuji.isupabase.flex.AuthContextSupplier;
 import io.github.yanfeiwuji.isupabase.flex.AuthDialectImpl;
-import io.github.yanfeiwuji.isupabase.flex.TableOneOperateConfigFor;
+import io.github.yanfeiwuji.isupabase.flex.SimpleAuthContext;
+import io.github.yanfeiwuji.isupabase.flex.policy.TableConfigUtils;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
@@ -22,6 +25,7 @@ import me.zhyd.oauth.cache.AuthStateCache;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,20 +40,23 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
-import static io.github.yanfeiwuji.isupabase.auth.entity.table.UserTableDef.USER;
 
 @Configuration
 public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
 
     @Bean
-    public MyBatisFlexCustomizer myBatisFlexCustomizer() {
-        return configuration -> {
-            // configuration.setDbType(DbType.POSTGRE_SQL);
-            DialectFactory.registerDialect(DbType.MYSQL,
-                    new AuthDialectImpl(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL));
-        };
+    public MyBatisFlexCustomizer myBatisFlexCustomizer(
+            AuthContextSupplier<SimpleAuthContext> authContextSupplier
+    ) {
+
+        return configuration -> DialectFactory.registerDialect(DbType.MYSQL,
+                new AuthDialectImpl<>(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL, authContextSupplier));
+    }
+
+    @Bean
+    public AuthContextSupplier<SimpleAuthContext> simpleAuthContextSupplier() {
+        return () -> new SimpleAuthContext(AuthUtils.uid().orElse(-1L), AuthUtils.role());
     }
 
     @Override
@@ -68,9 +75,11 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady(ApplicationReadyEvent event) {
         final ConfigurableApplicationContext applicationContext = event.getApplicationContext();
-        final List<TableOneOperateConfigFor> load = TableConfigUtils.load(applicationContext);
-        System.out.println(load.size());
-        AuthDialectImpl.loadRls(load);
+
+        AuthDialectImpl.init(TableConfigUtils.load(applicationContext));
+        //  final List<TableOneOperateConfigFor> load = TableConfigUtils.load(applicationContext);
+        // System.out.println(load.size());
+        //  AuthDialectImpl.loadRls(load);
     }
 
     @Bean

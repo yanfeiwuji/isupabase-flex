@@ -15,5 +15,4 @@ public class RpcController {
     public List<String> a() {
         return List.of("test");
     }
-
 }

@@ -14,17 +14,15 @@ import java.util.function.Function;
  */
 @Data
 @AllArgsConstructor
-public class TableOneOperateConfig<T> {
+public class TableOneOperateConfig<C extends AuthContext, T> {
 
     // all not inset
-    private Function<InvokeContext, QueryCondition> using;
+    private Function<C, QueryCondition> using;
     //  using update insert
-    private BiConsumer<InvokeContext, List<T>> checking;
+    private BiConsumer<C, List<T>> checking;
     // delete not
-    private Function<InvokeContext, List<String>> columns;
+    private Function<C, List<String>> columns;
     // insert update delete
-    private BiConsumer<InvokeContext, OperateInfo<T>> before;
+    private BiConsumer<C, OperateInfo<T>> before;
     //
-
-
 }

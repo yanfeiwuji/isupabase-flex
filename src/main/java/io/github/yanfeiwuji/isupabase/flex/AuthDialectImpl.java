@@ -11,40 +11,59 @@ import com.mybatisflex.core.row.RowUtil;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.update.UpdateChain;
 import com.mybatisflex.core.update.UpdateWrapper;
-import io.github.yanfeiwuji.isupabase.config.RlsPolicy;
-import io.github.yanfeiwuji.isupabase.config.RlsPolicyFor;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * option by id not do  any rls , develop should use qw to do anything
  */
 @Slf4j
-public class AuthDialectImpl extends CommonsDialectImpl {
+@RequiredArgsConstructor
+public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
 
-    private static final Map<String, Map<OperateType, TableOneOperateConfig<Object>>> TABLE_CONFIG_MAP = new ConcurrentHashMap<>();
 
-    public AuthDialectImpl(KeywordWrap keywordWrap, LimitOffsetProcessor limitOffsetProcessor) {
+    private final AuthContextSupplier<C> authContextSupplier;
+
+    private static final Map<String, Map<OperateType, TableOneOperateConfig<AuthContext, Object>>> TABLE_CONFIG_MAP = new ConcurrentHashMap<>();
+
+    public AuthDialectImpl(KeywordWrap keywordWrap,
+                           LimitOffsetProcessor limitOffsetProcessor,
+                           AuthContextSupplier<C> authContextSupplier
+    ) {
         super(keywordWrap, limitOffsetProcessor);
+        this.authContextSupplier = authContextSupplier;
+    }
+
+    public static void init(Map<String, Map<OperateType, TableOneOperateConfig<AuthContext, Object>>> map) {
+        TABLE_CONFIG_MAP.putAll(map);
     }
 
 
     @Override
     public void prepareAuth(QueryWrapper queryWrapper, OperateType operateType) {
+
         log.info("prepareAuth qw operateType: {}", operateType);
         final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(queryWrapper);
-
+        final C context = authContextSupplier.get();
+        // todo  where server_role not handler
         applyRls(queryWrapper, operateType);
         conditions(whereQueryCondition, new ArrayList<>()).forEach(it -> {
             final QueryWrapper qw = it.getQueryWrapper();
             applyRls(qw, operateType);
         });
+
+        if (Objects.equals(operateType, OperateType.DELETE)) {
+            CPI.getQueryTables(queryWrapper).forEach(queryTable -> Optional.of(TABLE_CONFIG_MAP).map(it -> it.get(queryTable.getNameWithSchema()))
+                    .map(it -> it.get(OperateType.DELETE))
+                    .map(TableOneOperateConfig::getBefore)
+                    .ifPresent(before -> {
+                        before.accept(authContextSupplier.get(), new OperateInfo<>(CPI.getWhereQueryCondition(queryWrapper), List.of()));
+                    }));
+        }
         super.prepareAuth(queryWrapper, operateType);
     }
 
@@ -66,25 +85,17 @@ public class AuthDialectImpl extends CommonsDialectImpl {
 
     private void applyRls(QueryWrapper queryWrapper, OperateType operateType) {
         List<QueryTable> queryTables = CPI.getQueryTables(queryWrapper);
-        final InvokeContext invokeContext = InvokeContextHolder.get();
 
-        queryTables.forEach(it -> Optional.of(TABLE_CONFIG_MAP).map(map -> map.get(it.getName()))
+        queryTables.forEach(it -> Optional.of(TABLE_CONFIG_MAP).map(map -> map.get(it.getNameWithSchema()))
                 .map(map -> map.get(operateType))
                 .map(TableOneOperateConfig::getUsing)
-                .map(func -> func.apply(invokeContext))
+                .map(func -> func.apply(authContextSupplier.get()))
                 .ifPresent(queryCondition -> queryWrapper.and(qw -> {
                             qw.and(queryCondition);
                         })
                 ));
     }
 
-
-    public static synchronized void loadRls(List<TableOneOperateConfigFor> tableOneOperateConfigs) {
-        final Map<String, Map<OperateType, TableOneOperateConfig<Object>>> collect = tableOneOperateConfigs.stream().collect(Collectors.groupingBy(TableOneOperateConfigFor::tableName,
-                Collectors.mapping(it -> it,
-                        Collectors.toMap(TableOneOperateConfigFor::operateType, TableOneOperateConfigFor::config))));
-        TABLE_CONFIG_MAP.putAll(collect);
-    }
 
     @Override
     public String forInsertRow(String schema, String tableName, Row row) {
@@ -131,27 +142,30 @@ public class AuthDialectImpl extends CommonsDialectImpl {
     @Override
     public String forUpdateByQuery(QueryWrapper queryWrapper, Row row) {
         final List<QueryTable> queryTables = CPI.getQueryTables(queryWrapper);
+        final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(queryWrapper);
 
-        queryTables.stream().map(QueryTable::getName)
-                .forEach(tableName -> {
-                    final Class<?> entityClass = CacheTableInfoUtils.nNRealTableInfo(tableName).getEntityClass();
-                    beforeUpdateCheck(tableName, List.of(RowUtil.toEntity(row, entityClass)));
-                });
+
+        queryTables.forEach(queryTable -> {
+            final Class<?> entityClass = CacheTableInfoUtils.nNRealTableInfo(queryTable.getName()).getEntityClass();
+            final List<Object> entities = List.of(RowUtil.toEntity(row, entityClass));
+            beforeUpdateCheck(queryTable.getName(), entities);
+            Optional.ofNullable(TABLE_CONFIG_MAP.get(queryTable.getNameWithSchema()))
+                    .map(it -> it.get(OperateType.UPDATE))
+                    .map(TableOneOperateConfig::getBefore)
+                    .ifPresent(b -> b.accept(authContextSupplier.get(), new OperateInfo<>(whereQueryCondition, entities)));
+        });
         return super.forUpdateByQuery(queryWrapper, row);
     }
 
     @Override
     public String forUpdateBatchById(String schema, String tableName, List<Row> rows) {
-
         final Class<?> entityClass = CacheTableInfoUtils.nNRealTableInfo(tableName).getEntityClass();
         beforeUpdateCheck(tableName, List.of(RowUtil.toEntityList(rows, entityClass)));
-
         return super.forUpdateBatchById(schema, tableName, rows);
     }
 
     @Override
     public String forUpdateEntity(TableInfo tableInfo, Object entity, boolean ignoreNulls) {
-
         beforeUpdateCheck(tableInfo.getTableName(), List.of(entity));
         return super.forUpdateEntity(tableInfo, entity, ignoreNulls);
     }
@@ -160,8 +174,15 @@ public class AuthDialectImpl extends CommonsDialectImpl {
     public String forUpdateEntityByQuery(TableInfo tableInfo, Object entity, boolean ignoreNulls,
                                          QueryWrapper queryWrapper) {
 
-        final List<Object> objects = toUpdateEntity(tableInfo, queryWrapper).orElse(List.of(entity));
-        beforeUpdateCheck(tableInfo.getTableName(), objects);
+        final List<Object> entities = toUpdateEntity(tableInfo, queryWrapper).orElse(List.of(entity));
+        beforeUpdateCheck(tableInfo.getTableName(), entities);
+
+        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
+        Optional.ofNullable(TABLE_CONFIG_MAP.get(queryTable.getNameWithSchema()))
+                .map(it -> it.get(OperateType.UPDATE))
+                .map(TableOneOperateConfig::getBefore)
+                .ifPresent(b -> b.accept(authContextSupplier.get(), new OperateInfo<>(CPI.getWhereQueryCondition(queryWrapper), entities)));
+
         return super.forUpdateEntityByQuery(tableInfo, entity, ignoreNulls, queryWrapper);
     }
 
@@ -173,19 +194,19 @@ public class AuthDialectImpl extends CommonsDialectImpl {
      * @param entities
      */
     private void beforeInsertCheck(String tableName, List<Object> entities) {
-        final InvokeContext invokeContext = InvokeContextHolder.get();
+        final AuthContext c = authContextSupplier.get();
         Optional.of(TABLE_CONFIG_MAP).map(map -> map.get(tableName))
                 .map(map -> map.get(OperateType.INSERT))
                 .map(TableOneOperateConfig::getChecking)
-                .ifPresent(it -> it.accept(invokeContext, entities));
+                .ifPresent(it -> it.accept(c, entities));
+
     }
 
     private void beforeUpdateCheck(String tableName, List<Object> entities) {
-        final InvokeContext invokeContext = InvokeContextHolder.get();
-        Optional.ofNullable(TABLE_CONFIG_MAP).map(map -> map.get(tableName))
+        Optional.of(TABLE_CONFIG_MAP).map(map -> map.get(tableName))
                 .map(map -> map.get(OperateType.UPDATE))
                 .map(TableOneOperateConfig::getChecking)
-                .ifPresent(it -> it.accept(invokeContext, entities));
+                .ifPresent(it -> it.accept(authContextSupplier.get(), entities));
     }
 
     private Optional<List<Object>> toUpdateEntity(TableInfo tableInfo, QueryWrapper queryWrapper) {
