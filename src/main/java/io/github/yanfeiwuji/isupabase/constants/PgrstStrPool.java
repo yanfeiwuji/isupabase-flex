@@ -1,9 +1,10 @@
 package io.github.yanfeiwuji.isupabase.constants;
 
 
-
 public final class PgrstStrPool {
 
+
+    public static final String UPDATE_TEMP_TABLE = "$update_temp_table";
 
     private PgrstStrPool() {
     }
@@ -122,8 +123,6 @@ public final class PgrstStrPool {
                     "Content-Type",
                     "Date",
                     "Location", "Server", "Transfer-Encoding", "Range-Unit"};
-
-
 
 
 }

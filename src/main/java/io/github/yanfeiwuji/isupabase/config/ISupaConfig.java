@@ -47,11 +47,15 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
 
     @Bean
     public MyBatisFlexCustomizer myBatisFlexCustomizer(
-            AuthContextSupplier<SimpleAuthContext> authContextSupplier
+            AuthDialectImpl<SimpleAuthContext> dialect
     ) {
 
-        return configuration -> DialectFactory.registerDialect(DbType.MYSQL,
-                new AuthDialectImpl<>(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL, authContextSupplier));
+        return configuration -> DialectFactory.registerDialect(DbType.MYSQL, dialect);
+    }
+
+    @Bean
+    public AuthDialectImpl<SimpleAuthContext> authDialect(AuthContextSupplier<SimpleAuthContext> authContextSupplier) {
+        return new AuthDialectImpl<>(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL, authContextSupplier);
     }
 
     @Bean
@@ -75,11 +79,9 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady(ApplicationReadyEvent event) {
         final ConfigurableApplicationContext applicationContext = event.getApplicationContext();
+        final AuthDialectImpl authDialect = applicationContext.getBean(AuthDialectImpl.class);
+        authDialect.init(TableConfigUtils.load(applicationContext));
 
-        AuthDialectImpl.init(TableConfigUtils.load(applicationContext));
-        //  final List<TableOneOperateConfigFor> load = TableConfigUtils.load(applicationContext);
-        // System.out.println(load.size());
-        //  AuthDialectImpl.loadRls(load);
     }
 
     @Bean

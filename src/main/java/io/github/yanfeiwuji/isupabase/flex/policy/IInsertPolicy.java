@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.flex.policy;
 
+import com.mybatisflex.core.query.QueryColumn;
 import io.github.yanfeiwuji.isupabase.flex.AuthContext;
 import io.github.yanfeiwuji.isupabase.flex.OperateInfo;
 import io.github.yanfeiwuji.isupabase.flex.TableOneOperateConfig;
@@ -15,7 +16,7 @@ public interface IInsertPolicy<C extends AuthContext, T> extends IPolicy<C, T> {
 
     }
 
-    default List<String> columns(C context) {
+    default List<QueryColumn> columns(C context) {
         return null;
     }
 

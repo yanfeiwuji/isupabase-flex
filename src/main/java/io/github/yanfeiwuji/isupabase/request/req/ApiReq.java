@@ -11,6 +11,7 @@ import cn.hutool.core.text.StrPool;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.BaseMapper;
+import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.row.Db;
 import com.mybatisflex.core.table.TableInfo;
@@ -163,14 +164,19 @@ public class ApiReq {
         queryWrapper.limit(queryExec.getLimit());
         queryWrapper.offset(queryExec.getOffset());
         // pre query then use project
-        this.body = baseMapper.selectListByQuery(queryWrapper);
+        if (prefers.containsKey(PgrstStrPool.PREFER_RETURN_REPRESENTATION)) {
+
+            this.body = baseMapper.selectListByQuery(queryWrapper);
+
+            rowNum = this.body.size();
+        }
+
 
         final UpdateChain<Object> chain = UpdateChain.of(baseMapper);
         Optional.ofNullable(firstBodyKeys)
                 .orElse(Set.of())
                 .forEach(it -> chain.set(it, bodyMap.get(CharSequenceUtil.toCamelCase(it))));
 
-        rowNum = this.body.size();
 
         final TableInfo tableInfo = queryExec.getTableInfo();
         final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
@@ -181,8 +187,9 @@ public class ApiReq {
         orders.forEach(updateWrapper::orderBy);
         updateWrapper.limit(queryExec.getLimit());
         updateWrapper.offset(queryExec.getOffset());
+        final QueryWrapper tempWrapper = QueryWrapper.create().select(idColumn).from(updateWrapper).as(PgrstStrPool.UPDATE_TEMP_TABLE);
 
-        chain.where(idColumn.in(updateWrapper)).update();
+        chain.where(idColumn.in(tempWrapper)).update();
 
     }
 
@@ -241,7 +248,7 @@ public class ApiReq {
 
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private void readBody(ServerRequest request, TableInfo tableInfo) {
         if (request.method().equals(HttpMethod.GET) || request.method().equals(HttpMethod.DELETE)) {
             return;

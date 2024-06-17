@@ -1,6 +1,7 @@
 package io.github.yanfeiwuji.isupabase.flex;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.mybatisflex.core.dialect.KeywordWrap;
 import com.mybatisflex.core.dialect.LimitOffsetProcessor;
 import com.mybatisflex.core.dialect.OperateType;
@@ -11,12 +12,15 @@ import com.mybatisflex.core.row.RowUtil;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.update.UpdateChain;
 import com.mybatisflex.core.update.UpdateWrapper;
+import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * option by id not do  any rls , develop should use qw to do anything
@@ -28,7 +32,7 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
 
     private final AuthContextSupplier<C> authContextSupplier;
 
-    private static final Map<String, Map<OperateType, TableOneOperateConfig<AuthContext, Object>>> TABLE_CONFIG_MAP = new ConcurrentHashMap<>();
+    private final Map<String, Map<OperateType, TableOneOperateConfig<C, Object>>> TABLE_CONFIG_MAP = new ConcurrentHashMap<>();
 
     public AuthDialectImpl(KeywordWrap keywordWrap,
                            LimitOffsetProcessor limitOffsetProcessor,
@@ -38,7 +42,7 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
         this.authContextSupplier = authContextSupplier;
     }
 
-    public static void init(Map<String, Map<OperateType, TableOneOperateConfig<AuthContext, Object>>> map) {
+    public void init(Map<String, Map<OperateType, TableOneOperateConfig<C, Object>>> map) {
         TABLE_CONFIG_MAP.putAll(map);
     }
 
@@ -47,24 +51,21 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
     public void prepareAuth(QueryWrapper queryWrapper, OperateType operateType) {
 
         log.info("prepareAuth qw operateType: {}", operateType);
+        applyRls(queryWrapper, operateType);
         final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(queryWrapper);
-        final C context = authContextSupplier.get();
-        // todo  where server_role not handler
         applyRls(queryWrapper, operateType);
         conditions(whereQueryCondition, new ArrayList<>()).forEach(it -> {
             final QueryWrapper qw = it.getQueryWrapper();
             applyRls(qw, operateType);
         });
+        log.info("preauth qw ");
+        switch (operateType) {
+            case SELECT -> applySelectColumnsPolicy(queryWrapper);
+            case DELETE -> beforeDelete(queryWrapper);
 
-        if (Objects.equals(operateType, OperateType.DELETE)) {
-            CPI.getQueryTables(queryWrapper).forEach(queryTable -> Optional.of(TABLE_CONFIG_MAP).map(it -> it.get(queryTable.getNameWithSchema()))
-                    .map(it -> it.get(OperateType.DELETE))
-                    .map(TableOneOperateConfig::getBefore)
-                    .ifPresent(before -> {
-                        before.accept(authContextSupplier.get(), new OperateInfo<>(CPI.getWhereQueryCondition(queryWrapper), List.of()));
-                    }));
         }
-        super.prepareAuth(queryWrapper, operateType);
+
+
     }
 
 
@@ -85,15 +86,15 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
 
     private void applyRls(QueryWrapper queryWrapper, OperateType operateType) {
         List<QueryTable> queryTables = CPI.getQueryTables(queryWrapper);
-
-        queryTables.forEach(it -> Optional.of(TABLE_CONFIG_MAP).map(map -> map.get(it.getNameWithSchema()))
-                .map(map -> map.get(operateType))
-                .map(TableOneOperateConfig::getUsing)
-                .map(func -> func.apply(authContextSupplier.get()))
-                .ifPresent(queryCondition -> queryWrapper.and(qw -> {
-                            qw.and(queryCondition);
-                        })
-                ));
+        queryTables.stream().map(it -> using(it, operateType))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(it -> it.func.apply(it.context))
+                .forEach(condition -> {
+                    queryWrapper.and(qw -> {
+                        qw.and(condition);
+                    });
+                });
     }
 
 
@@ -134,6 +135,9 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
 
     @Override
     public String forUpdateById(String schema, String tableName, Row row) {
+        final Set<String> strings = row.keySet();
+
+
         final Class<?> entityClass = CacheTableInfoUtils.nNRealTableInfo(tableName).getEntityClass();
         beforeUpdateCheck(tableName, List.of(RowUtil.toEntity(row, entityClass)));
         return super.forUpdateById(schema, tableName, row);
@@ -194,7 +198,7 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
      * @param entities
      */
     private void beforeInsertCheck(String tableName, List<Object> entities) {
-        final AuthContext c = authContextSupplier.get();
+        final C c = authContextSupplier.get();
         Optional.of(TABLE_CONFIG_MAP).map(map -> map.get(tableName))
                 .map(map -> map.get(OperateType.INSERT))
                 .map(TableOneOperateConfig::getChecking)
@@ -209,6 +213,7 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
                 .ifPresent(it -> it.accept(authContextSupplier.get(), entities));
     }
 
+
     private Optional<List<Object>> toUpdateEntity(TableInfo tableInfo, QueryWrapper queryWrapper) {
         return Optional.ofNullable(queryWrapper)
                 .filter(UpdateChain.class::isInstance)
@@ -221,5 +226,77 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
                     return row;
                 }).map(it -> RowUtil.toEntity(it, tableInfo.getEntityClass()))
                 .map(List::of);
+    }
+
+    private void beforeDelete(QueryWrapper queryWrapper) {
+        CPI.getQueryTables(queryWrapper)
+                .stream().map(this::beforeDelete)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .forEach(it -> it.func.accept(it.context, new OperateInfo<>(CPI.getWhereQueryCondition(queryWrapper), List.of())));
+    }
+
+    private void applySelectColumnsPolicy(QueryWrapper queryWrapper) {
+        CPI.getQueryTables(queryWrapper)
+                .stream().map(this::selectColumns)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(it -> it.func.apply(it.context))
+                .filter(Objects::nonNull)
+                .forEach(allowColumns -> {
+                    final List<QueryColumn> needColumns = CPI.getSelectColumns(queryWrapper);
+
+                    final boolean all = needColumns.stream().anyMatch(it -> CharSequenceUtil.equals(it.getName(), PgrstStrPool.STAR));
+                    if (all) {
+                        CPI.setSelectColumns(queryWrapper, allowColumns);
+                    } else {
+
+                        final List<QueryColumn> endColumns = needColumns.stream().filter(
+                                it -> allowColumns.stream().anyMatch(allow -> CharSequenceUtil.equals(allow.getTable().getNameWithSchema(), it.getTable().getNameWithSchema())
+                                        && CharSequenceUtil.equals(allow.getName(), it.getName()))).toList();
+                        CPI.setSelectColumns(queryWrapper, endColumns);
+                    }
+                });
+
+    }
+
+    private Optional<Tuple<C, BiConsumer<C, OperateInfo<Object>>>> beforeDelete(QueryTable queryTable) {
+        return configOption(queryTable, OperateType.DELETE, TableOneOperateConfig::getBefore);
+    }
+
+    private Optional<Tuple<C, Function<C, QueryCondition>>> using(QueryTable queryTable, OperateType operateType) {
+        return configOption(queryTable, operateType, TableOneOperateConfig::getUsing);
+    }
+
+    private Optional<Tuple<C, Function<C, List<QueryColumn>>>> selectColumns(QueryTable queryTable) {
+        return configOption(queryTable, OperateType.SELECT, TableOneOperateConfig::getColumns);
+    }
+
+    private Optional<Tuple<C, BiConsumer<C, List<Object>>>> beforeInsertCheck(TableInfo tableInfo) {
+        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
+        return configOption(queryTable, OperateType.INSERT, TableOneOperateConfig::getChecking);
+    }
+
+    private Optional<Tuple<C, BiConsumer<C, List<Object>>>> beforeUpdateChecking(TableInfo tableInfo) {
+        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
+        return configOption(queryTable, OperateType.UPDATE, TableOneOperateConfig::getChecking);
+    }
+
+
+    private <R> Optional<Tuple<C, R>> configOption(QueryTable queryTable, OperateType operateType, Function<TableOneOperateConfig<C, Object>, R> mapping) {
+        final C context = authContextSupplier.get();
+        if (Objects.nonNull(context) && context.isServiceRole()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(TABLE_CONFIG_MAP).map(it -> it.get(queryTable.getNameWithSchema()))
+                    .map(it -> it.get(operateType))
+                    .map(mapping)
+                    .map(it -> new Tuple<C, R>(context, it));
+        }
+
+    }
+
+    private record Tuple<C, F>(C context, F func) {
+
     }
 }
