@@ -29,7 +29,7 @@ import static io.github.yanfeiwuji.isupabase.entity.table.SysUserTableDef.SYS_US
 @RestController
 @SpringBootApplication
 @AllArgsConstructor
-@MapperScan({ "io.github.yanfeiwuji.isupabase.auth.mapper","io.github.yanfeiwuji.isupabase.mapper"})
+@MapperScan({ "io.github.yanfeiwuji.isupabase.*.mapper","io.github.yanfeiwuji.isupabase.mapper",})
 @EnableAspectJAutoProxy
 @RegisterReflectionForBinding({ClassPathMapperScanner.class})
 @EnableTransactionManagement

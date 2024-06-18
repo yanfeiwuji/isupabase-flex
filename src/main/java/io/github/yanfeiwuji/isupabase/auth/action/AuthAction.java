@@ -41,7 +41,7 @@ import java.util.Optional;
  * @date 2024/6/10 09:55
  */
 @RestController
-@RequestMapping(path = PgrstStrPool.AUTH_RPC_PATH)
+@RequestMapping(path = PgrstStrPool.AUTH_PATH)
 @RequiredArgsConstructor
 public class AuthAction {
     private final AuthService authService;

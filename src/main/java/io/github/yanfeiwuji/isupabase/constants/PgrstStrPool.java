@@ -112,7 +112,7 @@ public final class PgrstStrPool {
     // restRpc
     public static final String REST_RPC_PATH = "rest/v1/rpc";
     // auth path
-    public static final String AUTH_RPC_PATH = "auth/v1";
+    public static final String AUTH_PATH = "auth/v1";
 
 
     public static final String[] EXPOSE_HEADERS =
