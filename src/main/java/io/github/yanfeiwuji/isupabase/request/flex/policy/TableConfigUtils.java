@@ -1,4 +1,4 @@
-package io.github.yanfeiwuji.isupabase.flex.policy;
+package io.github.yanfeiwuji.isupabase.request.flex.policy;
 
 import cn.hutool.core.util.ClassUtil;
 import cn.hutool.core.util.ReflectUtil;
@@ -6,15 +6,14 @@ import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.entity.SysUser;
-import io.github.yanfeiwuji.isupabase.flex.AuthContext;
-import io.github.yanfeiwuji.isupabase.flex.TableOneOperateConfig;
+import io.github.yanfeiwuji.isupabase.request.flex.AuthContext;
+import io.github.yanfeiwuji.isupabase.request.flex.TableOneOperateConfig;
 import lombok.experimental.UtilityClass;
 import org.springframework.context.ApplicationContext;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author yanfeiwuji

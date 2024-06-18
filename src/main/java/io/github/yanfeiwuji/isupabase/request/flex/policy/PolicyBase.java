@@ -1,12 +1,11 @@
-package io.github.yanfeiwuji.isupabase.flex.policy;
+package io.github.yanfeiwuji.isupabase.request.flex.policy;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ClassUtil;
 import com.mybatisflex.core.query.QueryCondition;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
-import io.github.yanfeiwuji.isupabase.flex.AuthContext;
-import io.github.yanfeiwuji.isupabase.flex.TableOneOperateConfig;
+import io.github.yanfeiwuji.isupabase.request.flex.AuthContext;
+import io.github.yanfeiwuji.isupabase.request.flex.TableOneOperateConfig;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import jakarta.annotation.PostConstruct;
 

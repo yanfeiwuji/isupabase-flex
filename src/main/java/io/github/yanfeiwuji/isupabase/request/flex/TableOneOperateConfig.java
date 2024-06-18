@@ -1,11 +1,10 @@
-package io.github.yanfeiwuji.isupabase.flex;
+package io.github.yanfeiwuji.isupabase.request.flex;
 
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.function.BiConsumer;

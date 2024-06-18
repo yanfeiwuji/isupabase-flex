@@ -1,4 +1,4 @@
-package io.github.yanfeiwuji.isupabase.flex.anno;
+package io.github.yanfeiwuji.isupabase.request.flex.anno;
 
 import org.springframework.core.annotation.AliasFor;
 import org.springframework.stereotype.Component;

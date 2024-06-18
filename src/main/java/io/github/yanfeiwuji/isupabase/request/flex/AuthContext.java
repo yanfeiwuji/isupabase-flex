@@ -1,4 +1,4 @@
-package io.github.yanfeiwuji.isupabase.flex;
+package io.github.yanfeiwuji.isupabase.request.flex;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;

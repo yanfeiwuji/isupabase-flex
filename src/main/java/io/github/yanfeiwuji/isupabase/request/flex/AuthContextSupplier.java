@@ -1,4 +1,4 @@
-package io.github.yanfeiwuji.isupabase.flex;
+package io.github.yanfeiwuji.isupabase.request.flex;
 
 import java.util.function.Supplier;
 

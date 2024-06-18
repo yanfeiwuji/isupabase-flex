@@ -1,15 +1,11 @@
 package io.github.yanfeiwuji.isupabase.sec;
 
-import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import io.github.yanfeiwuji.isupabase.entity.SysUser;
-import io.github.yanfeiwuji.isupabase.flex.OperateInfo;
-import io.github.yanfeiwuji.isupabase.flex.SimpleAuthContext;
-import io.github.yanfeiwuji.isupabase.flex.policy.AllPolicyBase;
-import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
+import io.github.yanfeiwuji.isupabase.request.flex.OperateInfo;
+import io.github.yanfeiwuji.isupabase.request.flex.SimpleAuthContext;
+import io.github.yanfeiwuji.isupabase.request.flex.policy.AllPolicyBase;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 import static io.github.yanfeiwuji.isupabase.entity.table.SysUserTableDef.SYS_USER;
 

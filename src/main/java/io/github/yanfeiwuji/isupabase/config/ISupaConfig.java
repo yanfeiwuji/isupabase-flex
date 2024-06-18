@@ -11,10 +11,10 @@ import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
-import io.github.yanfeiwuji.isupabase.flex.AuthContextSupplier;
-import io.github.yanfeiwuji.isupabase.flex.AuthDialectImpl;
-import io.github.yanfeiwuji.isupabase.flex.SimpleAuthContext;
-import io.github.yanfeiwuji.isupabase.flex.policy.TableConfigUtils;
+import io.github.yanfeiwuji.isupabase.request.flex.AuthContextSupplier;
+import io.github.yanfeiwuji.isupabase.request.flex.AuthDialectImpl;
+import io.github.yanfeiwuji.isupabase.request.flex.SimpleAuthContext;
+import io.github.yanfeiwuji.isupabase.request.flex.policy.TableConfigUtils;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
@@ -25,7 +25,6 @@ import me.zhyd.oauth.cache.AuthStateCache;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,7 +38,6 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.time.Instant;
-import java.util.List;
 
 
 @Configuration

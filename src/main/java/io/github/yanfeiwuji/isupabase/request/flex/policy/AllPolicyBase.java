@@ -1,10 +1,10 @@
-package io.github.yanfeiwuji.isupabase.flex.policy;
+package io.github.yanfeiwuji.isupabase.request.flex.policy;
 
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
-import io.github.yanfeiwuji.isupabase.flex.AuthContext;
-import io.github.yanfeiwuji.isupabase.flex.OperateInfo;
-import io.github.yanfeiwuji.isupabase.flex.TableOneOperateConfig;
+import io.github.yanfeiwuji.isupabase.request.flex.AuthContext;
+import io.github.yanfeiwuji.isupabase.request.flex.OperateInfo;
+import io.github.yanfeiwuji.isupabase.request.flex.TableOneOperateConfig;
 
 import java.util.List;
 

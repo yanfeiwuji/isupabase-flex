@@ -2,9 +2,9 @@ package io.github.yanfeiwuji.isupabase.sec;
 
 import com.mybatisflex.core.query.QueryCondition;
 import io.github.yanfeiwuji.isupabase.auth.entity.AuthBase;
-import io.github.yanfeiwuji.isupabase.flex.SimpleAuthContext;
-import io.github.yanfeiwuji.isupabase.flex.anno.Policy;
-import io.github.yanfeiwuji.isupabase.flex.policy.AllPolicyBase;
+import io.github.yanfeiwuji.isupabase.request.flex.SimpleAuthContext;
+import io.github.yanfeiwuji.isupabase.request.flex.anno.Policy;
+import io.github.yanfeiwuji.isupabase.request.flex.policy.AllPolicyBase;
 
 /**
  * @author yanfeiwuji
