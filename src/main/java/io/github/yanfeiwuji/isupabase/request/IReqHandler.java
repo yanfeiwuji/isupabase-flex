@@ -2,6 +2,7 @@ package io.github.yanfeiwuji.isupabase.request;
 
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstEx;
+import org.apache.ibatis.exceptions.PersistenceException;
 import org.springframework.web.servlet.function.*;
 
 import static org.springframework.web.servlet.function.RouterFunctions.route;
@@ -36,6 +37,7 @@ public interface IReqHandler {
                         .after(this::after)
                         .build()
                 ).onError(PgrstEx.class, this::onError)
+                .onError(PersistenceException.class, this::onError)
                 .build();
 
 

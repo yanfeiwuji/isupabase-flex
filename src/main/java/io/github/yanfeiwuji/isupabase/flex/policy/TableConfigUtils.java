@@ -11,12 +11,10 @@ import io.github.yanfeiwuji.isupabase.flex.TableOneOperateConfig;
 import lombok.experimental.UtilityClass;
 import org.springframework.context.ApplicationContext;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author yanfeiwuji
@@ -24,22 +22,32 @@ import java.util.stream.Collectors;
  */
 @UtilityClass
 public class TableConfigUtils {
+    private static final String POLICY_ALL = "ALL";
+    private static final String POLICY_OTHER = "OTHER";
+    private static final String POLICY_SELECT = "SELECT";
+    private static final String POLICY_INSERT = "INSERT";
+    private static final String POLICY_UPDATE = "UPDATE";
+    private static final String POLICY_DELETE = "DELETE";
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     public <C extends AuthContext> Map<String, Map<OperateType, TableOneOperateConfig<C, Object>>> load(ApplicationContext context) {
 
         Map<String, Map<OperateType, TableOneOperateConfig<C, Object>>> config = new ConcurrentHashMap<>();
-        final List<IPolicy> policies = context.getBeansOfType(IPolicy.class).values().stream().toList();
+        final List<PolicyBase> policies = context.getBeansOfType(PolicyBase.class).values().stream().toList();
         // only last policy can handler
         TableInfoFactory.ofEntityClass(SysUser.class);
+        final Map<String, List<PolicyBase>> policyGrouping = policies.stream().collect(Collectors.groupingBy(TableConfigUtils::operateType));
+
 
         final Map<Class<?>, TableInfo> entityTableMap = (Map<Class<?>, TableInfo>) ReflectUtil.getFieldValue(TableInfoFactory.class, "entityTableMap");
 
         final Map<Class<?>, List<Class<?>>> clazzSuperWithSelfList =
                 entityTableMap.keySet().stream().collect(Collectors.toMap(it -> it, TableConfigUtils::superClassesWithSelf));
 
-        final Map<Class<?>, IPolicy> allPolicy = policies.stream().filter(IAllPolicy.class::isInstance).collect(Collectors.toMap(
-                it -> ClassUtil.getTypeArgument(it.getClass(), 1), it -> it
-        ));
+        final Map<Class<?>, PolicyBase> allPolicy =
+                policyGrouping.get(POLICY_ALL).stream().collect(Collectors.toMap(
+                        it -> ClassUtil.getTypeArgument(it.getClass(), 1), it -> it
+                ));
 
         clazzSuperWithSelfList.forEach((k, v) -> v.stream().filter(allPolicy::containsKey)
                 .map(allPolicy::get)
@@ -53,43 +61,62 @@ public class TableConfigUtils {
                     innerMap.put(OperateType.DELETE, policy.config());
                 }));
 
-        final Map<Class<?>, IPolicy> otherPolicies = policies.stream().filter(it -> !(it instanceof IAllPolicy)).collect(Collectors.toMap(
-                it -> ClassUtil.getTypeArgument(it.getClass(), 1), it -> it
-        ));
 
-        clazzSuperWithSelfList.forEach((k, v) -> v.stream().filter(otherPolicies::containsKey).
-                map(otherPolicies::get)
-                .findFirst().ifPresent(policy -> {
-                    final String tableNameWithSchema = TableInfoFactory.ofEntityClass(k).getTableNameWithSchema();
-                    final Map<OperateType, TableOneOperateConfig<C, Object>> innerMap = config.computeIfAbsent(tableNameWithSchema, key -> new ConcurrentHashMap<>());
-                    innerMap.put(operateType(policy), policy.config());
-                })
-        );
+        configOneOp(POLICY_SELECT, OperateType.SELECT, policyGrouping, clazzSuperWithSelfList, config);
+        configOneOp(POLICY_INSERT, OperateType.INSERT, policyGrouping, clazzSuperWithSelfList, config);
+        configOneOp(POLICY_UPDATE, OperateType.UPDATE, policyGrouping, clazzSuperWithSelfList, config);
+        configOneOp(POLICY_DELETE, OperateType.DELETE, policyGrouping, clazzSuperWithSelfList, config);
 
 
         return config;
     }
 
-    private <C extends AuthContext> OperateType operateType(IPolicy<C, Object> policy) {
+    private <C extends AuthContext> void configOneOp(
+            String groupName,
+            OperateType operateType,
+            Map<String, List<PolicyBase>> policyGrouping, Map<Class<?>,
+            List<Class<?>>> clazzSuperWithSelfList,
+            Map<String, Map<OperateType, TableOneOperateConfig<C, Object>>> config
+    ) {
+        final Map<Class<?>, PolicyBase> selectPolicy = Optional.ofNullable(policyGrouping.get(groupName)).orElse(List.of())
+                .stream().collect(Collectors.toMap(
+                        it -> ClassUtil.getTypeArgument(it.getClass(), 1), it -> it
+                ));
 
-        final boolean isSelect = policy instanceof ISelectPolicy;
+        clazzSuperWithSelfList.forEach((k, v) -> v.stream().filter(selectPolicy::containsKey)
+                .map(selectPolicy::get)
+                .findFirst().ifPresent(policyBase -> {
+                    final String tableNameWithSchema = TableInfoFactory.ofEntityClass(k).getTableNameWithSchema();
+                    final Map<OperateType, TableOneOperateConfig<C, Object>> innerMap = config.computeIfAbsent(tableNameWithSchema, key -> new ConcurrentHashMap<>());
+                    innerMap.put(operateType, policyBase.config());
+                })
+
+        );
+    }
+
+    private <C extends AuthContext> String operateType(PolicyBase<C, Object> policy) {
+
+        final boolean isSelect = policy instanceof SelectPolicyBase;
         if (isSelect) {
-            return OperateType.SELECT;
+            return POLICY_SELECT;
         }
-        final boolean isInsert = policy instanceof IInsertPolicy;
+        final boolean isInsert = policy instanceof InsertPolicyBase;
         if (isInsert) {
-            return OperateType.INSERT;
+            return POLICY_INSERT;
         }
-        final boolean isUpdate = policy instanceof IUpdatePolicy;
+        final boolean isUpdate = policy instanceof UpdatePolicyBase;
         if (isUpdate) {
-            return OperateType.UPDATE;
+            return POLICY_UPDATE;
         }
-        final boolean isDelete = policy instanceof IDeletePolicy;
+        final boolean isDelete = policy instanceof DeletePolicyBase;
         if (isDelete) {
-            return OperateType.DELETE;
+            return POLICY_DELETE;
         }
-
-        throw new PolicyException();
+        final boolean isAll = policy instanceof AllPolicyBase;
+        if (isAll) {
+            return POLICY_ALL;
+        }
+        return POLICY_OTHER;
     }
 
 

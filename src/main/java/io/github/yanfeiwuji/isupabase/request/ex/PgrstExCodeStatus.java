@@ -13,6 +13,8 @@ public record PgrstExCodeStatus(String code, HttpStatus status) {
     public static final PgrstExCodeStatus DB_DATATYPE_MISMATCH = new PgrstExCodeStatus("42804", HttpStatus.BAD_REQUEST);
     public static final PgrstExCodeStatus DB_CANNOT_COERCE = new PgrstExCodeStatus("42846", HttpStatus.BAD_REQUEST);
 
+    public static final PgrstExCodeStatus DB_FORBIDDEN = new PgrstExCodeStatus("42501", HttpStatus.FORBIDDEN);
+
     public static final PgrstExCodeStatus DB_UNDEFINED_OBJECT = new PgrstExCodeStatus("42704", HttpStatus.BAD_REQUEST);
 
     public static final PgrstExCodeStatus DB_NOT_NULL_VIOLATION = new PgrstExCodeStatus("23502", HttpStatus.BAD_REQUEST);

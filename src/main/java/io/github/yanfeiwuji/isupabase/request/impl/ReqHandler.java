@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.request.impl;
 
+import cn.hutool.core.exceptions.ExceptionUtil;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.mybatis.Mappers;
 import com.mybatisflex.core.table.TableInfo;
@@ -49,7 +50,9 @@ public class ReqHandler implements IReqHandler {
     @Override
     public ServerResponse onError(Throwable throwable, ServerRequest request) {
 
-        return Optional.of(throwable)
+        final Throwable causedBy = ExceptionUtil.getCausedBy(throwable, PgrstEx.class);
+
+        return Optional.ofNullable(causedBy)
                 .filter(PgrstEx.class::isInstance)
                 .map(PgrstEx.class::cast)
                 .map(PgrstEx::toResponse)

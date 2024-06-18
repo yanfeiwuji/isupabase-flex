@@ -24,6 +24,8 @@ import org.springframework.web.servlet.function.*;
 
 import java.util.List;
 
+import static io.github.yanfeiwuji.isupabase.entity.table.SysUserTableDef.SYS_USER;
+
 @RestController
 @SpringBootApplication
 @AllArgsConstructor
@@ -47,11 +49,10 @@ public class IsupabaseApplication {
 
     @GetMapping
     public List<SysUser> user() {
-        final SysUser sysUser = new SysUser();
-      //  sysUserMapper.insert(sysUser);
 
-        sysUserMapper.insert(sysUser);
-        sysRoleMapper.selectAll();
+        final SysUser sysUser1 = new SysUser();
+        sysUser1.setAge(1);
+        sysUserMapper.updateByCondition(sysUser1,SYS_USER.ID.eq(38117646247000123L));
         // final List<SysUser> sysUsers = sysUserMapper.selectListByQuery(QueryWrapper.create());
         return List.of();
     }

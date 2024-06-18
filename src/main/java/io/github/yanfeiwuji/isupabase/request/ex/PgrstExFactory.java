@@ -13,6 +13,12 @@ import java.util.function.Supplier;
 @UtilityClass
 public class PgrstExFactory {
 
+    public PgrstEx COLUMN_SECURITY_ERROR = PgrstExCodeStatus.DB_FORBIDDEN.toEx(new PgrstExInfo(null, null, "permission denied for table sys_user"));
+
+    public Supplier<PgrstEx> rowSecurityError(String tableName) {
+        return () -> PgrstExCodeStatus.DB_FORBIDDEN.toEx(new PgrstExInfo(null, null, "new row violates row-level security policy for table \"%s\"".formatted(tableName)));
+    }
+
     public Supplier<PgrstEx> exInsertValidatorError(Set<ConstraintViolation<Object>> errors, String tableName) {
 
         final List<ViolationInfo> violationInfos = errors.stream()

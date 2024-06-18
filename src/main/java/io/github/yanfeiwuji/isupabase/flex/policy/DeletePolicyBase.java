@@ -10,31 +10,25 @@ import java.util.List;
 
 /**
  * @author yanfeiwuji
- * @date 2024/6/17 14:37
+ * @date 2024/6/17 14:42
  */
-
-public interface IAllPolicy<C extends AuthContext, T> extends IPolicy<C, T> {
-    default QueryCondition using(C context) {
+public class DeletePolicyBase<C extends AuthContext, T> extends PolicyBase<C, T> {
+    public QueryCondition using(C context) {
         return QueryCondition.createEmpty();
     }
 
-    default void checking(C context, List<T> entities) {
+
+    public void before(C context, OperateInfo<T> operateInfo) {
 
     }
 
-    default List<QueryColumn> columns(C context) {
-        return null;
-    }
-
-    default void before(C context, OperateInfo<T> operateInfo) {
-
-    }
-
-    default TableOneOperateConfig<C, T> config() {
+    @Override
+    TableOneOperateConfig<C, T> config() {
         return new TableOneOperateConfig<>(
                 this::using,
-                this::checking,
-                this::columns,
+                (context, info) -> {
+                },
+                (context) -> null,
                 this::before
         );
     }

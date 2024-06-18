@@ -46,6 +46,7 @@ public class CacheTableInfoUtils {
     private static final Map<Class<?>, Map<String, QueryColumn>> CACHE_CLAZZ_PARAM_NAME_QUERY_COLUMN = new ConcurrentHashMap<>();
 
     private static final Map<Class<?>, Map<String, String>> CACHE_CLAZZ_QUERY_COLUMN_NAME_PARAM_NAME = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Map<String, String>> CACHE_CLAZZ_COLUMN_PROPERTY = new ConcurrentHashMap<>();
 
     private static final Map<Class<?>, QueryTable> CACHE_CLAZZ_QUERY_TABLE = new ConcurrentHashMap<>();
     private static final Map<Class<?>, QueryColumn> CACHE_CLAZZ_QUERY_ALL_COLUMNS = new ConcurrentHashMap<>();
@@ -72,6 +73,17 @@ public class CacheTableInfoUtils {
     public static void init(ObjectMapper mapper) {
         CacheTableInfoUtils.mapper = mapper;
         CacheTableInfoUtils.namingBaseOptional = initNamingBaseOptional();
+    }
+
+    public Map<String, String> nNTableColumnPropertyMapping(TableInfo tableInfo) {
+        return CACHE_CLAZZ_COLUMN_PROPERTY.computeIfAbsent(tableInfo.getEntityClass(), clazz -> {
+            final Map<String, String> result = new ConcurrentHashMap<>();
+            //
+            tableInfo.getPropertyColumnMapping()
+                    .forEach((k, v) -> result.put(v, k));
+            tableInfo.getPrimaryKeyList().forEach(it -> result.put(it.getColumn(), it.getProperty()));
+            return result;
+        });
     }
 
     public TableInfo nNRealTableInfo(String tableName) {

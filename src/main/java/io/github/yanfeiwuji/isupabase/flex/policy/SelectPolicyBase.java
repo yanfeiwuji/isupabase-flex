@@ -11,19 +11,18 @@ import java.util.List;
  * @author yanfeiwuji
  * @date 2024/6/17 14:38
  */
-public interface ISelectPolicy<C extends AuthContext, T> extends IPolicy<C, T> {
-    default QueryCondition using(C context) {
+public abstract class SelectPolicyBase<C extends AuthContext, T> extends PolicyBase<C, T> {
+    public QueryCondition using(C context) {
         return QueryCondition.createEmpty();
     }
 
-    default List<QueryColumn> columns(C context) {
+    public List<QueryColumn> columns(C context) {
         return null;
     }
 
-    @Override
-    default TableOneOperateConfig<C, T> config() {
+    public TableOneOperateConfig<C, T> config() {
         return new TableOneOperateConfig<>(
-                (context) -> EMPTY_CONDITION,
+                this::using,
                 (context, ls) -> {
                 },
                 this::columns,

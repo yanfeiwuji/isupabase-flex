@@ -22,7 +22,7 @@ public class SysUser {
     private String userName;
 
     private Integer age;
-    @Column(onInsertValue = "now()", onUpdateValue = "now()")
+
     private Date birthday;
 
     @RelationOneToOne(selfField = "id", targetField = "uid")
