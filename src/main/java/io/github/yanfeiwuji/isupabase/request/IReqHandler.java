@@ -37,7 +37,7 @@ public interface IReqHandler {
                         .after(this::after)
                         .build()
                 ).onError(PgrstEx.class, this::onError)
-                .onError(PersistenceException.class, this::onError)
+                //.onError(PersistenceException.class, this::onError)
                 .build();
 
 

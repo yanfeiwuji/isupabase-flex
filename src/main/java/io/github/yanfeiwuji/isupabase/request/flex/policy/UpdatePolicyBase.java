@@ -2,9 +2,7 @@ package io.github.yanfeiwuji.isupabase.request.flex.policy;
 
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
-import io.github.yanfeiwuji.isupabase.request.flex.AuthContext;
-import io.github.yanfeiwuji.isupabase.request.flex.OperateInfo;
-import io.github.yanfeiwuji.isupabase.request.flex.TableOneOperateConfig;
+import io.github.yanfeiwuji.isupabase.request.flex.*;
 
 import java.util.List;
 
@@ -12,30 +10,35 @@ import java.util.List;
  * @author yanfeiwuji
  * @date 2024/6/17 14:42
  */
-public abstract class UpdatePolicyBase<C extends AuthContext, T> extends PolicyBase<C, T> {
-    public QueryCondition using(C context) {
+public abstract class UpdatePolicyBase<T> extends PolicyBase<T> {
+    public QueryCondition using(PgrstContext context) {
         return QueryCondition.createEmpty();
     }
 
-    public void checking(C context, List<T> entities) {
+    public void checking(PgrstContext context, List<T> entities) {
 
     }
 
-    public List<QueryColumn> columns(C context) {
+    public List<QueryColumn> columns(PgrstContext context) {
         return null;
     }
 
-    public void before(C context, OperateInfo<T> operateInfo) {
+    public void before(PgrstContext context, OperateInfo<T> operateInfo) {
+
+    }
+
+    public void after(PgrstContext context, OperateInfo<T> operateInfo) {
 
     }
 
     @Override
-    TableOneOperateConfig<C, T> config() {
-        return new TableOneOperateConfig<>(
+    TableSetting<T> config() {
+        return new TableSetting<>(
                 this::using,
                 this::checking,
                 this::columns,
-                this::before
+                this::before,
+                this::after
         );
     }
 }

@@ -8,8 +8,12 @@ import com.mybatisflex.core.table.TableInfoFactory;
 
 import io.github.yanfeiwuji.isupabase.request.IReqHandler;
 import io.github.yanfeiwuji.isupabase.request.ex.*;
+import io.github.yanfeiwuji.isupabase.request.flex.PgrstDb;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -18,8 +22,11 @@ import org.springframework.web.servlet.function.ServerResponse;
 import java.util.Optional;
 
 @Component
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ReqHandler implements IReqHandler {
+
+    private final PgrstDb pgrstDb;
+
 
     @Override
     public ServerRequest before(ServerRequest request) {

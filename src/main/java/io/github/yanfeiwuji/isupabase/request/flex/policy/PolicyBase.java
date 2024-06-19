@@ -7,6 +7,7 @@ import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.request.flex.AuthContext;
 import io.github.yanfeiwuji.isupabase.request.flex.TableOneOperateConfig;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
+import io.github.yanfeiwuji.isupabase.request.flex.TableSetting;
 import jakarta.annotation.PostConstruct;
 
 
@@ -14,18 +15,17 @@ import jakarta.annotation.PostConstruct;
  * @author yanfeiwuji
  * @date 2024/6/17 14:38
  */
-public abstract class PolicyBase<C extends AuthContext, T> {
+public abstract class PolicyBase<T> {
 
     protected QueryCondition EMPTY_CONDITION = QueryCondition.createEmpty();
 
     protected String tableName;
 
-    abstract TableOneOperateConfig<C, T> config();
+    abstract TableSetting<T> config();
 
     @PostConstruct
     protected void init() {
-
-        final Class<?> typeArgument = ClassUtil.getTypeArgument(this.getClass(), 1);
+        final Class<?> typeArgument = ClassUtil.getTypeArgument(this.getClass());
         final TableInfo tableInfo = TableInfoFactory.ofEntityClass(typeArgument);
         tableName = tableInfo.getTableName();
     }

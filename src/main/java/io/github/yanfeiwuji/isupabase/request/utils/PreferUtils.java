@@ -9,6 +9,7 @@ import lombok.experimental.UtilityClass;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,7 +19,7 @@ import java.util.stream.Stream;
  */
 @UtilityClass
 public class PreferUtils {
-    private static final Map<String, Object> PREFER_MAP = Stream.of(
+    private static final Set<String> PREFER_MAP = Stream.of(
                     PgrstStrPool.PREFER_HANDLING_STRICT,
                     PgrstStrPool.PREFER_HANDLING_LENIENT,
 
@@ -36,7 +37,7 @@ public class PreferUtils {
                     PgrstStrPool.PREFER_RESOLUTION_IGNORE_DUPLICATES,
 
                     PgrstStrPool.PREFER_MISSION_DEFAULT)
-            .collect(Collectors.toMap(it -> it, it -> it));
+            .collect(Collectors.toSet());
 
     public Map<String, String> pickPrefer(String preferHeader) {
         if (Objects.isNull(preferHeader)) {
@@ -47,13 +48,13 @@ public class PreferUtils {
         final List<String> prefers = CharSequenceUtil.splitTrim(preferHeader, StrPool.COMMA);
 
         if (strict) {
-            final List<String> list = prefers.stream().filter(it -> !PREFER_MAP.containsKey(it))
+            final List<String> list = prefers.stream().filter(it -> !PREFER_MAP.contains(it))
                     .toList();
             if (!list.isEmpty()) {
                 throw PgrstExFactory.exInvalidPreferInStrict(list).get();
             }
         }
-        return prefers.stream().filter(PREFER_MAP::containsKey).collect(Collectors.toMap(it -> it, it -> it));
+        return prefers.stream().filter(PREFER_MAP::contains).collect(Collectors.toMap(it -> it, it -> it));
     }
 
 }

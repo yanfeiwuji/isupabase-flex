@@ -14,11 +14,13 @@ import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.row.Db;
+import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.table.TableInfo;
 
 import com.mybatisflex.core.update.UpdateChain;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
+import io.github.yanfeiwuji.isupabase.request.flex.PgrstDb;
 import io.github.yanfeiwuji.isupabase.request.select.*;
 import io.github.yanfeiwuji.isupabase.request.utils.*;
 import io.github.yanfeiwuji.isupabase.request.validate.Valid;
@@ -58,6 +60,11 @@ public class ApiReq {
 
     private static ObjectMapper mapper;
     private static SpringValidatorAdapter validator;
+    private static PgrstDb pgrstDb;
+
+    // op using
+    private BaseMapper<Object> baseMapper;
+
 
     private QueryExec queryExec;
     private QueryExecLookup queryExecLookup;
@@ -72,16 +79,16 @@ public class ApiReq {
     // body
     private List<Object> body;
     private HttpMethod httpMethod;
-    private BaseMapper<Object> baseMapper;
 
     private Object responseBody;
     // 受影响的行数
     private Integer rowNum = 0;
     private HttpStatus httpStatus = HttpStatus.OK;
 
-    public static void init(ObjectMapper mapper, SpringValidatorAdapter validator) {
+    public static void init(ObjectMapper mapper, SpringValidatorAdapter validator, PgrstDb pgrstDb) {
         ApiReq.mapper = mapper;
         ApiReq.validator = validator;
+        ApiReq.pgrstDb = pgrstDb;
     }
 
     public ApiReq(ServerRequest request, String tableName, BaseMapper<Object> baseMapper) {
@@ -109,7 +116,7 @@ public class ApiReq {
     }
 
     public void get() {
-        List<?> list = QueryExecInvoke.invoke(queryExec, baseMapper);
+        List<?> list = QueryExecInvoke.invoke(queryExec, baseMapper, pgrstDb);
         rowNum = list.size();
         responseBody = list;
 
@@ -126,7 +133,7 @@ public class ApiReq {
         // clear orders
         CPI.setOrderBys(qw, null);
         qw.limit(null, null);
-        return baseMapper.selectCountByQuery(qw);
+        return pgrstDb.selectCountByQuery(baseMapper, qw);
     }
 
     public void post() {
@@ -137,7 +144,7 @@ public class ApiReq {
             });
         } else {
             Db.tx(() -> {
-                baseMapper.insertBatch(body);
+                pgrstDb.insertBatch(baseMapper, body);
                 return true;
             });
         }
@@ -146,8 +153,9 @@ public class ApiReq {
     }
 
     public void put() {
-        body.forEach(baseMapper::update);
-        rowNum = body.size();
+
+        // body.forEach(baseMapper::update);
+        // rowNum = body.size();
     }
 
     public void patch() {
@@ -156,40 +164,44 @@ public class ApiReq {
 
         final List<QueryOrderBy> orders = Optional.ofNullable(queryExec.getOrders()).orElse(List.of());
         final Object first = body.getFirst();
-        final Map<String, Object> bodyMap = BeanUtil.beanToMap(first); // modify
+        final TableInfo tableInfo = queryExec.getTableInfo();
+        final Map<String, String> propertyColumnMapping = tableInfo.getPropertyColumnMapping();
+        final Row row = (Row) BeanUtil.beanToMap(first, new Row(), true, propertyColumnMapping::get); // modify
 
-        final QueryWrapper queryWrapper = QueryWrapper.create().select(queryExec.getQueryColumns())
+        final QueryWrapper queryWrapper = QueryWrapper.create()
+                .from(queryExec.getQueryTable())
+                .select(queryExec.getQueryColumns())
                 .where(queryCondition);
         orders.forEach(queryWrapper::orderBy);
         queryWrapper.limit(queryExec.getLimit());
         queryWrapper.offset(queryExec.getOffset());
         // pre query then use project
         if (prefers.containsKey(PgrstStrPool.PREFER_RETURN_REPRESENTATION)) {
-
-            this.body = baseMapper.selectListByQuery(queryWrapper);
-
+            this.body = pgrstDb.selectListByQuery(baseMapper, queryWrapper);
             rowNum = this.body.size();
         }
+        pgrstDb.selectCountByQuery(baseMapper,queryWrapper);
+        pgrstDb.updateRowByQuery(baseMapper, row, queryWrapper);
 
 
-        final UpdateChain<Object> chain = UpdateChain.of(baseMapper);
-        Optional.ofNullable(firstBodyKeys)
-                .orElse(Set.of())
-                .forEach(it -> chain.set(it, bodyMap.get(CharSequenceUtil.toCamelCase(it))));
-
-
-        final TableInfo tableInfo = queryExec.getTableInfo();
-        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
-        final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
-        final QueryWrapper updateWrapper = QueryWrapper.create().select(idColumn).from(queryTable);
-
-        updateWrapper.where(queryCondition);
-        orders.forEach(updateWrapper::orderBy);
-        updateWrapper.limit(queryExec.getLimit());
-        updateWrapper.offset(queryExec.getOffset());
-        final QueryWrapper tempWrapper = QueryWrapper.create().select(idColumn).from(updateWrapper).as(PgrstStrPool.UPDATE_TEMP_TABLE);
-
-        chain.where(idColumn.in(tempWrapper)).update();
+//        final UpdateChain<Object> chain = UpdateChain.of(baseMapper);
+//        Optional.ofNullable(firstBodyKeys)
+//                .orElse(Set.of())
+//                .forEach(it -> chain.set(it, bodyMap.get(CharSequenceUtil.toCamelCase(it))));
+//
+//
+//        final TableInfo tableInfo = queryExec.getTableInfo();
+//        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
+//        final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
+//        final QueryWrapper updateWrapper = QueryWrapper.create().select(idColumn).from(queryTable);
+//
+//        updateWrapper.where(queryCondition);
+//        orders.forEach(updateWrapper::orderBy);
+//        updateWrapper.limit(queryExec.getLimit());
+//        updateWrapper.offset(queryExec.getOffset());
+//        final QueryWrapper tempWrapper = QueryWrapper.create().select(idColumn).from(updateWrapper).as(PgrstStrPool.UPDATE_TEMP_TABLE);
+//
+//        chain.where(idColumn.in(tempWrapper)).update();
 
     }
 
@@ -198,31 +210,31 @@ public class ApiReq {
         final TableInfo tableInfo = queryExec.getTableInfo();
         final List<QueryOrderBy> orders = Optional.ofNullable(queryExec.getOrders()).orElse(List.of());
 
-        final QueryWrapper queryWrapper = QueryWrapper.create();
+        final QueryWrapper queryWrapper = QueryWrapper.create().from(tableInfo.getEntityClass());
         queryWrapper.where(queryExec.getQueryCondition());
         orders.forEach(queryWrapper::orderBy);
         queryWrapper.limit(queryExec.getLimit());
         queryWrapper.offset(queryExec.getOffset());
 
+
         if (prefers.containsKey(PgrstStrPool.PREFER_RETURN_REPRESENTATION)) {
 
             // must query then delete
-            final List<?> objects = baseMapper.selectListByQuery(queryWrapper);
+            final List<?> objects = pgrstDb.selectListByQuery(baseMapper, queryWrapper);
             List<?> res = readIdsThenLoad(baseMapper, queryExec.getTableInfo(), objects);
             rowNum = res.size();
             responseBody = res;
         }
 
-        final QueryColumn queryColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
-        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
-        final QueryWrapper deleteWithOrderLimit = QueryWrapper.create().select(queryColumn)
-                .from(queryTable)
-                .where(queryExec.getQueryCondition());
-        orders.forEach(deleteWithOrderLimit::orderBy);
-        deleteWithOrderLimit.limit(queryExec.getLimit());
-        deleteWithOrderLimit.offset(queryExec.getOffset());
-
-        baseMapper.deleteByCondition(queryColumn.in(deleteWithOrderLimit));
+//        final QueryColumn queryColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
+//        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
+//        final QueryWrapper deleteWithOrderLimit = QueryWrapper.create().select(queryColumn)
+//                .from(queryTable)
+//                .where(queryExec.getQueryCondition());
+//        orders.forEach(deleteWithOrderLimit::orderBy);
+//        deleteWithOrderLimit.limit(queryExec.getLimit());
+//        deleteWithOrderLimit.offset(queryExec.getOffset());
+        pgrstDb.deleteByQuery(baseMapper, queryWrapper);
     }
 
     public void returnInfo() {
@@ -340,7 +352,7 @@ public class ApiReq {
         headers.add(PgrstStrPool.HEADER_RANGE_KEY,
                 PgrstStrPool.HEADER_RANGE_VALUE_FORMAT.formatted(
                         limit.intValue() - 1 >= 0 ? PgrstStrPool.HEADER_RANGE_VALUE_RANGE_FORMAT
-                                .formatted(offset.intValue(), limit.intValue() - 1) : PgrstStrPool.STAR,
+                                .formatted(offset.intValue(), offset.intValue() + limit.intValue() - 1) : PgrstStrPool.STAR,
                         count));
 
         headers.add(PgrstStrPool.HEADER_PREFERENCE_APPLIED_KEY, CharSequenceUtil.join(StrPool.COMMA, preferApplied));
@@ -356,7 +368,7 @@ public class ApiReq {
         queryExec.setQueryCondition(queryCondition);
         // final List<?> invoke = QueryExecInvoke.invoke(queryExec, baseMapper);
 
-        return QueryExecInvoke.invoke(queryExec, baseMapper);
+        return QueryExecInvoke.invoke(queryExec, baseMapper, pgrstDb);
     }
 
     private QueryCondition inIdsCondition(TableInfo tableInfo, List<?> body) {

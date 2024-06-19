@@ -10,10 +10,12 @@ import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.util.StringUtil;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
+import io.github.yanfeiwuji.isupabase.request.flex.PgrstDb;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.RelationUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import lombok.experimental.UtilityClass;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,16 +29,16 @@ public class QueryExecInvoke {
 
 
     @SuppressWarnings({"rawtyes", "uncheck"})
-    public List<?> invoke(QueryExec queryExec, BaseMapper<?> baseMapper) {
-        return embeddedList(queryExec, baseMapper, null);
+    public List<?> invoke(QueryExec queryExec, BaseMapper<?> baseMapper, PgrstDb pgrstDb) {
+        return embeddedList(queryExec, baseMapper, pgrstDb, null);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private List<? extends Map> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, List preList) {
+    private List<? extends Map> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, PgrstDb pgrstDb, List preList) {
         List<? extends Map> targetObjectList = preList;
         if (Objects.isNull(queryExec.getRelation())) {
             QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
-            targetObjectList = fetchTargetList(baseMapper, queryWrapper);
+            targetObjectList = fetchTargetList(baseMapper, pgrstDb, queryWrapper);
         } else {
             AbstractRelation<?> relation = queryExec.getRelation();
             choiceDs(relation);
@@ -50,7 +52,7 @@ public class QueryExecInvoke {
             } else {
                 QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
                 queryExec.handler(queryWrapper);
-                targetObjectList = fetchTargetList(baseMapper, queryWrapper);
+                targetObjectList = fetchTargetList(baseMapper, pgrstDb, queryWrapper);
                 RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
             }
 
@@ -62,7 +64,7 @@ public class QueryExecInvoke {
                 .orElse(List.of())
                 .parallelStream()
                 .filter(it -> !it.isNotExec())
-                .forEach(exec -> embeddedList(exec, baseMapper, finalTargetObjectList));
+                .forEach(exec -> embeddedList(exec, baseMapper, pgrstDb, finalTargetObjectList));
 
         modifyKeys(queryExec, targetObjectList);
         return targetObjectList;
@@ -150,9 +152,9 @@ public class QueryExecInvoke {
         });
     }
 
-    private List<Map<String, Object>> fetchTargetList(BaseMapper<?> baseMapper, QueryWrapper queryWrapper) {
+    private List<Map<String, Object>> fetchTargetList(BaseMapper<?> baseMapper, PgrstDb pgrstDb, QueryWrapper queryWrapper) {
         // handler bean not use type but can't use jsonColumn
-        return baseMapper.selectListByQuery(queryWrapper)
+        return pgrstDb.selectListByQuery(baseMapper, queryWrapper)
                 .stream().map(it -> BeanUtil.beanToMap(it, new TreeMap<>(), true, true))
                 .toList();
     }

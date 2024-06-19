@@ -13,10 +13,7 @@ import io.github.yanfeiwuji.isupabase.request.utils.TokenUtils;
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import lombok.experimental.UtilityClass;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -37,9 +34,9 @@ public class QueryConditionFactory {
             queryConditions -> QueryMethods
                     .not(queryConditions.stream().reduce(QueryCondition.createEmpty(), QueryCondition::or)));
 
-    private static final Map<String, String> ALLOW_MODIFIERS = Stream
+    private static final Set<String> ALLOW_MODIFIERS = Stream
             .of("eq", "like", "ilike", "gt", "gte", "lt", "lte", "match", "imatch")
-            .collect(Collectors.toMap(it -> it, it -> it));
+            .collect(Collectors.toSet());
 
     // QueryColumn queryColumn, String value
     // default single
@@ -125,7 +122,7 @@ public class QueryConditionFactory {
                 .orElseThrow(PgrstExFactory.exParseFilterError(value));
 
         if (Objects.nonNull(modifier)) {
-            if (!ALLOW_MODIFIERS.containsKey(op)) {
+            if (!ALLOW_MODIFIERS.contains(op)) {
                 throw PgrstExFactory.exParseFilterError(op).get();
             } else {
                 if (CharSequenceUtil.equals(PgrstStrPool.MODIFIER_ALL, modifier)) {

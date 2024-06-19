@@ -4,10 +4,16 @@ package io.github.yanfeiwuji.isupabase.constants;
 public final class PgrstStrPool {
 
 
-    public static final String UPDATE_TEMP_TABLE = "$update_temp_table";
 
     private PgrstStrPool() {
     }
+
+    public static final String API_REQ_PGRST_DB_BEAN = "API_REQ_PGRST_DB_BEAN";
+
+
+    public static final String UPDATE_TEMP_TABLE = "$update_temp_table";
+
+    public static final String DELETE_TEMP_TABLE = "$delete_temp_table";
 
     public static final String STAR = "*";
     public static final String SELECT_INNER_MARK = "!inner";

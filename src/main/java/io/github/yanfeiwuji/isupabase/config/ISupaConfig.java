@@ -7,13 +7,10 @@ import com.mybatisflex.core.audit.MessageCollector;
 import com.mybatisflex.core.dialect.*;
 import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
-import com.mybatisflex.spring.boot.MyBatisFlexCustomizer;
 
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
-import io.github.yanfeiwuji.isupabase.request.flex.AuthContextSupplier;
-import io.github.yanfeiwuji.isupabase.request.flex.AuthDialectImpl;
-import io.github.yanfeiwuji.isupabase.request.flex.SimpleAuthContext;
+import io.github.yanfeiwuji.isupabase.request.flex.*;
 import io.github.yanfeiwuji.isupabase.request.flex.policy.TableConfigUtils;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
@@ -28,6 +25,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -38,28 +36,13 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.time.Instant;
+import java.util.Map;
+import java.util.function.Supplier;
 
 
 @Configuration
 public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
 
-    @Bean
-    public MyBatisFlexCustomizer myBatisFlexCustomizer(
-            AuthDialectImpl<SimpleAuthContext> dialect
-    ) {
-
-        return configuration -> DialectFactory.registerDialect(DbType.MYSQL, dialect);
-    }
-
-    @Bean
-    public AuthDialectImpl<SimpleAuthContext> authDialect(AuthContextSupplier<SimpleAuthContext> authContextSupplier) {
-        return new AuthDialectImpl<>(KeywordWrap.BACK_QUOTE, LimitOffsetProcessor.MYSQL, authContextSupplier);
-    }
-
-    @Bean
-    public AuthContextSupplier<SimpleAuthContext> simpleAuthContextSupplier() {
-        return () -> new SimpleAuthContext(AuthUtils.uid().orElse(-1L), AuthUtils.role());
-    }
 
     @Override
     public void customize(FlexConfiguration flexConfiguration) {
@@ -77,19 +60,27 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady(ApplicationReadyEvent event) {
         final ConfigurableApplicationContext applicationContext = event.getApplicationContext();
-        final AuthDialectImpl authDialect = applicationContext.getBean(AuthDialectImpl.class);
-        authDialect.init(TableConfigUtils.load(applicationContext));
-
+        final PgrstDb pgrstDb = (PgrstDb) applicationContext.getBean(PgrstStrPool.API_REQ_PGRST_DB_BEAN);
+        final Map<String, Map<OperateType, TableSetting<Object>>> settings = TableConfigUtils.toSettings(applicationContext);
+        pgrstDb.load(settings);
     }
+
+    @Bean(PgrstStrPool.API_REQ_PGRST_DB_BEAN)
+    @Primary
+    public PgrstDb pgrstDb() {
+        return new PgrstDb(() -> new PgrstContext(AuthUtils.uid().orElse(-1L), AuthUtils.role(), AuthUtils.jwt()));
+    }
+
 
     @Bean
     CommandLineRunner commandLineRunner(ObjectMapper mapper,
                                         SpringValidatorAdapter validatorAdapter,
-                                        JwtEncoder jwtEncoder) {
+                                        JwtEncoder jwtEncoder,
+                                        PgrstDb pgrstDb) {
         return arg -> {
             CacheTableInfoUtils.init(mapper);
             ValueUtils.init(mapper);
-            ApiReq.init(mapper, validatorAdapter);
+            ApiReq.init(mapper, validatorAdapter, pgrstDb);
             printAnnoToken(jwtEncoder);
 
 

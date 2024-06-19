@@ -382,7 +382,6 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
                     .map(mapping)
                     .map(it -> new Tuple<C, R>(context, it));
         }
-
     }
 
     private record Tuple<C, F>(C context, F func) {

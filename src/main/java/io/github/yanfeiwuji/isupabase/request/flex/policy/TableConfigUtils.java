@@ -8,6 +8,7 @@ import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.entity.SysUser;
 import io.github.yanfeiwuji.isupabase.request.flex.AuthContext;
 import io.github.yanfeiwuji.isupabase.request.flex.TableOneOperateConfig;
+import io.github.yanfeiwuji.isupabase.request.flex.TableSetting;
 import lombok.experimental.UtilityClass;
 import org.springframework.context.ApplicationContext;
 
@@ -29,9 +30,9 @@ public class TableConfigUtils {
     private static final String POLICY_DELETE = "DELETE";
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public <C extends AuthContext> Map<String, Map<OperateType, TableOneOperateConfig<C, Object>>> load(ApplicationContext context) {
+    public <C extends AuthContext> Map<String, Map<OperateType, TableSetting<Object>>> toSettings(ApplicationContext context) {
 
-        Map<String, Map<OperateType, TableOneOperateConfig<C, Object>>> config = new ConcurrentHashMap<>();
+        Map<String, Map<OperateType, TableSetting<Object>>> config = new ConcurrentHashMap<>();
         final List<PolicyBase> policies = context.getBeansOfType(PolicyBase.class).values().stream().toList();
         // only last policy can handler
         TableInfoFactory.ofEntityClass(SysUser.class);
@@ -45,7 +46,7 @@ public class TableConfigUtils {
 
         final Map<Class<?>, PolicyBase> allPolicy =
                 policyGrouping.get(POLICY_ALL).stream().collect(Collectors.toMap(
-                        it -> ClassUtil.getTypeArgument(it.getClass(), 1), it -> it
+                        it -> ClassUtil.getTypeArgument(it.getClass()), it -> it
                 ));
 
         clazzSuperWithSelfList.forEach((k, v) -> v.stream().filter(allPolicy::containsKey)
@@ -53,7 +54,7 @@ public class TableConfigUtils {
                 .findFirst()
                 .ifPresent(policy -> {
                     final String tableNameWithSchema = TableInfoFactory.ofEntityClass(k).getTableNameWithSchema();
-                    final Map<OperateType, TableOneOperateConfig<C, Object>> innerMap = config.computeIfAbsent(tableNameWithSchema, key -> new ConcurrentHashMap<>());
+                    final Map<OperateType, TableSetting<Object>> innerMap = config.computeIfAbsent(tableNameWithSchema, key -> new ConcurrentHashMap<>());
                     innerMap.put(OperateType.SELECT, policy.config());
                     innerMap.put(OperateType.INSERT, policy.config());
                     innerMap.put(OperateType.UPDATE, policy.config());
@@ -75,25 +76,25 @@ public class TableConfigUtils {
             OperateType operateType,
             Map<String, List<PolicyBase>> policyGrouping, Map<Class<?>,
             List<Class<?>>> clazzSuperWithSelfList,
-            Map<String, Map<OperateType, TableOneOperateConfig<C, Object>>> config
+            Map<String, Map<OperateType, TableSetting<Object>>> config
     ) {
         final Map<Class<?>, PolicyBase> selectPolicy = Optional.ofNullable(policyGrouping.get(groupName)).orElse(List.of())
                 .stream().collect(Collectors.toMap(
-                        it -> ClassUtil.getTypeArgument(it.getClass(), 1), it -> it
+                        it -> ClassUtil.getTypeArgument(it.getClass()), it -> it
                 ));
 
         clazzSuperWithSelfList.forEach((k, v) -> v.stream().filter(selectPolicy::containsKey)
                 .map(selectPolicy::get)
                 .findFirst().ifPresent(policyBase -> {
                     final String tableNameWithSchema = TableInfoFactory.ofEntityClass(k).getTableNameWithSchema();
-                    final Map<OperateType, TableOneOperateConfig<C, Object>> innerMap = config.computeIfAbsent(tableNameWithSchema, key -> new ConcurrentHashMap<>());
+                    final Map<OperateType, TableSetting<Object>> innerMap = config.computeIfAbsent(tableNameWithSchema, key -> new ConcurrentHashMap<>());
                     innerMap.put(operateType, policyBase.config());
                 })
 
         );
     }
 
-    private <C extends AuthContext> String operateType(PolicyBase<C, Object> policy) {
+    private <C extends AuthContext> String operateType(PolicyBase<Object> policy) {
 
         final boolean isSelect = policy instanceof SelectPolicyBase;
         if (isSelect) {
@@ -134,7 +135,6 @@ public class TableConfigUtils {
             superClasses.add(clazz);
         }
         superClasses(clazz, superClasses);
-
     }
 
 }
