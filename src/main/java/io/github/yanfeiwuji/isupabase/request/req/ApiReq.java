@@ -139,7 +139,7 @@ public class ApiReq {
     public void post() {
         if (prefers.containsKey(PgrstStrPool.PREFER_RESOLUTION_MERGE_DUPLICATES)) {
             Db.tx(() -> {
-                FlexUtils.insertOrUpdateSelective(baseMapper, body, queryExec.getTableInfo());
+                FlexUtils.insertOrUpdateSelective(baseMapper, pgrstDb, body, queryExec.getTableInfo());
                 return true;
             });
         } else {
@@ -180,7 +180,7 @@ public class ApiReq {
             this.body = pgrstDb.selectListByQuery(baseMapper, queryWrapper);
             rowNum = this.body.size();
         }
-        pgrstDb.selectCountByQuery(baseMapper,queryWrapper);
+        pgrstDb.selectCountByQuery(baseMapper, queryWrapper);
         pgrstDb.updateRowByQuery(baseMapper, row, queryWrapper);
 
 

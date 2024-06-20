@@ -24,9 +24,12 @@ public class TableSetting<T> {
     private Function<PgrstContext, List<QueryColumn>> columns;
 
 
+    // todo before and after is not good
+    // super admin will cross this
     // insert update delete
     private BiConsumer<PgrstContext, OperateInfo<T>> before;
     // insert update delete
+    // super admin will cross this
     private BiConsumer<PgrstContext, OperateInfo<T>> after;
 
 
