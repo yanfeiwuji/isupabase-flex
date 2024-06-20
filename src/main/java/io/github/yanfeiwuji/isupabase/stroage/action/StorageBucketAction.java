@@ -32,7 +32,7 @@ public class StorageBucketAction {
 
     @PostMapping
     public BucketName post(@RequestBody Bucket bucket) {
-        final Bucket dbBucket = bucketMapper.selectOneByCondition(BUCKET.ID.eq(bucket.getId()));
+        final Bucket dbBucket = bucketMapper.selectOneById(bucket.getId());
         if (Objects.nonNull(dbBucket)) {
             throw StorageExFactory.RESOURCE_ALREADY_EXIST;
         }

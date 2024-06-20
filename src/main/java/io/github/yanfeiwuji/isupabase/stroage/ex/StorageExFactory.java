@@ -1,7 +1,11 @@
 package io.github.yanfeiwuji.isupabase.stroage.ex;
 
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthEx;
+import io.github.yanfeiwuji.isupabase.request.ex.PgrstExInfo;
 import lombok.experimental.UtilityClass;
+
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * @author yanfeiwuji
@@ -14,5 +18,18 @@ public class StorageExFactory {
     public static StorageEx TRIED_DELETE_NOT_EMPTY_BUCKET = StorageExRes.TRIED_DELETE_NOT_EMPTY_BUCKET.toStorageEx();
 
     public static StorageEx BUCKET_NOT_FOUND = StorageExRes.BUCKET_NOT_FOUND.toStorageEx();
+
+    public Supplier<StorageEx> invalidKey(String key) {
+        return () -> new StorageExRes("InvalidKey", "Invalid key: %s".formatted(key), StorageExRes.STATUS_CODE_400).toStorageEx();
+    }
+
+    public StorageEx bucketNotFound() {
+        return BUCKET_NOT_FOUND;
+    }
+
+    public StorageEx resourceAlreadyExist() {
+        return RESOURCE_ALREADY_EXIST;
+    }
+
 
 }

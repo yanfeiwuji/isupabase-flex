@@ -181,7 +181,4 @@ public class SecurityConfig {
     }
 
 
-    public static void main(String[] args) {
-
-    }
 }

@@ -11,6 +11,7 @@ import io.github.yanfeiwuji.isupabase.auth.entity.User;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthCmExFactory;
 import io.github.yanfeiwuji.isupabase.auth.ex.AuthExFactory;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
+import io.github.yanfeiwuji.isupabase.auth.provider.AuthRequestProvider;
 import io.github.yanfeiwuji.isupabase.auth.service.AuthService;
 import io.github.yanfeiwuji.isupabase.auth.service.JWTService;
 import io.github.yanfeiwuji.isupabase.auth.service.OneTimeTokenService;
@@ -49,6 +50,7 @@ public class AuthAction {
     private final OneTimeTokenService oneTimeTokenService;
     private final SessionService sessionService;
     private final JWTService jwtService;
+    private final AuthRequestProvider authRequestProvider;
 
     @PostMapping("/token")
     @Transactional
@@ -73,10 +75,10 @@ public class AuthAction {
     @GetMapping("/authorize")
     @Transactional
     public void authorize(@RequestParam(value = "provider") String provider,
-            @RequestParam(value = "redirect_to", required = false) String redirectTo,
-            HttpServletResponse response) throws IOException {
+                          @RequestParam(value = "redirect_to", required = false) String redirectTo,
+                          HttpServletResponse response) throws IOException {
         final String needRedirectTo = ISupabasePropertiesUtils.redirectTo(redirectTo);
-        AuthRequest authRequest = AuthProviderUtils.authRequest(provider)
+        AuthRequest authRequest = authRequestProvider.apply(provider)
                 .orElseThrow(AuthCmExFactory::unsupportedProvider);
         final String authorize = authRequest.authorize(jwtService.stateToken(provider, needRedirectTo));
         response.sendRedirect(authorize);
@@ -91,7 +93,7 @@ public class AuthAction {
         final String provider = stateTokenInfo.provider();
         final String referrer = stateTokenInfo.referrer();
 
-        final AuthRequest authRequest = AuthProviderUtils.authRequest(provider)
+        final AuthRequest authRequest = authRequestProvider.apply(provider)
                 .orElseThrow(AuthCmExFactory::unsupportedProvider);
         final AuthResponse<AuthUser> authResponse;
         try {
@@ -124,17 +126,17 @@ public class AuthAction {
     @GetMapping("/verify")
     @Transactional
     public void verify(@RequestParam("token") String token,
-            @RequestParam("type") String type,
-            @RequestParam("redirect_to") String redirectTo,
-            HttpServletResponse response) throws IOException {
+                       @RequestParam("type") String type,
+                       @RequestParam("redirect_to") String redirectTo,
+                       HttpServletResponse response) throws IOException {
 
         Optional<OneTimeToken> oneTimeTokenOptional;
 
         switch (type) {
             case AuthStrPool.VERIFY_TYPE_SIGNUP ->
-                oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.CONFIRMATION_TOKEN);
+                    oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.CONFIRMATION_TOKEN);
             case AuthStrPool.VERIFY_TYPE_RECOVERY ->
-                oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.RECOVERY_TOKEN);
+                    oneTimeTokenOptional = oneTimeTokenService.verifyToken(token, ETokenType.RECOVERY_TOKEN);
             case AuthStrPool.VERIFY_TYPE_EMAIL_CHANGE -> oneTimeTokenOptional = oneTimeTokenService.verifyToken(token);
             default -> oneTimeTokenOptional = Optional.empty();
         }
@@ -190,7 +192,7 @@ public class AuthAction {
     @PutMapping("/user")
     @Transactional
     public User putUser(@RequestBody PutUserParam userParam,
-            @RequestParam(value = "redirect_to", required = false) String redirectTo) {
+                        @RequestParam(value = "redirect_to", required = false) String redirectTo) {
         userParam.setRedirectTo(redirectTo);
         return authService.putUser(userParam);
     }
@@ -198,7 +200,7 @@ public class AuthAction {
     @PostMapping("/recover")
     @Transactional
     public Map<String, String> recover(@RequestBody RecoverParam recoverParam,
-            @RequestParam(value = "redirect_to", required = false) String redirectTo) {
+                                       @RequestParam(value = "redirect_to", required = false) String redirectTo) {
 
         recoverParam.setRedirectTo(redirectTo);
         authService.recover(recoverParam);
@@ -208,7 +210,7 @@ public class AuthAction {
     @PostMapping("signup")
     @Transactional
     public Object signUp(@RequestBody SignUpParam signUpParam,
-            @RequestParam(value = "redirect_to", required = false) String redirectTo) {
+                         @RequestParam(value = "redirect_to", required = false) String redirectTo) {
         Objects.requireNonNull(signUpParam);
         signUpParam.valid();
         signUpParam.setRedirectTo(redirectTo);

@@ -39,8 +39,9 @@ public class PgrstDb {
         TABLE_CONFIG_MAP.putAll(tableSettingMap);
     }
 
-    // ---- select
+    // ---- select // todo fill select and from by baseMapper
     public <T> List<T> selectListByQuery(BaseMapper<T> baseMapper, QueryWrapper queryWrapper) {
+
         final QueryWrapper qw = applyCondition(queryWrapper, OperateType.SELECT);
         applySelectColumns(qw);
         return baseMapper.selectListByQuery(qw);

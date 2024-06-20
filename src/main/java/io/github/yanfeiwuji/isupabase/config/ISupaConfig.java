@@ -8,7 +8,9 @@ import com.mybatisflex.core.dialect.*;
 import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 
+import io.github.yanfeiwuji.isupabase.auth.provider.AuthRequestProvider;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
+import io.github.yanfeiwuji.isupabase.auth.utils.DefaultAuthRequestProvider;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.flex.*;
 import io.github.yanfeiwuji.isupabase.request.flex.policy.TableConfigUtils;
@@ -20,6 +22,7 @@ import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import me.zhyd.oauth.cache.AuthDefaultStateCache;
 import me.zhyd.oauth.cache.AuthStateCache;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -69,6 +72,12 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     @Primary
     public PgrstDb pgrstDb() {
         return new PgrstDb(() -> new PgrstContext(AuthUtils.uid().orElse(-1L), AuthUtils.role(), AuthUtils.jwt()));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AuthRequestProvider authRequestProvider(ISupabaseProperties supabaseProperties) {
+        return new DefaultAuthRequestProvider(supabaseProperties.getAuthProviders());
     }
 
 
