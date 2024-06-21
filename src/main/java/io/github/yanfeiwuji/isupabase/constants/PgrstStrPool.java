@@ -8,7 +8,7 @@ public final class PgrstStrPool {
     private PgrstStrPool() {
     }
 
-    public static final String API_REQ_PGRST_DB_BEAN = "API_REQ_PGRST_DB_BEAN";
+    public static final String API_REQ_PGRST_DB_BEAN = "apiReqPgrstDbBean";
 
 
     public static final String UPDATE_TEMP_TABLE = "$update_temp_table";

@@ -24,12 +24,4 @@ public class SysTableConfig extends AllPolicyBase<SysUser> {
     }
 
 
-    @Override
-    public void before(PgrstContext context, OperateInfo<SysUser> operateInfo) {
-        final QueryCondition queryCondition = operateInfo.queryCondition();
-        System.out.println(queryCondition + "--");
-        operateInfo.objects().forEach(it -> {
-            System.out.println(it);
-        });
-    }
 }

@@ -25,6 +25,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,7 +41,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.function.Supplier;
 
 
 @Configuration
@@ -70,14 +70,14 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
 
     @Bean(PgrstStrPool.API_REQ_PGRST_DB_BEAN)
     @Primary
-    public PgrstDb pgrstDb() {
-        return new PgrstDb(() -> new PgrstContext(AuthUtils.uid().orElse(-1L), AuthUtils.role(), AuthUtils.jwt()));
+    public PgrstDb pgrstDb(ISupabaseProperties supabaseProperties, ApplicationEventPublisher publisher) {
+        return new PgrstDb(() -> new PgrstContext(AuthUtils.uid().orElse(-1L), AuthUtils.role(), AuthUtils.jwt()), supabaseProperties, publisher);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public AuthRequestProvider authRequestProvider(ISupabaseProperties supabaseProperties) {
-        return new DefaultAuthRequestProvider(supabaseProperties.getAuthProviders());
+    public AuthRequestProvider authRequestProvider() {
+        return new DefaultAuthRequestProvider();
     }
 
 

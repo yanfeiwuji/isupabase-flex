@@ -27,12 +27,7 @@ public abstract class SelectPolicyBase<T> extends PolicyBase<T> {
                 this::using,
                 (context, info) -> {
                 },
-                this::columns,
-                (context, info) -> {
-                },
-                (context, info) -> {
-
-                }
+                this::columns
         );
     }
 }

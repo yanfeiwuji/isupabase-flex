@@ -11,13 +11,11 @@ import cn.hutool.core.text.StrPool;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.BaseMapper;
-import com.mybatisflex.core.constant.SqlConsts;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.row.Db;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.table.TableInfo;
 
-import com.mybatisflex.core.update.UpdateChain;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.flex.PgrstDb;
@@ -180,28 +178,9 @@ public class ApiReq {
             this.body = pgrstDb.selectListByQuery(baseMapper, queryWrapper);
             rowNum = this.body.size();
         }
-        pgrstDb.selectCountByQuery(baseMapper, queryWrapper);
+        //  pgrstDb.selectCountByQuery(baseMapper, queryWrapper);
         pgrstDb.updateRowByQuery(baseMapper, row, queryWrapper);
 
-
-//        final UpdateChain<Object> chain = UpdateChain.of(baseMapper);
-//        Optional.ofNullable(firstBodyKeys)
-//                .orElse(Set.of())
-//                .forEach(it -> chain.set(it, bodyMap.get(CharSequenceUtil.toCamelCase(it))));
-//
-//
-//        final TableInfo tableInfo = queryExec.getTableInfo();
-//        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
-//        final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
-//        final QueryWrapper updateWrapper = QueryWrapper.create().select(idColumn).from(queryTable);
-//
-//        updateWrapper.where(queryCondition);
-//        orders.forEach(updateWrapper::orderBy);
-//        updateWrapper.limit(queryExec.getLimit());
-//        updateWrapper.offset(queryExec.getOffset());
-//        final QueryWrapper tempWrapper = QueryWrapper.create().select(idColumn).from(updateWrapper).as(PgrstStrPool.UPDATE_TEMP_TABLE);
-//
-//        chain.where(idColumn.in(tempWrapper)).update();
 
     }
 
@@ -216,7 +195,6 @@ public class ApiReq {
         queryWrapper.limit(queryExec.getLimit());
         queryWrapper.offset(queryExec.getOffset());
 
-
         if (prefers.containsKey(PgrstStrPool.PREFER_RETURN_REPRESENTATION)) {
 
             // must query then delete
@@ -226,14 +204,6 @@ public class ApiReq {
             responseBody = res;
         }
 
-//        final QueryColumn queryColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
-//        final QueryTable queryTable = CacheTableInfoUtils.nNQueryTable(tableInfo);
-//        final QueryWrapper deleteWithOrderLimit = QueryWrapper.create().select(queryColumn)
-//                .from(queryTable)
-//                .where(queryExec.getQueryCondition());
-//        orders.forEach(deleteWithOrderLimit::orderBy);
-//        deleteWithOrderLimit.limit(queryExec.getLimit());
-//        deleteWithOrderLimit.offset(queryExec.getOffset());
         pgrstDb.deleteByQuery(baseMapper, queryWrapper);
     }
 
@@ -356,18 +326,18 @@ public class ApiReq {
                         count));
 
         headers.add(PgrstStrPool.HEADER_PREFERENCE_APPLIED_KEY, CharSequenceUtil.join(StrPool.COMMA, preferApplied));
-        // headers.setAccessControlAllowHeaders(CommonStr.ACCESS_CONTROL_EXPOSE_HEADERS);
+
     }
 
     private List<?> readIdsThenLoad(BaseMapper<?> baseMapper, TableInfo tableInfo, List<?> body) {
 
-        final QueryCondition queryCondition = inIdsCondition(tableInfo, body);
-        if (Objects.isNull(queryCondition)) {
+        final List<?> queryIds = pgrstDb.entitiesToIds(tableInfo, body);
+        if (queryIds.isEmpty()) {
             return List.of();
         }
-        queryExec.setQueryCondition(queryCondition);
-        // final List<?> invoke = QueryExecInvoke.invoke(queryExec, baseMapper);
+        final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
 
+        queryExec.setQueryCondition(idColumn.in(queryIds));
         return QueryExecInvoke.invoke(queryExec, baseMapper, pgrstDb);
     }
 

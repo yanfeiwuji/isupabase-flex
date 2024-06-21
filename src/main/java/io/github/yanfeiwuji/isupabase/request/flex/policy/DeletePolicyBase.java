@@ -13,23 +13,13 @@ public class DeletePolicyBase<T> extends PolicyBase<T> {
     }
 
 
-    public void before(PgrstContext context, OperateInfo<T> operateInfo) {
-
-    }
-
-    public void after(PgrstContext context, OperateInfo<T> operateInfo) {
-
-    }
-
     @Override
     TableSetting<T> config() {
         return new TableSetting<>(
                 this::using,
                 (context, info) -> {
                 },
-                (context) -> null,
-                this::before,
-                this::after
+                (context) -> null
         );
     }
 }

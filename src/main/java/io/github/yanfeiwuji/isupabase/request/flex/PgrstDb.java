@@ -1,9 +1,11 @@
 package io.github.yanfeiwuji.isupabase.request.flex;
 
+import ch.qos.logback.core.util.StringUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.map.MapUtil;
+import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.exception.FlexExceptions;
@@ -12,12 +14,16 @@ import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.row.Db;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.row.RowUtil;
+import com.mybatisflex.core.table.IdInfo;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
+import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
+import io.github.yanfeiwuji.isupabase.request.event.PgrstDbEvent;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,21 +40,30 @@ import java.util.stream.Stream;
 public class PgrstDb {
     private final Supplier<PgrstContext> contextSupplier;
     private Map<String, Map<OperateType, TableSetting<Object>>> TABLE_CONFIG_MAP = new ConcurrentHashMap<>();
+    private final ISupabaseProperties iSupabaseProperties;
+    private final ApplicationEventPublisher publisher;
+
 
     public void load(Map<String, Map<OperateType, TableSetting<Object>>> tableSettingMap) {
         TABLE_CONFIG_MAP.putAll(tableSettingMap);
     }
 
-    // ---- select // todo fill select and from by baseMapper
-    public <T> List<T> selectListByQuery(BaseMapper<T> baseMapper, QueryWrapper queryWrapper) {
+    // use in other option to pre query
+    private <T> List<T> selectListByQueryWithType(BaseMapper<T> baseMapper, QueryWrapper queryWrapper, OperateType operateType) {
+        final QueryWrapper needQueryWrapper = preHandler(baseMapper, queryWrapper, operateType);
+        applySelectColumns(needQueryWrapper);
+        return baseMapper.selectListByQuery(needQueryWrapper);
+    }
 
-        final QueryWrapper qw = applyCondition(queryWrapper, OperateType.SELECT);
-        applySelectColumns(qw);
-        return baseMapper.selectListByQuery(qw);
+    public <T> List<T> selectListByQuery(BaseMapper<T> baseMapper, QueryWrapper queryWrapper) {
+        final QueryWrapper needQueryWrapper = preHandler(baseMapper, queryWrapper, OperateType.SELECT);
+        applySelectColumns(needQueryWrapper);
+        return baseMapper.selectListByQuery(needQueryWrapper);
     }
 
     public <T> long selectCountByQuery(BaseMapper<T> baseMapper, QueryWrapper queryWrapper) {
-        return baseMapper.selectCountByQuery(applyCondition(queryWrapper, OperateType.SELECT));
+        final QueryWrapper needQueryWrapper = preHandler(baseMapper, queryWrapper, OperateType.SELECT);
+        return baseMapper.selectCountByQuery(needQueryWrapper);
     }
 
     public <T> List<T> selectListByCondition(BaseMapper<T> baseMapper, QueryCondition queryCondition) {
@@ -65,9 +80,11 @@ public class PgrstDb {
 
         applyInsertColumnsOnEntity(baseMapper, entity);
         applyCheck(baseMapper, OperateType.INSERT, List.of(entity));
-        applyBefore(baseMapper, OperateType.INSERT, QueryCondition.createEmpty(), List.of(entity));
+        final TableInfo tableInfo = mapperToTableInfo(baseMapper);
+
+        publisher.publishEvent(PgrstDbEvent.ofInsertBefore(this, tableInfo.getTableNameWithSchema(), List.of(entity)));
         final int res = baseMapper.insertSelective(entity);
-        applyAfter(baseMapper, OperateType.INSERT, QueryCondition.createEmpty(), List.of(entity));
+        publisher.publishEvent(PgrstDbEvent.ofInsertAfter(this, tableInfo.getTableNameWithSchema(), List.of(entity)));
         return res;
     }
 
@@ -75,63 +92,62 @@ public class PgrstDb {
 
         applyInsertColumnsOnEntities(baseMapper, entity);
         applyCheck(baseMapper, OperateType.INSERT, entity);
-        applyBefore(baseMapper, OperateType.INSERT, QueryCondition.createEmpty(), entity);
+
+        final TableInfo tableInfo = mapperToTableInfo(baseMapper);
+
+        publisher.publishEvent(PgrstDbEvent.ofInsertBefore(this, tableInfo.getTableNameWithSchema(), List.of(entity)));
         final int res = baseMapper.insertBatch(entity);
-        applyAfter(baseMapper, OperateType.INSERT, QueryCondition.createEmpty(), entity);
+        publisher.publishEvent(PgrstDbEvent.ofInsertAfter(this, tableInfo.getTableNameWithSchema(), List.of(entity)));
         return res;
     }
 
     // --- update
-
-    public <T> long updateRowByQuery(BaseMapper<T> baseMapper, Row row, QueryWrapper queryWrapper) {
+    public <T> List<T> updateRowByQuery(BaseMapper<T> baseMapper, Row row, QueryWrapper queryWrapper) {
         final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
-
         applyUpdateColumnsOnRow(tableInfo.getTableNameWithSchema(), row);
 
-        final List<T> entity = List.of((T) RowUtil.toEntity(row, tableInfo.getEntityClass()));
-        applyCheck(baseMapper, OperateType.UPDATE, entity);
+        final List<T> needUpdates = selectListByQueryWithType(baseMapper, queryWrapper, OperateType.UPDATE);
 
-        QueryWrapper need = applyCondition(queryWrapper, OperateType.UPDATE);
-
-        final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(need);
-
-        final Object[] conditionParams = CPI.getConditionParams(whereQueryCondition);
-
-        if (Objects.isNull(conditionParams) || conditionParams.length == 0) {
-            throw FlexExceptions.wrap(LocalizedFormats.UPDATE_OR_DELETE_NOT_ALLOW);
+        if (needUpdates.isEmpty()) {
+            return needUpdates;
+        }
+        final QueryColumn idCol = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
+        final List<?> needUpdateIds = entitiesToIds(tableInfo, needUpdates);
+        //
+        if (needUpdateIds.isEmpty()) {
+            return needUpdates;
         }
 
-        applyBefore(baseMapper, OperateType.UPDATE, whereQueryCondition, entity);
-        final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
+        final Map<String, String> columnPropertyMapping = CacheTableInfoUtils.nNTableColumnPropertyMapping(tableInfo);
 
-        final QueryWrapper endQueryWrapper = QueryWrapper.create().select(idColumn)
-                .from(tableInfo.getEntityClass())
-                .where(whereQueryCondition);
-        final QueryWrapper end = QueryWrapper.create()
-                .select(QueryMethods.column(PgrstStrPool.UPDATE_TEMP_TABLE, idColumn.getName()))
-                .from(endQueryWrapper).as(PgrstStrPool.UPDATE_TEMP_TABLE);
+        // might handler some copy a list z
+        final List<T> newList = needUpdates.stream().toList();
+        newList.forEach(it -> row.forEach((k, v) -> BeanUtil.setProperty(it, columnPropertyMapping.get(k), v)));
 
-        int res = Db.updateByCondition(tableInfo.getSchema(), tableInfo.getTableName(), row, idColumn.in(end));
-        // todo make it more function
-        applyAfter(baseMapper, OperateType.UPDATE, whereQueryCondition, entity);
-        return res;
+        publisher.publishEvent(PgrstDbEvent.ofUpdateBefore(this, tableInfo.getTableNameWithSchema(), needUpdates, newList));
+        System.out.println(needUpdateIds + "==");
+        Db.updateByCondition(tableInfo.getSchema(), tableInfo.getTableName(), row, idCol.in(needUpdateIds));
+
+        final List<T> dbUpdates = baseMapper.selectListByCondition(idCol.in(needUpdateIds));
+        publisher.publishEvent(PgrstDbEvent.ofUpdateBefore(this, tableInfo.getTableNameWithSchema(), needUpdates, dbUpdates));
+        return dbUpdates;
     }
 
-    public <T> long updateByQuery(BaseMapper<T> baseMapper, T entity, QueryWrapper queryWrapper) {
+    public <T> List<T> updateByQuery(BaseMapper<T> baseMapper, T entity, QueryWrapper queryWrapper) {
         final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
         final Map<String, String> propertyColumnMapping = tableInfo.getPropertyColumnMapping();
         return this.updateRowByQuery(baseMapper, (Row) BeanUtil.beanToMap(entity, new Row(), true, propertyColumnMapping::get), queryWrapper);
     }
 
-    public <T> long updateByCondition(BaseMapper<T> baseMapper, T entity, QueryCondition queryCondition) {
+    public <T> List<T> updateByCondition(BaseMapper<T> baseMapper, T entity, QueryCondition queryCondition) {
         return this.updateByQuery(baseMapper, entity, conditionToWrapper(baseMapper, queryCondition));
     }
 
-    public <T> long update(BaseMapper<T> baseMapper, T entity) {
+    public <T> List<T> update(BaseMapper<T> baseMapper, T entity) {
         final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
         final Object[] pkSqlArgs = tableInfo.buildPkSqlArgs(entity);
         if (pkSqlArgs == null || pkSqlArgs.length == 0) {
-            return 0;
+            return List.of(entity);
         }
         final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
         QueryCondition queryCondition;
@@ -144,45 +160,38 @@ public class PgrstDb {
     }
 
     // --- delete
-    public <T> long deleteByQuery(BaseMapper<T> baseMapper, QueryWrapper queryWrapper) {
+    public <T> List<T> deleteByQuery(BaseMapper<T> baseMapper, QueryWrapper queryWrapper) {
+        final TableInfo tableInfo = mapperToTableInfo(baseMapper);
 
-        final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
-        final QueryColumn idColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
+        final List<T> needDeletes = selectListByQueryWithType(baseMapper, queryWrapper, OperateType.DELETE);
 
-        QueryWrapper need = applyCondition(queryWrapper, OperateType.DELETE);
-
-        final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(need);
-        final Object[] conditionParams = CPI.getConditionParams(whereQueryCondition);
-
-        if (Objects.isNull(conditionParams) || conditionParams.length == 0) {
-            throw FlexExceptions.wrap(LocalizedFormats.UPDATE_OR_DELETE_NOT_ALLOW);
+        if (needDeletes.isEmpty()) {
+            // null not publish anything
+            return needDeletes;
         }
-        final QueryWrapper endQueryWrapper = QueryWrapper.create().select(idColumn)
-                .from(tableInfo.getEntityClass())
-                .where(whereQueryCondition);
-        final QueryWrapper end = QueryWrapper.create().select(QueryMethods.column(PgrstStrPool.DELETE_TEMP_TABLE, idColumn.getName())).from(endQueryWrapper).as(PgrstStrPool.DELETE_TEMP_TABLE);
+        List needDeleteIds = entitiesToIds(tableInfo, needDeletes);
 
-        applyBefore(baseMapper, OperateType.DELETE, whereQueryCondition, List.of());
-        final int res = baseMapper.deleteByCondition(idColumn.in(end));
-        applyAfter(baseMapper, OperateType.DELETE, whereQueryCondition, List.of());
-        return res;
+        publisher.publishEvent(PgrstDbEvent.ofDeleteBefore(this, tableInfo.getTableNameWithSchema(), needDeletes));
+        baseMapper.deleteBatchByIds(needDeleteIds);
+        publisher.publishEvent(PgrstDbEvent.ofDeleteAfter(this, tableInfo.getTableNameWithSchema(), needDeletes));
+        return needDeletes;
     }
 
     // --- delete
-    public <T> long deleteByCondition(BaseMapper<T> baseMapper, QueryCondition queryCondition) {
+    public <T> List<T> deleteByCondition(BaseMapper<T> baseMapper, QueryCondition queryCondition) {
 
         return this.deleteByQuery(baseMapper, conditionToWrapper(baseMapper, queryCondition));
     }
 
     private QueryWrapper applyCondition(QueryWrapper queryWrapper, OperateType operateType) {
-        final QueryWrapper clone = queryWrapper.clone();
+
         CPI.getQueryTables(queryWrapper)
                 .stream().map(QueryTable::getNameWithSchema)
                 .map(it -> pickSetting(it, operateType, TableSetting::getUsing))
-                .forEach(using -> using.ifPresent(it -> applyUsing(clone, it)));
+                .forEach(using -> using.ifPresent(it -> applyUsing(queryWrapper, it)));
         final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(queryWrapper);
         applySelectSubCondition(selectConditions(whereQueryCondition, new ArrayList<>()));
-        return clone;
+        return queryWrapper;
     }
 
     private void applySelectSubCondition(List<OperatorSelectCondition> selectConditions) {
@@ -350,19 +359,62 @@ public class PgrstDb {
                 .ifPresent(it -> it.setting.accept(it.context, (List<Object>) objects));
     }
 
-    private <T> void applyBefore(BaseMapper<T> baseMapper, OperateType operateType, QueryCondition queryCondition, List<T> objects) {
-        pickSetting(baseMapperToTableNameWithSchema(baseMapper), operateType, TableSetting::getBefore)
-                .ifPresent(it -> it.setting.accept(it.context, new OperateInfo<>(queryCondition.clone(), (List<Object>) objects)));
-    }
-
-    private <T> void applyAfter(BaseMapper<T> baseMapper, OperateType operateType, QueryCondition queryCondition, List<T> objects) {
-        pickSetting(baseMapperToTableNameWithSchema(baseMapper), operateType, TableSetting::getAfter)
-                .ifPresent(it -> it.setting.accept(it.context, new OperateInfo<>(queryCondition.clone(), (List<Object>) objects)));
-    }
 
     private <T> String baseMapperToTableNameWithSchema(BaseMapper<T> baseMapper) {
         return TableInfoFactory.ofMapperClass(baseMapper.getClass())
                 .getTableNameWithSchema();
     }
 
+    private <T> QueryWrapper preHandler(BaseMapper<T> baseMapper, QueryWrapper queryWrapper, OperateType operateType) {
+        final QueryWrapper result = queryWrapper.clone();
+
+        // file select
+
+        final List<QueryColumn> selectColumns = CPI.getSelectColumns(result);
+        if (CollUtil.isEmpty(selectColumns)) {
+            final TableInfo tableInfo = mapperToTableInfo(baseMapper);
+            result.select(CacheTableInfoUtils.nNQueryAllColumns(tableInfo));
+        }
+
+
+        // file query table
+        final List<QueryTable> queryTables = CPI.getQueryTables(result);
+        if (CollUtil.isNotEmpty(queryTables)) {
+            final TableInfo tableInfo = mapperToTableInfo(baseMapper);
+            result.from(tableInfo.getEntityClass());
+        }
+
+        // handler limit
+        final Long limitRows = CPI.getLimitRows(result);
+        final Long maxRows = iSupabaseProperties.getMaxRows();
+        final Long needLimitRows = Optional.ofNullable(limitRows)
+                .filter(l -> l <= maxRows)
+                .orElse(maxRows);
+        CPI.setLimitRows(result, needLimitRows);
+
+        // apply condition
+        applyCondition(result, operateType);
+
+        return result;
+    }
+
+    private <T> TableInfo mapperToTableInfo(BaseMapper<T> baseMapper) {
+        return TableInfoFactory.ofMapperClass(baseMapper.getClass());
+    }
+
+
+    public List<?> entitiesToIds(TableInfo tableInfo, List<?> entities) {
+
+        final int pkSize = Optional.ofNullable(tableInfo.getPrimaryKeyList()).map(List::size).orElse(0);
+        if (pkSize == 1) {
+            return entities.stream().map(tableInfo::buildPkSqlArgs)
+                    .filter(it -> it.length == 1)
+                    .map(it -> it[0])
+                    .filter(Objects::nonNull)
+                    .toList();
+        } else {
+            return entities.stream().map(tableInfo::buildPkSqlArgs)
+                    .toList();
+        }
+    }
 }

@@ -18,22 +18,13 @@ public class InsertPolicyBase<T> extends PolicyBase<T> {
         return null;
     }
 
-    public void before(PgrstContext context, OperateInfo<T> operateInfo) {
-
-    }
-
-    public void after(PgrstContext context, OperateInfo<T> operateInfo) {
-
-    }
 
     @Override
     TableSetting<T> config() {
         return new TableSetting<>(
                 context -> EMPTY_CONDITION,
                 this::checking,
-                this::columns,
-                this::before,
-                this::after
+                this::columns
         );
     }
 

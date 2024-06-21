@@ -19,6 +19,7 @@ import io.github.yanfeiwuji.isupabase.auth.service.SessionService;
 import io.github.yanfeiwuji.isupabase.auth.utils.*;
 import io.github.yanfeiwuji.isupabase.auth.vo.StateTokenInfo;
 import io.github.yanfeiwuji.isupabase.auth.vo.TokenInfo;
+import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 
@@ -51,6 +52,7 @@ public class AuthAction {
     private final SessionService sessionService;
     private final JWTService jwtService;
     private final AuthRequestProvider authRequestProvider;
+    private final ISupabaseProperties iSupabaseProperties;
 
     @PostMapping("/token")
     @Transactional
@@ -78,8 +80,11 @@ public class AuthAction {
                           @RequestParam(value = "redirect_to", required = false) String redirectTo,
                           HttpServletResponse response) throws IOException {
         final String needRedirectTo = ISupabasePropertiesUtils.redirectTo(redirectTo);
-        AuthRequest authRequest = authRequestProvider.apply(provider)
+        final AuthRequest authRequest = Optional.ofNullable(iSupabaseProperties).map(ISupabaseProperties::getAuthProviders)
+                .map(it -> it.get(provider))
+                .flatMap(it -> authRequestProvider.apply(provider, it))
                 .orElseThrow(AuthCmExFactory::unsupportedProvider);
+
         final String authorize = authRequest.authorize(jwtService.stateToken(provider, needRedirectTo));
         response.sendRedirect(authorize);
     }
@@ -92,8 +97,9 @@ public class AuthAction {
         final StateTokenInfo stateTokenInfo = jwtService.decodeStateToken(state);
         final String provider = stateTokenInfo.provider();
         final String referrer = stateTokenInfo.referrer();
-
-        final AuthRequest authRequest = authRequestProvider.apply(provider)
+        final AuthRequest authRequest = Optional.ofNullable(iSupabaseProperties).map(ISupabaseProperties::getAuthProviders)
+                .map(it -> it.get(provider))
+                .flatMap(it -> authRequestProvider.apply(provider, it))
                 .orElseThrow(AuthCmExFactory::unsupportedProvider);
         final AuthResponse<AuthUser> authResponse;
         try {

@@ -24,21 +24,12 @@ public abstract class AllPolicyBase<T> extends PolicyBase<T> {
         return null;
     }
 
-    public void before(PgrstContext context, OperateInfo<T> operateInfo) {
-
-    }
-
-    public void after(PgrstContext context, OperateInfo<T> operateInfo) {
-
-    }
 
     TableSetting<T> config() {
         return new TableSetting<>(
                 this::using,
                 this::checking,
-                this::columns,
-                this::before,
-                this::after
+                this::columns
         );
     }
 }

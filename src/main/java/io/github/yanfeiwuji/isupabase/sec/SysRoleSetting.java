@@ -34,19 +34,7 @@ public class SysRoleSetting extends AllPolicyBase<SysRole> {
         System.out.println(entities);
     }
 
-    @Override
-    public void before(PgrstContext context, OperateInfo<SysRole> operateInfo) {
-        final QueryCondition queryCondition = operateInfo.queryCondition();
-        pgrstDb.selectListByCondition(baseMapper, queryCondition);
-        System.out.println("before");
-    }
 
-    @Override
-    public void after(PgrstContext context, OperateInfo<SysRole> operateInfo) {
-        System.out.println("after");
-        System.out.println(context);
-        System.out.println(operateInfo);
-    }
 
     @Override
     public List<QueryColumn> columns(PgrstContext context) {

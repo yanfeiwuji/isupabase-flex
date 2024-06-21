@@ -19,6 +19,7 @@ import java.util.Map;
 @Data
 public class ISupabaseProperties {
 
+    private Long maxRows = 986L;
     private String authPrivateKey;
     private String authPublicKey;
 
@@ -30,6 +31,7 @@ public class ISupabaseProperties {
     private Long oneTimeExpiredMinutes = 5L;
     private List<String> redirectUrls = List.of();
     private Map<String, AuthConfig> authProviders = Map.of();
+
 
     @PostConstruct
     public void init() {
