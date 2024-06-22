@@ -16,6 +16,10 @@ public record StorageExRes(String error, String message, @JsonAnyGetter Map<Stri
     public static final StorageExRes RESOURCE_ALREADY_EXIST = new StorageExRes("Duplicate", "The resource already exists", STATUS_CODE_409);
     public static final StorageExRes TRIED_DELETE_NOT_EMPTY_BUCKET = new StorageExRes("InvalidRequest", "The bucket you tried to delete is not empty", STATUS_CODE_409);
     public static final StorageExRes BUCKET_NOT_FOUND = new StorageExRes("Bucket not found", "Bucket not found", STATUS_CODE_400);
+    public static final StorageExRes SORT_ORDER_NOT_ALLOW = new StorageExRes("Error", "body/sortBy/order must be equal to one of the allowed values", STATUS_CODE_400);
+    public static final StorageExRes SORT_COLUMN_NOT_ALLOW = new StorageExRes("Error", "body/sortBy/column must be equal to one of the allowed values", STATUS_CODE_400);
+
+    public static final StorageExRes OBJECT_NOT_FOUND = new StorageExRes("not_found", "Object not found", STATUS_CODE_404);
 
     public StorageExRes(String error, String message) {
         this(error, message, Map.of());

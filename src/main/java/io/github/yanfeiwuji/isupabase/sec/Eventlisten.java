@@ -11,9 +11,11 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class Eventlisten {
-    //
-    @EventListener(value = PgrstDbEvent.class,condition = "#event.table.startsWith('sys_user')")
+    // use condition to filter event and type must match other
+    @EventListener(value = PgrstDbEvent.class, condition = "#event.combine.equals('sys_role.insert.after')")
     public void as(PgrstDbEvent<SysRole> event) {
+        System.out.println(event.getNewEntities().stream().map(SysRole::getRoleName).toList());
+        System.out.println(event.getCombine());
         System.out.println(event.getCombine());
     }
 }

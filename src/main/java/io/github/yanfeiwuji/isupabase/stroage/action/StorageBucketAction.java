@@ -43,7 +43,6 @@ public class StorageBucketAction {
     @DeleteMapping("{id}")
     public StorageMessage delete(@PathVariable("id") @NotNull String id) {
 
-        //  todo handler to skip row level security
         final StorageObject storageObjects = storageObjectsMapper.selectOneByCondition(STORAGE_OBJECT.BUCKET_ID.eq(id));
         if (Objects.nonNull(storageObjects)) {
             throw StorageExFactory.TRIED_DELETE_NOT_EMPTY_BUCKET;

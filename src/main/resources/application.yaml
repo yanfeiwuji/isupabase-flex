@@ -21,6 +21,7 @@ mybatis-flex:
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
     default-fetch-size: 1000
 
+
 # must re config this
 isupabase:
   auth-private-key: |

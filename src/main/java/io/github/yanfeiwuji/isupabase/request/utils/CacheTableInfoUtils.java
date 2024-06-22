@@ -30,6 +30,7 @@ import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.ex.*;
 import lombok.experimental.UtilityClass;
+import org.apache.ibatis.type.TypeHandler;
 
 /**
  * TableInfoUtils
@@ -67,6 +68,7 @@ public class CacheTableInfoUtils {
     private static final Map<String, Set<String>> CACHE_TABLE_NAME_ALL_COLUMN = new ConcurrentHashMap<>();
     //  private static final Map<String, Map<String, JsonDeserializer<Object>>> CACHE_TABLE_NAME_COLUMN_NAME_JSON_DESERIALIZER = new ConcurrentHashMap<>();
 
+    private static final Map<Class<?>, Map<String, TypeHandler<?>>> CACHE_TABLE_COLUMN_TYPE_HANDLER = new ConcurrentHashMap<>();
     private static ObjectMapper mapper;
     private static Optional<NamingBase> namingBaseOptional;
 
@@ -107,6 +109,20 @@ public class CacheTableInfoUtils {
 
     public ColumnInfo nNRealColumnInfo(String paramKey, TableInfo tableInfo) {
         return realColumnInfo(paramKey, tableInfo).orElseThrow(PgrstExFactory.exColumnNotFound(tableInfo, paramKey));
+    }
+
+    /**
+     * todo
+     * 获取 handler
+     * @param columnName
+     * @param tableInfo
+     * @return
+     */
+    public TypeHandler nNRealTypeHandler(String columnName, TableInfo tableInfo) {
+        return CACHE_TABLE_COLUMN_TYPE_HANDLER.computeIfAbsent(tableInfo.getEntityClass(), clazz -> {
+            final List<ColumnInfo> columnInfoList = tableInfo.getColumnInfoList();
+            return columnInfoList.stream().collect(Collectors.toMap(it -> it.getColumn(), it -> BeanUtil.getProperty(it, "buildTypeHandler")));
+        }).get(columnName);
     }
 
 

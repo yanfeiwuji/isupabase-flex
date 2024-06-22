@@ -1,6 +1,7 @@
 package io.github.yanfeiwuji.isupabase.request.select;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.StrUtil;
 
 import com.mybatisflex.core.BaseMapper;
@@ -8,6 +9,8 @@ import com.mybatisflex.core.datasource.DataSourceKey;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.row.Row;
+import com.mybatisflex.core.table.TableInfo;
+import com.mybatisflex.core.table.TableInfoFactory;
 import com.mybatisflex.core.util.StringUtil;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.flex.PgrstDb;
@@ -20,6 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.mybatisflex.core.query.QueryMethods.column;
+import static com.mybatisflex.core.query.QueryMethods.trim;
 
 @UtilityClass
 public class QueryExecInvoke {
@@ -154,8 +158,13 @@ public class QueryExecInvoke {
 
     private List<Map<String, Object>> fetchTargetList(BaseMapper<?> baseMapper, PgrstDb pgrstDb, QueryWrapper queryWrapper) {
         // handler bean not use type but can't use jsonColumn
+        final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
+
+        // cache copyOption
+        final CopyOptions copyOptions = CopyOptions.create().ignoreNullValue().setFieldNameEditor(tableInfo::getColumnByProperty);
         return pgrstDb.selectListByQuery(baseMapper, queryWrapper)
-                .stream().map(it -> BeanUtil.beanToMap(it, new TreeMap<>(), true, true))
+                .stream().map(it -> Optional.ofNullable(it).map(obj -> BeanUtil.beanToMap(it, new TreeMap<>(), copyOptions))
+                        .orElseGet(TreeMap::new))
                 .toList();
     }
 

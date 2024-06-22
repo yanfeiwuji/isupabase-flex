@@ -18,6 +18,9 @@ public class StorageExFactory {
     public static StorageEx TRIED_DELETE_NOT_EMPTY_BUCKET = StorageExRes.TRIED_DELETE_NOT_EMPTY_BUCKET.toStorageEx();
 
     public static StorageEx BUCKET_NOT_FOUND = StorageExRes.BUCKET_NOT_FOUND.toStorageEx();
+    public static StorageEx SORT_ORDER_NOT_ALLOW = StorageExRes.SORT_ORDER_NOT_ALLOW.toStorageEx();
+    public static StorageEx SORT_COLUMN_NOT_ALLOW = StorageExRes.SORT_COLUMN_NOT_ALLOW.toStorageEx();
+    public static StorageEx OBJECT_NOT_FOUND = StorageExRes.OBJECT_NOT_FOUND.toStorageEx();
 
     public Supplier<StorageEx> invalidKey(String key) {
         return () -> new StorageExRes("InvalidKey", "Invalid key: %s".formatted(key), StorageExRes.STATUS_CODE_400).toStorageEx();

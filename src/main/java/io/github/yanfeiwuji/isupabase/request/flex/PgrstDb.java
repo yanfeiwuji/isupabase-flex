@@ -14,6 +14,7 @@ import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.row.Db;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.row.RowUtil;
+import com.mybatisflex.core.table.ColumnInfo;
 import com.mybatisflex.core.table.IdInfo;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
@@ -136,7 +137,10 @@ public class PgrstDb {
     public <T> List<T> updateByQuery(BaseMapper<T> baseMapper, T entity, QueryWrapper queryWrapper) {
         final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
         final Map<String, String> propertyColumnMapping = tableInfo.getPropertyColumnMapping();
-        return this.updateRowByQuery(baseMapper, (Row) BeanUtil.beanToMap(entity, new Row(), true, propertyColumnMapping::get), queryWrapper);
+        Row row =  (Row) BeanUtil.beanToMap(entity, new Row(), true, propertyColumnMapping::get);
+        // use real handler to handler
+
+        return this.updateRowByQuery(baseMapper, row ,queryWrapper);
     }
 
     public <T> List<T> updateByCondition(BaseMapper<T> baseMapper, T entity, QueryCondition queryCondition) {
@@ -269,6 +273,7 @@ public class PgrstDb {
         final List<QueryColumn> columns = CPI.getSelectColumns(queryWrapper);
 
         final Map<String, Optional<List<QueryColumn>>> config = columns.stream().map(QueryColumn::getTable)
+                .filter(Objects::nonNull)
                 .map(QueryTable::getNameWithSchema)
                 .distinct()
                 .collect(Collectors.toMap(it -> it, it -> pickSetting(it, OperateType.SELECT, TableSetting::getColumns)

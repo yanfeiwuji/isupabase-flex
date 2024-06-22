@@ -11,7 +11,6 @@ import lombok.EqualsAndHashCode;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author yanfeiwuji
@@ -22,7 +21,7 @@ import java.util.Map;
 @Table("storage_object")
 public class StorageObject extends StorageBase {
     @Id(keyType = KeyType.Generator, value = KeyGenerators.flexId)
-    private String id;
+    private Long id;
 
     private String bucketId;
     private Long owner;
@@ -30,7 +29,7 @@ public class StorageObject extends StorageBase {
     @Column(onInsertValue = "now()", onUpdateValue = "now()")
     private OffsetDateTime lastAccessedAt;
     @Column(typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> metadata;
+    private ObjectMetadata metadata;
     @Column(typeHandler = JacksonTypeHandler.class)
     private List<String> pathTokens;
     private String version;
