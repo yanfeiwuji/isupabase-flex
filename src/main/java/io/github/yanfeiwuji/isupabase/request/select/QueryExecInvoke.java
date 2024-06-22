@@ -160,7 +160,7 @@ public class QueryExecInvoke {
         // handler bean not use type but can't use jsonColumn
         final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
 
-        // cache copyOption
+        // cache copyOption // todo
         final CopyOptions copyOptions = CopyOptions.create().ignoreNullValue().setFieldNameEditor(tableInfo::getColumnByProperty);
         return pgrstDb.selectListByQuery(baseMapper, queryWrapper)
                 .stream().map(it -> Optional.ofNullable(it).map(obj -> BeanUtil.beanToMap(it, new TreeMap<>(), copyOptions))
