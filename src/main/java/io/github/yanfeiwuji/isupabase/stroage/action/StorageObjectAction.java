@@ -15,8 +15,10 @@ import io.github.yanfeiwuji.isupabase.stroage.ex.StorageExFactory;
 import io.github.yanfeiwuji.isupabase.stroage.mapper.StorageObjectMapper;
 import io.github.yanfeiwuji.isupabase.stroage.service.BucketService;
 import io.github.yanfeiwuji.isupabase.stroage.vo.*;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.*;
@@ -88,6 +90,7 @@ public class StorageObjectAction {
             throw StorageExFactory.OBJECT_NOT_FOUND;
         }
         Optional.of(storageObject).map(StorageObject::getMetadata).ifPresent(it -> {
+
             // todo get real file
             response.setContentType(it.getMimetype());
             response.setContentLength(Optional.ofNullable(it.getContentLength().intValue()).orElse(0));
@@ -146,6 +149,7 @@ public class StorageObjectAction {
 
         pgrstDb.insertSelective(storageObjectMapper, storageObject);
 
+        reqToFile(request);
         //  todo consider has update success
         return new StorageShortInfo(String.valueOf(storageObject.getId()), key);
     }
@@ -409,6 +413,24 @@ public class StorageObjectAction {
             return jwt;
         } catch (Exception e) {
             throw StorageExFactory.INVALID_JWT;
+        }
+    }
+
+    private void reqToFile(HttpServletRequest request) {
+        request.getParameter("cacheControl");
+        try {
+            // todo get file
+
+            final String cacheControl = request.getParameter("cacheControl");
+            System.out.println(cacheControl);
+
+            final Part part = request.getPart("");
+            System.out.println(part.getContentType());
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ServletException e) {
+            throw new RuntimeException(e);
         }
     }
 }
