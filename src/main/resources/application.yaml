@@ -33,6 +33,7 @@ isupabase:
     MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApe4ezQydGOmzZtDuDeENOKNpgO6e3N1ICF9/zWcqw9RTf/ZO/t44covZOjOmEk+/hQUifEGB844CDJ+stidI9+D0AXQz5aTkhgDDB4BO29KUYhlmIq4S0gfY9JOG+mohC0uROHtiZmJAxmSuawkGJivUECsnJINmvGmCO0/18wzbA0abdJ/lscxfALUOR0cZ02mMU60lzpd6N0IAzJsOrI7AWSx5q8JcIOZUWMDHostGz3e3VEE0tO0P4CktuP0mcRj0cxUknLmzIkXuNChFUhjC7TmgZyscCfT2iNSoecIBTAkQEh/EpUgi9j+LGtIstsy+qYEGxO65VrpcuMm6uQIDAQAB
     -----END PUBLIC KEY-----
   jwt-exp: 3600
+
   password-min-length: 6
   password-required-characters: ""
   site-url: https://385b-2610-150-3b21-0-216-3cff-fe09-e1be.ngrok-free.app
@@ -50,3 +51,4 @@ isupabase:
         - emails
   redirect-urls:
     - http://*.baidu.com
+  storage-update-signed-jwt-exp: 7200

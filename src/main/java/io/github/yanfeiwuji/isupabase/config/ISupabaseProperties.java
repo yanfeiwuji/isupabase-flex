@@ -33,6 +33,9 @@ public class ISupabaseProperties {
     private Map<String, AuthConfig> authProviders = Map.of();
 
 
+    private Long storageUpdateSignedJwtExp = 7200L;
+
+
     @PostConstruct
     public void init() {
         // final HttpConfig httpConfig = HttpConfig.builder()

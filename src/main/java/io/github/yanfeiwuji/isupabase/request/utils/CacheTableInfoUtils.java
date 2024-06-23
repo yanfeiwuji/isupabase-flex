@@ -7,11 +7,13 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.text.StrPool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.NamingBase;
 
+import com.mybatisflex.core.handler.JacksonTypeHandler;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryTable;
 import com.mybatisflex.core.query.RawQueryColumn;
@@ -68,7 +70,9 @@ public class CacheTableInfoUtils {
     private static final Map<String, Set<String>> CACHE_TABLE_NAME_ALL_COLUMN = new ConcurrentHashMap<>();
     //  private static final Map<String, Map<String, JsonDeserializer<Object>>> CACHE_TABLE_NAME_COLUMN_NAME_JSON_DESERIALIZER = new ConcurrentHashMap<>();
 
-    private static final Map<Class<?>, Map<String, TypeHandler<?>>> CACHE_TABLE_COLUMN_TYPE_HANDLER = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, Map<String, JacksonTypeHandler>> CACHE_TABLE_COLUMN_TYPE_HANDLER = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, CopyOptions> CACHE_TABLE_COPY_OPTIONS = new ConcurrentHashMap<>();
+
     private static ObjectMapper mapper;
     private static Optional<NamingBase> namingBaseOptional;
 
@@ -114,15 +118,25 @@ public class CacheTableInfoUtils {
     /**
      * todo
      * 获取 handler
+     *
      * @param columnName
      * @param tableInfo
      * @return
      */
-    public TypeHandler nNRealTypeHandler(String columnName, TableInfo tableInfo) {
-        return CACHE_TABLE_COLUMN_TYPE_HANDLER.computeIfAbsent(tableInfo.getEntityClass(), clazz -> {
+    public Optional<JacksonTypeHandler> columnJacksonTypeHandler(String columnName, TableInfo tableInfo) {
+        return Optional.ofNullable(CACHE_TABLE_COLUMN_TYPE_HANDLER.computeIfAbsent(tableInfo.getEntityClass(), clazz -> {
             final List<ColumnInfo> columnInfoList = tableInfo.getColumnInfoList();
-            return columnInfoList.stream().collect(Collectors.toMap(it -> it.getColumn(), it -> BeanUtil.getProperty(it, "buildTypeHandler")));
-        }).get(columnName);
+
+            final ConcurrentHashMap<String, JacksonTypeHandler> map = MapUtil.newConcurrentHashMap();
+            columnInfoList
+                    .forEach(columnInfo -> Optional.ofNullable(BeanUtil.getProperty(columnInfo, "buildTypeHandler"))
+                            .filter(JacksonTypeHandler.class::isInstance)
+                            .map(JacksonTypeHandler.class::cast)
+                            .ifPresent(it -> map.put(columnInfo.getColumn(), it))
+                    )
+            ;
+            return map;
+        }).get(columnName));
     }
 
 
@@ -367,4 +381,7 @@ public class CacheTableInfoUtils {
                 .orElse(property);
     }
 
+    public CopyOptions nNTableCopyOptions(TableInfo tableInfo) {
+        return CACHE_TABLE_COPY_OPTIONS.computeIfAbsent(tableInfo.getEntityClass(), clazz -> CopyOptions.create().ignoreNullValue().setFieldNameEditor(tableInfo::getColumnByProperty));
+    }
 }

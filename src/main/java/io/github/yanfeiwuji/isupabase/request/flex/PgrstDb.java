@@ -6,10 +6,12 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.exception.FlexExceptions;
 import com.mybatisflex.core.exception.locale.LocalizedFormats;
+import com.mybatisflex.core.handler.JacksonTypeHandler;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.row.Db;
 import com.mybatisflex.core.row.Row;
@@ -24,6 +26,7 @@ import io.github.yanfeiwuji.isupabase.request.event.PgrstDbEvent;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.RequiredArgsConstructor;
+import org.apache.ibatis.type.TypeHandler;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.*;
@@ -67,6 +70,17 @@ public class PgrstDb {
         return baseMapper.selectCountByQuery(needQueryWrapper);
     }
 
+    public <T> T selectOneByQuery(BaseMapper<T> baseMapper, QueryWrapper queryWrapper) {
+        final QueryWrapper needQueryWrapper = preHandler(baseMapper, queryWrapper, OperateType.SELECT);
+        needQueryWrapper.limit(1);
+        applySelectColumns(needQueryWrapper);
+        return baseMapper.selectOneByQuery(needQueryWrapper);
+    }
+
+    public <T> T selectOneByCondition(BaseMapper<T> baseMapper, QueryCondition queryCondition) {
+        return this.selectOneByQuery(baseMapper, conditionToWrapper(baseMapper, queryCondition));
+    }
+
     public <T> List<T> selectListByCondition(BaseMapper<T> baseMapper, QueryCondition queryCondition) {
         return this.selectListByQuery(baseMapper, conditionToWrapper(baseMapper, queryCondition));
     }
@@ -107,6 +121,16 @@ public class PgrstDb {
         final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
         applyUpdateColumnsOnRow(tableInfo.getTableNameWithSchema(), row);
 
+        // handler jackson not work
+        row.forEach((k, v) -> CacheTableInfoUtils.columnJacksonTypeHandler(k, tableInfo).ifPresent(handler -> {
+            try {
+                row.replace(k, JacksonTypeHandler.getObjectMapper().writeValueAsString(v));
+            } catch (JsonProcessingException e) {
+                // copy from flex
+                throw FlexExceptions.wrap(e, "Can not convert object to Json by JacksonTypeHandler: " + v);
+            }
+        }));
+
         final List<T> needUpdates = selectListByQueryWithType(baseMapper, queryWrapper, OperateType.UPDATE);
 
         if (needUpdates.isEmpty()) {
@@ -121,12 +145,13 @@ public class PgrstDb {
 
         final Map<String, String> columnPropertyMapping = CacheTableInfoUtils.nNTableColumnPropertyMapping(tableInfo);
 
-        // might handler some copy a list z
+        // might handler some copy a list
         final List<T> newList = needUpdates.stream().toList();
+
         newList.forEach(it -> row.forEach((k, v) -> BeanUtil.setProperty(it, columnPropertyMapping.get(k), v)));
 
         publisher.publishEvent(PgrstDbEvent.ofUpdateBefore(this, tableInfo.getTableNameWithSchema(), needUpdates, newList));
-        System.out.println(needUpdateIds + "==");
+
         Db.updateByCondition(tableInfo.getSchema(), tableInfo.getTableName(), row, idCol.in(needUpdateIds));
 
         final List<T> dbUpdates = baseMapper.selectListByCondition(idCol.in(needUpdateIds));
@@ -136,11 +161,10 @@ public class PgrstDb {
 
     public <T> List<T> updateByQuery(BaseMapper<T> baseMapper, T entity, QueryWrapper queryWrapper) {
         final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
-        final Map<String, String> propertyColumnMapping = tableInfo.getPropertyColumnMapping();
-        Row row =  (Row) BeanUtil.beanToMap(entity, new Row(), true, propertyColumnMapping::get);
+        Row row = (Row) BeanUtil.beanToMap(entity, new Row(), true, tableInfo::getColumnByProperty);
         // use real handler to handler
 
-        return this.updateRowByQuery(baseMapper, row ,queryWrapper);
+        return this.updateRowByQuery(baseMapper, row, queryWrapper);
     }
 
     public <T> List<T> updateByCondition(BaseMapper<T> baseMapper, T entity, QueryCondition queryCondition) {
@@ -219,12 +243,12 @@ public class PgrstDb {
                 .map(it -> it.setting.apply(it.context))
                 .ifPresent(allows -> {
                     final Set<String> allowsSet = allows.stream().map(QueryColumn::getName).collect(Collectors.toSet());
-                    final List<String> clear = propertyColumnMapping.entrySet().stream()
-                            .filter(it -> !allowsSet.contains(it.getValue()))
-                            .map(Map.Entry::getKey)
-                            .toList();
-                    // todo might to more high
-                    entities.forEach(entity -> clear.forEach(it -> BeanUtil.setProperty(entity, it, null)));
+                    final boolean hasNotAllow = propertyColumnMapping.keySet()
+                            .stream()
+                            .anyMatch(it -> !allowsSet.contains(it));
+                    if (hasNotAllow) {
+                        throw PgrstExFactory.COLUMN_SECURITY_ERROR;
+                    }
 
                 });
 
@@ -257,14 +281,11 @@ public class PgrstDb {
                 .map(it -> it.setting.apply(it.context))
                 .ifPresent(allows -> {
                     final Set<String> allowsSet = allows.stream().map(QueryColumn::getName).collect(Collectors.toSet());
-
-                    final List<String> list = row.keySet().stream().filter(key -> !allowsSet.contains(key)).toList();
-                    list.forEach(row::remove);
-                    if (row.isEmpty()) {
-                        // row is empty db is error
+                    //   final List<String> list = row.keySet().stream().filter(key -> !allowsSet.contains(key)).toList();
+                    // if contains then throw error
+                    if (row.keySet().stream().anyMatch(key -> !allowsSet.contains(key))) {
                         throw PgrstExFactory.COLUMN_SECURITY_ERROR;
                     }
-
                 });
 
     }

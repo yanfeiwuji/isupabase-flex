@@ -21,6 +21,13 @@ public record StorageExRes(String error, String message, @JsonAnyGetter Map<Stri
 
     public static final StorageExRes OBJECT_NOT_FOUND = new StorageExRes("not_found", "Object not found", STATUS_CODE_404);
 
+    public static final StorageExRes DELETE_PREFIXES_IS_EMPTY = new StorageExRes("Error", "body/prefixes must NOT have fewer than 1 items", STATUS_CODE_400);
+    public static final StorageExRes CREATE_SIGNED_EXP_IN_MUST_GE_ONE = new StorageExRes("Error", "body/expiresIn must be >= 1", STATUS_CODE_400);
+    public static final StorageExRes CREATE_SIGNED_PATHS_MUST_GE_ONE = new StorageExRes("Error", "body/paths must NOT have fewer than 1 items", STATUS_CODE_400);
+
+    public static final StorageExRes INVALID_JWT = new StorageExRes("InvalidJWT", "jwt malformed", STATUS_CODE_400);
+    public static final StorageExRes INVALID_SIGNATURE = new StorageExRes("InvalidSignature", "Invalid signature", STATUS_CODE_400);
+
     public StorageExRes(String error, String message) {
         this(error, message, Map.of());
     }

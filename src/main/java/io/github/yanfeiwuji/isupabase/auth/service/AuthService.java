@@ -130,6 +130,7 @@ public class AuthService {
         if (Objects.isNull(token)) {
             throw AuthExFactory.INVALID_GRANT_REFRESH_TOKEN_NOT_FOUND;
         }
+        // todo revoke token by time
 
         if (BooleanUtil.isTrue(token.getRevoked())) {
             throw AuthExFactory.INVALID_GRANT_ALREADY_USED;
@@ -148,6 +149,7 @@ public class AuthService {
         sessionMapper.update(session);
 
         token.setRevoked(true);
+
         final RefreshToken newRefreshToken = new RefreshToken();
         newRefreshToken.setRevoked(false);
         newRefreshToken.setUserId(token.getUserId());

@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -69,6 +70,10 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize -> {
                             authorize.requestMatchers("auth/v1/verify", "/auth/v1/authorize", "/auth/v1/callback").permitAll();
+                            authorize.requestMatchers(HttpMethod.PUT, "storage/v1/object/upload/sign/**").permitAll();
+                            authorize.requestMatchers(HttpMethod.GET, "storage/v1/object/public/**").permitAll();
+                            authorize.requestMatchers(HttpMethod.GET, "storage/v1/object/sign/**").permitAll();
+
                             //     authorize.requestMatchers("/auth/v1/token", "/auth/v1/authorize").authenticated();
                             authorize.anyRequest().authenticated();
                         }
