@@ -32,6 +32,9 @@ public class Bucket extends StorageBase {
     @Column(typeHandler = JacksonTypeHandler.class)
 //    @Pattern(regexp = "*/*")
     private List<String> allowedMimeTypes;
+
+    private Long fileSizeLimit;
+
     private Long ownerId;
 
 

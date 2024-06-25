@@ -1,5 +1,6 @@
 package io.github.yanfeiwuji.isupabase.stroage.action;
 
+import cn.hutool.core.text.CharSequenceUtil;
 import com.mybatisflex.core.query.QueryCondition;
 import io.github.yanfeiwuji.isupabase.constants.StorageStrPool;
 import io.github.yanfeiwuji.isupabase.stroage.entity.Bucket;
@@ -11,10 +12,15 @@ import io.github.yanfeiwuji.isupabase.stroage.vo.BucketName;
 import io.github.yanfeiwuji.isupabase.stroage.vo.StorageMessage;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.InvalidMimeTypeException;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static io.github.yanfeiwuji.isupabase.stroage.entity.table.BucketTableDef.BUCKET;
 import static io.github.yanfeiwuji.isupabase.stroage.entity.table.StorageObjectTableDef.STORAGE_OBJECT;
@@ -33,9 +39,25 @@ public class StorageBucketAction {
     @PostMapping
     public BucketName post(@RequestBody Bucket bucket) {
         final Bucket dbBucket = bucketMapper.selectOneById(bucket.getId());
+
         if (Objects.nonNull(dbBucket)) {
             throw StorageExFactory.RESOURCE_ALREADY_EXIST;
         }
+
+        final List<String> endAllow = Optional.ofNullable(bucket.getAllowedMimeTypes())
+                .orElse(List.of())
+                .stream().filter(it -> CharSequenceUtil.isNotEmpty(it) && CharSequenceUtil.isNotBlank(it))
+                .map(it -> {
+                    try {
+                        MimeType mimeType = MimeTypeUtils.parseMimeType(it);
+                        return mimeType.toString();
+                    } catch (InvalidMimeTypeException e) {
+                        throw StorageExFactory.invalidMimeType(it).get();
+                    }
+                }).toList();
+
+        bucket.setAllowedMimeTypes(endAllow);
+
         bucketMapper.insert(bucket);
         return new BucketName(bucket.getName());
     }

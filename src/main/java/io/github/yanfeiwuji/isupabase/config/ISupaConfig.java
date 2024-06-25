@@ -1,6 +1,5 @@
 package io.github.yanfeiwuji.isupabase.config;
 
-import cn.hutool.core.text.CharSequenceUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.audit.AuditManager;
 import com.mybatisflex.core.audit.ConsoleMessageCollector;
@@ -12,7 +11,7 @@ import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 
 import io.github.yanfeiwuji.isupabase.auth.provider.AuthRequestProvider;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
-import io.github.yanfeiwuji.isupabase.auth.utils.DefaultAuthRequestProvider;
+import io.github.yanfeiwuji.isupabase.auth.provider.DefaultAuthRequestProvider;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.flex.*;
 import io.github.yanfeiwuji.isupabase.request.flex.policy.TableConfigUtils;
@@ -43,7 +42,6 @@ import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Map;
 

@@ -30,12 +30,19 @@ public class StorageExFactory {
     public static final StorageEx INVALID_SIGNATURE = StorageExRes.INVALID_SIGNATURE.toStorageEx();
     public static final StorageEx UPLOAD_NULL_ERROR = StorageExRes.UPLOAD_NULL_ERROR.toStorageEx();
 
+    public static final StorageEx PAYLOAD_TOO_LAGER = StorageExRes.PAYLOAD_TOO_LAGER.toStorageEx();
+
     public StorageEx uploadNullError() {
         return UPLOAD_NULL_ERROR;
     }
 
     public Supplier<StorageEx> invalidKey(String key) {
         return () -> new StorageExRes("InvalidKey", "Invalid key: %s".formatted(key), StorageExRes.STATUS_CODE_400).toStorageEx();
+    }
+
+    public Supplier<StorageEx> invalidMimeType(String mimeType) {
+        return () -> new StorageExRes("invalid_mime_type", "mime type %s is not supported".formatted(mimeType), StorageExRes.STATUS_CODE_415).toStorageEx();
+
     }
 
     public StorageEx invalidSignature() {

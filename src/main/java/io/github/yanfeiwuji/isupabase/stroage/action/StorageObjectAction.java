@@ -12,6 +12,7 @@ import io.github.yanfeiwuji.isupabase.request.flex.PgrstDb;
 import io.github.yanfeiwuji.isupabase.stroage.entity.Bucket;
 import io.github.yanfeiwuji.isupabase.stroage.entity.ObjectMetadata;
 import io.github.yanfeiwuji.isupabase.stroage.entity.StorageObject;
+import io.github.yanfeiwuji.isupabase.stroage.ex.StorageEx;
 import io.github.yanfeiwuji.isupabase.stroage.ex.StorageExFactory;
 import io.github.yanfeiwuji.isupabase.stroage.mapper.StorageObjectMapper;
 import io.github.yanfeiwuji.isupabase.stroage.provider.S3Provider;
@@ -26,6 +27,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
@@ -412,8 +415,27 @@ public class StorageObjectAction {
                 .orElseThrow(StorageExFactory::uploadNullError);
 
 
-        final String cacheControl = request.getParameter("cacheControl");
+        final long size = multipartFile.getSize();
+        final Long bucketAllowSize = Optional.ofNullable(bucket.getFileSizeLimit()).orElse(0L);
 
+        if (size >= bucketAllowSize) {
+            throw StorageExFactory.PAYLOAD_TOO_LAGER;
+        }
+
+        final MimeType contextMimeType =
+                Optional.ofNullable(multipartFile.getContentType())
+                        .map(MimeType::valueOf).orElse(MimeTypeUtils.TEXT_PLAIN);
+
+        final List<String> allowedMimeTypes = bucket.getAllowedMimeTypes();
+        if (Objects.nonNull(allowedMimeTypes) && !allowedMimeTypes.isEmpty()) {
+            final boolean match = allowedMimeTypes.stream().map(MimeType::valueOf).anyMatch(it -> it.includes(contextMimeType));
+            if (!match) {
+                throw StorageExFactory.invalidMimeType(contextMimeType.toString()).get();
+            }
+        }
+
+
+        final String cacheControl = request.getParameter("cacheControl");
 
         final byte[] bytes = multipartFile.getBytes();
         final String name = storageObject.getName();
