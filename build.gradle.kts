@@ -14,18 +14,33 @@ java {
     }
 }
 repositories {
-   mavenLocal()
-    maven("https://oss.sonatype.org/content/repositories/snapshots")
+
     mavenCentral()
+    mavenLocal()
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
+
 }
 
 var mybatisFlexVersion = "1.9.2"
 var hutoolVersion = "5.8.26"
 var guavaVersion = "33.2.0-jre"
 var justAuthVersion = "1.16.6"
+var uploadVersion = "2.0.0-M2"
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-web") {
+
+        //   exclude("org.springframework.boot","spring-boot-starter-tomcat")
+    }
+
+    implementation("org.springframework.boot:spring-boot-starter-undertow")
+
+    modules {
+        // tomcat not read form-data  name empty str
+        module("org.springframework.boot:spring-boot-starter-tomcat") {
+            replacedBy("org.springframework.boot:spring-boot-starter-undertow")
+        }
+    }
     implementation("org.springframework.boot:spring-boot-starter-aop")
 
     implementation("com.zaxxer:HikariCP")
@@ -42,6 +57,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-mail")
 // https://mvnrepository.com/artifact/me.zhyd.oauth/JustAuth
     implementation("me.zhyd.oauth:JustAuth:$justAuthVersion")
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-fileupload2-jakarta-servlet6
+    implementation("org.apache.commons:commons-fileupload2-jakarta-servlet6:$uploadVersion")
 
 
 //    runtimeOnly("org.postgresql:postgresql")

@@ -10,23 +10,27 @@ import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.constants.StorageStrPool;
 import io.github.yanfeiwuji.isupabase.request.flex.PgrstDb;
 import io.github.yanfeiwuji.isupabase.stroage.entity.Bucket;
+import io.github.yanfeiwuji.isupabase.stroage.entity.ObjectMetadata;
 import io.github.yanfeiwuji.isupabase.stroage.entity.StorageObject;
 import io.github.yanfeiwuji.isupabase.stroage.ex.StorageExFactory;
 import io.github.yanfeiwuji.isupabase.stroage.mapper.StorageObjectMapper;
+import io.github.yanfeiwuji.isupabase.stroage.provider.S3Provider;
 import io.github.yanfeiwuji.isupabase.stroage.service.BucketService;
 import io.github.yanfeiwuji.isupabase.stroage.vo.*;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.Part;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import org.springframework.core.io.Resource;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -45,6 +49,7 @@ import static io.github.yanfeiwuji.isupabase.stroage.entity.table.StorageObjectT
 @RequiredArgsConstructor
 public class StorageObjectAction {
     private static final Pattern KEY_PATTERN = Pattern.compile("^([a-zA-Z0-9_]+/)*[a-zA-Z0-9_]+$");
+    private final S3Provider<Resource> s3Provider;
     DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
 
     private final BucketService bucketService;
@@ -55,8 +60,10 @@ public class StorageObjectAction {
     @Value("${isupabase.storage-update-signed-jwt-exp}")
     private Long storageUpdateSignedJwtExp;
 
+
     @GetMapping("{bucketId}/**")
-    public void download(@PathVariable String bucketId, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public ResponseEntity<Resource> download(@PathVariable String bucketId, HttpServletRequest request,
+                                             HttpServletResponse response) {
         final Bucket bucket = bucketService.nNBucketById(bucketId);
         final String key = pickKey(bucketId, request);
 
@@ -64,23 +71,13 @@ public class StorageObjectAction {
         if (Objects.isNull(storageObject)) {
             throw StorageExFactory.OBJECT_NOT_FOUND;
         }
-        Optional.of(storageObject).map(StorageObject::getMetadata).ifPresent(it -> {
-            // todo get real file
-            response.setContentType(it.getMimetype());
-            response.setContentLength(Optional.ofNullable(it.getContentLength().intValue()).orElse(0));
-            response.setHeader("Last-Modified", dateTimeFormatter.format(it.getLastModified()));
-            response.setHeader("Cache-Control", it.getCacheControl());
-
-        });
-        final PrintWriter writer = response.getWriter();
-        writer.flush();
-        writer.write("aaaa");
+        return readFile(bucket, storageObject, null);
     }
 
     @GetMapping("sign/{bucketId}/**")
-    public void signDownload(@PathVariable String bucketId, @RequestParam String token,
-                             @RequestParam(required = false) String download,
-                             HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public ResponseEntity<Resource> signDownload(@PathVariable String bucketId, @RequestParam String token,
+                                                 @RequestParam(required = false) String download,
+                                                 HttpServletRequest request, HttpServletResponse response) {
         final Bucket bucket = bucketService.nNBucketById(bucketId);
         final String key = pickKey(bucketId, request);
         validToken(token, bucketId, key);
@@ -89,46 +86,30 @@ public class StorageObjectAction {
         if (Objects.isNull(storageObject)) {
             throw StorageExFactory.OBJECT_NOT_FOUND;
         }
-        Optional.of(storageObject).map(StorageObject::getMetadata).ifPresent(it -> {
-
-            // todo get real file
-            response.setContentType(it.getMimetype());
-            response.setContentLength(Optional.ofNullable(it.getContentLength().intValue()).orElse(0));
-            response.setHeader("Last-Modified", dateTimeFormatter.format(it.getLastModified()));
-            response.setHeader("Cache-Control", it.getCacheControl());
-        });
-        final PrintWriter writer = response.getWriter();
-        writer.flush();
-        writer.write("aaaa");
+        return readFile(bucket, storageObject, download);
 
 
     }
 
     @GetMapping("public/{bucketId}/**")
-    public void publicDownload(@PathVariable String bucketId, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public ResponseEntity<Resource> publicDownload(@PathVariable String bucketId, HttpServletRequest request, HttpServletResponse response,
+                                                   @RequestParam(required = false) String download
+    ) {
         final Bucket bucket = bucketService.nNPublicBucketById(bucketId);
         final String key = pickKey(bucketId, request);
         final StorageObject storageObject = storageObjectMapper.selectOneByCondition(STORAGE_OBJECT.NAME.eq(key).and(STORAGE_OBJECT.BUCKET_ID.eq(bucket.getId())));
         if (Objects.isNull(storageObject)) {
             throw StorageExFactory.OBJECT_NOT_FOUND;
         }
-        Optional.of(storageObject).map(StorageObject::getMetadata).ifPresent(it -> {
-            // todo get real file
-            response.setContentType(it.getMimetype());
-            response.setContentLength(Optional.ofNullable(it.getContentLength().intValue()).orElse(0));
-            response.setHeader("Last-Modified", dateTimeFormatter.format(it.getLastModified()));
-            response.setHeader("Cache-Control", it.getCacheControl());
-
-        });
-        final PrintWriter writer = response.getWriter();
-        writer.write("aaaa");
-        writer.flush();
-        writer.close();
+        return readFile(bucket, storageObject, download);
     }
 
     @PostMapping("/{bucketId}/**")
     @Transactional
-    public StorageShortInfo upload(@PathVariable String bucketId, HttpServletRequest request) {
+    public StorageShortInfo upload(@PathVariable String bucketId, HttpServletRequest request
+    ) {
+
+
         final Bucket bucket = bucketService.nNBucketById(bucketId);
 
         final String key = pickKey(bucketId, request);
@@ -147,10 +128,12 @@ public class StorageObjectAction {
         storageObject.setLastAccessedAt(OffsetDateTime.now());
         storageObject.setPathTokens(CharSequenceUtil.split(key, StrPool.SLASH));
 
+        final ObjectMetadata objectMetadata = uploadFile(bucket, storageObject, request);
+        storageObject.setMetadata(objectMetadata);
+
         pgrstDb.insertSelective(storageObjectMapper, storageObject);
 
-        reqToFile(request);
-        //  todo consider has update success
+
         return new StorageShortInfo(String.valueOf(storageObject.getId()), key);
     }
 
@@ -181,7 +164,7 @@ public class StorageObjectAction {
     @Transactional
     @PutMapping("/upload/sign/{bucketId}/**")
     public KeyVo uploadToSignedUrl(@PathVariable String bucketId,
-                                   @RequestParam("token") String token,
+                                   @RequestParam String token,
                                    HttpServletRequest request) {
         final Bucket bucket = bucketService.nNBucketById(bucketId);
 
@@ -201,13 +184,17 @@ public class StorageObjectAction {
                 .map(NumberUtil::parseLong).orElse(-1L);
 
         final StorageObject storageObject = new StorageObject();
-        // consider up
+
         storageObject.setBucketId(bucket.getId());
         storageObject.setName(key);
         storageObject.setOwner(owner);
         storageObject.setOwnerId(owner.toString());
         storageObject.setPathTokens(CharSequenceUtil.split(key, StrPool.SLASH));
         storageObject.setLastAccessedAt(OffsetDateTime.now());
+
+        final ObjectMetadata objectMetadata = uploadFile(bucket, storageObject, request);
+        storageObject.setMetadata(objectMetadata);
+
 
         pgrstDb.insertSelective(storageObjectMapper, storageObject);
         return new KeyVo(bucketId + StrPool.SLASH + key);
@@ -296,11 +283,11 @@ public class StorageObjectAction {
         dbStorageObject.setOwner(AuthUtils.uid().orElse(-1L));
         dbStorageObject.setOwnerId(AuthUtils.uid().orElse(-1L).toString());
         dbStorageObject.setLastAccessedAt(OffsetDateTime.now());
+        final ObjectMetadata objectMetadata = uploadFile(bucket, dbStorageObject, request);
+        dbStorageObject.setMetadata(objectMetadata);
 
         pgrstDb.update(storageObjectMapper, dbStorageObject);
 
-
-        //  todo consider has update success
         return new StorageShortInfo(String.valueOf(dbStorageObject.getId()), key);
     }
 
@@ -416,21 +403,29 @@ public class StorageObjectAction {
         }
     }
 
-    private void reqToFile(HttpServletRequest request) {
-        request.getParameter("cacheControl");
-        try {
-            // todo get file
+    @SneakyThrows
+    private ObjectMetadata uploadFile(Bucket bucket, StorageObject storageObject, HttpServletRequest request) {
+        final MultipartFile multipartFile = Optional.of(request)
+                .filter(MultipartHttpServletRequest.class::isInstance)
+                .map(MultipartHttpServletRequest.class::cast)
+                .map(it -> it.getFile(CharSequenceUtil.EMPTY))
+                .orElseThrow(StorageExFactory::uploadNullError);
 
-            final String cacheControl = request.getParameter("cacheControl");
-            System.out.println(cacheControl);
 
-            final Part part = request.getPart("");
-            System.out.println(part.getContentType());
+        final String cacheControl = request.getParameter("cacheControl");
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ServletException e) {
-            throw new RuntimeException(e);
-        }
+
+        final byte[] bytes = multipartFile.getBytes();
+        final String name = storageObject.getName();
+        final String contentType = multipartFile.getContentType();
+        // todo  filter handler file size and minetype
+        return s3Provider.putObject(bucket, name, cacheControl, contentType, bytes);
     }
+
+    private ResponseEntity<Resource> readFile(Bucket bucket, StorageObject storageObject, String download) {
+        return s3Provider.downloadObject(bucket, storageObject.getName(), download, storageObject.getMetadata());
+
+    }
+
+
 }

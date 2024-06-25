@@ -28,8 +28,8 @@ public class Bucket extends StorageBase {
 
     private boolean publicBucket;
     private boolean avifAutodetection;
-    @Column(typeHandler = JacksonTypeHandler.class)
 
+    @Column(typeHandler = JacksonTypeHandler.class)
 //    @Pattern(regexp = "*/*")
     private List<String> allowedMimeTypes;
     private Long ownerId;

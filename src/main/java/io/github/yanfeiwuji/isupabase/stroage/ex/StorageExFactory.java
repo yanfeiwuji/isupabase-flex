@@ -28,6 +28,11 @@ public class StorageExFactory {
 
     public static final StorageEx INVALID_JWT = StorageExRes.INVALID_JWT.toStorageEx();
     public static final StorageEx INVALID_SIGNATURE = StorageExRes.INVALID_SIGNATURE.toStorageEx();
+    public static final StorageEx UPLOAD_NULL_ERROR = StorageExRes.UPLOAD_NULL_ERROR.toStorageEx();
+
+    public StorageEx uploadNullError() {
+        return UPLOAD_NULL_ERROR;
+    }
 
     public Supplier<StorageEx> invalidKey(String key) {
         return () -> new StorageExRes("InvalidKey", "Invalid key: %s".formatted(key), StorageExRes.STATUS_CODE_400).toStorageEx();

@@ -1,10 +1,12 @@
 package io.github.yanfeiwuji.isupabase.config;
 
+import cn.hutool.core.text.CharSequenceUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.audit.AuditManager;
 import com.mybatisflex.core.audit.ConsoleMessageCollector;
 import com.mybatisflex.core.audit.MessageCollector;
 import com.mybatisflex.core.dialect.*;
+import com.mybatisflex.core.handler.JacksonTypeHandler;
 import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 
@@ -19,8 +21,9 @@ import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 
-import me.zhyd.oauth.cache.AuthDefaultStateCache;
-import me.zhyd.oauth.cache.AuthStateCache;
+import io.github.yanfeiwuji.isupabase.stroage.provider.DefaultS3Provider;
+import io.github.yanfeiwuji.isupabase.stroage.provider.S3Provider;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
@@ -36,9 +39,11 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
+
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Map;
 
@@ -57,6 +62,7 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer() {
         return builder -> {
+
         };
     }
 
@@ -90,9 +96,8 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
             CacheTableInfoUtils.init(mapper);
             ValueUtils.init(mapper);
             ApiReq.init(mapper, validatorAdapter, pgrstDb);
+            JacksonTypeHandler.setObjectMapper(mapper);
             printAnnoToken(jwtEncoder);
-
-
         };
     }
 
@@ -120,7 +125,11 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     }
 
     @Bean
-    public AuthStateCache authStateCache() {
-        return AuthDefaultStateCache.INSTANCE;
+    @ConditionalOnMissingBean
+    public S3Provider s3Provider() {
+
+        return new DefaultS3Provider();
     }
+
+
 }
