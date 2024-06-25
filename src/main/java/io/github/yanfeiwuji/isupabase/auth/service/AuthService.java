@@ -60,12 +60,14 @@ public class AuthService {
 
     private Long passwordMinLength;
     private String passwordRequiredCharacters;
+    private Long refreshTokenExp;
+
 
     @PostConstruct
     public void init() {
         this.passwordMinLength = isupabaseProperties.getPasswordMinLength();
         this.passwordRequiredCharacters = isupabaseProperties.getPasswordRequiredCharacters();
-
+        this.refreshTokenExp = isupabaseProperties.getJwtExp() * 2;
     }
 
     public TokenInfo<User> passwordLogin(String username, String password) {
@@ -130,14 +132,15 @@ public class AuthService {
         if (Objects.isNull(token)) {
             throw AuthExFactory.INVALID_GRANT_REFRESH_TOKEN_NOT_FOUND;
         }
-        // todo revoke token by time
 
         if (BooleanUtil.isTrue(token.getRevoked())) {
             throw AuthExFactory.INVALID_GRANT_ALREADY_USED;
         }
+        // token ref is always success it's same as supabase
+
+
 
         final Long sessionId = token.getSessionId();
-
         final Session session = sessionMapper.selectOneById(sessionId);
         if (Objects.isNull(session)) {
             refreshTokenMapper.deleteByCondition(REFRESH_TOKEN.SESSION_ID.eq(sessionId));
