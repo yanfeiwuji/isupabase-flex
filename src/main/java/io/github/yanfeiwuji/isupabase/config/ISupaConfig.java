@@ -9,7 +9,9 @@ import com.mybatisflex.core.handler.JacksonTypeHandler;
 import com.mybatisflex.core.mybatis.FlexConfiguration;
 import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 
+import io.github.yanfeiwuji.isupabase.auth.provider.AuthMimeMessagePreparationProvider;
 import io.github.yanfeiwuji.isupabase.auth.provider.AuthRequestProvider;
+import io.github.yanfeiwuji.isupabase.auth.provider.DefaultAuthMimeMessagePreparationProvider;
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.auth.provider.DefaultAuthRequestProvider;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
@@ -25,7 +27,9 @@ import io.github.yanfeiwuji.isupabase.stroage.provider.S3Provider;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.boot.autoconfigure.mail.MailProperties;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -82,6 +86,13 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
     @ConditionalOnMissingBean
     public AuthRequestProvider authRequestProvider() {
         return new DefaultAuthRequestProvider();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty("spring.mail.username")
+    public AuthMimeMessagePreparationProvider authMimeMessagePreparationProvider(MailProperties mailProperties) {
+        return new DefaultAuthMimeMessagePreparationProvider(mailProperties.getUsername());
     }
 
 

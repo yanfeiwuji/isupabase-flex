@@ -1,19 +1,20 @@
-package io.github.yanfeiwuji.isupabase.auth.service.email;
+package io.github.yanfeiwuji.isupabase.auth.provider;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparator;
+import io.github.yanfeiwuji.isupabase.auth.service.email.MessageParam;
+import lombok.RequiredArgsConstructor;
 
 
 /**
  * @author yanfeiwuji
  * @date 2024/6/12 11:35
  */
-@Service
-public class AuthMimeMessagePreparationFactory {
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+@RequiredArgsConstructor
+public class DefaultAuthMimeMessagePreparationProvider implements AuthMimeMessagePreparationProvider {
 
+    private final String fromEmail;
 
+    @Override
     public AuthMimeMessagePreparator ofSignup(String email, MessageParam messageParam) {
         // only simple info
         return new AuthMimeMessagePreparator("noreply", fromEmail, email, "Confirm Your Signup", """
@@ -24,7 +25,7 @@ public class AuthMimeMessagePreparationFactory {
                 .formatted(messageParam.getConfirmationURL()));
     }
 
-
+    @Override
     public AuthMimeMessagePreparator ofResetPassword(String email, MessageParam messageParam) {
         // only simple info
         return new AuthMimeMessagePreparator("noreply", fromEmail, email, "Reset Your Password", """
@@ -35,6 +36,7 @@ public class AuthMimeMessagePreparationFactory {
                 .formatted(messageParam.getConfirmationURL()));
     }
 
+    @Override
     public AuthMimeMessagePreparator ofEmailChange(String email, MessageParam messageParam) {
         // only simple info
         return new AuthMimeMessagePreparator("noreply", fromEmail, email, "Confirm Email Change", """

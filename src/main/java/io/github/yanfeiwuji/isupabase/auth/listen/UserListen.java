@@ -9,10 +9,10 @@ import io.github.yanfeiwuji.isupabase.auth.entity.User;
 import io.github.yanfeiwuji.isupabase.auth.event.*;
 import io.github.yanfeiwuji.isupabase.auth.mapper.OneTimeTokenMapper;
 import io.github.yanfeiwuji.isupabase.auth.mapper.UserMapper;
+import io.github.yanfeiwuji.isupabase.auth.provider.AuthMimeMessagePreparationProvider;
 import io.github.yanfeiwuji.isupabase.auth.service.IdentityService;
 import io.github.yanfeiwuji.isupabase.auth.service.OneTimeTokenService;
 import io.github.yanfeiwuji.isupabase.auth.service.SessionService;
-import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparationFactory;
 import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparator;
 import io.github.yanfeiwuji.isupabase.auth.service.email.MessageParam;
 import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtils;
@@ -43,7 +43,7 @@ public class UserListen {
 
     private final JavaMailSender mailSender;
 
-    private final AuthMimeMessagePreparationFactory mimeMessagePreparationFactory;
+    private final AuthMimeMessagePreparationProvider mimeMessagePreparationFactory;
     private final OneTimeTokenMapper oneTimeTokenMapper;
     private final OneTimeTokenService oneTimeTokenService;
     private final SessionService sessionService;

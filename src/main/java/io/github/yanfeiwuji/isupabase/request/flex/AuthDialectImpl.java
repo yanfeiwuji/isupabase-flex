@@ -203,7 +203,7 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
 
     private void applyInsertColumnsOnRow(QueryTable queryTable, Row row) {
         insertColumns(queryTable).map(it -> it.func.apply(it.context))
-                .ifPresent(allows -> allowsApplyOnRow(allows, row));
+                .ifPresent(allows -> allowsApplyOnRow(allows, row, queryTable.getNameWithSchema()));
 
     }
 
@@ -216,7 +216,7 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
 
     private void applyUpdateColumnsOnRow(QueryTable queryTable, Row row) {
         updateColumns(queryTable).map(it -> it.func.apply(it.context))
-                .ifPresent(allows -> allowsApplyOnRow(allows, row));
+                .ifPresent(allows -> allowsApplyOnRow(allows, row, queryTable.getNameWithSchema()));
 
 
     }
@@ -239,19 +239,19 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
                             final Map<String, String> allowMap = allows.stream().collect(Collectors.toMap(QueryColumn::getName, QueryColumn::getName));
                             updates.keySet().stream().filter(it -> !allowMap.containsKey(it)).forEach(updates::remove);
                             if (updates.isEmpty()) {
-                                throw PgrstExFactory.COLUMN_SECURITY_ERROR;
+                                throw PgrstExFactory.columnSecurityError(queryTable.getNameWithSchema()).get();
                             }
                         }));
 
     }
 
-    private void allowsApplyOnRow(List<QueryColumn> allows, Row row) {
+    private void allowsApplyOnRow(List<QueryColumn> allows, Row row, String nameWithSchema) {
         final Map<String, String> allowMap = allows.stream().collect(Collectors.toMap(QueryColumn::getName, QueryColumn::getName));
         final Set<String> rowKeys = row.keySet();
 
         rowKeys.stream().filter(it -> !allowMap.containsKey(it)).forEach(row::remove);
         if (row.isEmpty()) {
-            throw PgrstExFactory.COLUMN_SECURITY_ERROR;
+            throw PgrstExFactory.columnSecurityError(nameWithSchema).get();
         }
     }
 
@@ -321,10 +321,12 @@ public class AuthDialectImpl<C extends AuthContext> extends CommonsDialectImpl {
                     } else {
                         final List<QueryColumn> endColumns = needColumns.stream().filter(
                                 it -> allowColumns.stream().anyMatch(allow -> CharSequenceUtil.equals(allow.getTable().getNameWithSchema(), it.getTable().getNameWithSchema())
-                                        && CharSequenceUtil.equals(allow.getName(), it.getName()))).toList();
+                                                                              && CharSequenceUtil.equals(allow.getName(), it.getName()))).toList();
+                        final List<QueryTable> queryTables = CPI.getQueryTables(queryWrapper);
                         if (endColumns.isEmpty()) {
                             // can not look any
-                            throw PgrstExFactory.COLUMN_SECURITY_ERROR;
+                            // might null point
+                            throw PgrstExFactory.columnSecurityError(queryTables.getFirst().getNameWithSchema()).get();
                         }
                         CPI.setSelectColumns(queryWrapper, endColumns);
                     }

@@ -10,6 +10,7 @@ import com.mybatisflex.annotation.Table;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
+import io.github.yanfeiwuji.isupabase.auth.entity.AuthBase;
 import io.github.yanfeiwuji.isupabase.request.anno.Rpc;
 import io.github.yanfeiwuji.isupabase.request.anno.RpcMapping;
 import io.github.yanfeiwuji.isupabase.request.validate.Valid;
@@ -42,7 +43,7 @@ public class GenAction {
     private static final String COMPOSITE_TYPE_FIELD_PRE = CharSequenceUtil.repeat("    ", 4);
 
     private static final String FUNC_PRE = CharSequenceUtil.repeat("    ", 4);
-private static final String FUNC_NULL_PRE = CharSequenceUtil.repeat("    ", 3);
+    private static final String FUNC_NULL_PRE = CharSequenceUtil.repeat("    ", 3);
     private static final String FUNC_ITEM_PRE = CharSequenceUtil.repeat("    ", 5);
 
     private static final String NON_NULL_FIELD_TEMP = FIELD_PRE + "%s: %s";
@@ -211,14 +212,19 @@ private static final String FUNC_NULL_PRE = CharSequenceUtil.repeat("    ", 3);
                         
             """;
 
+    private String returnTypescript;
+
     @GetMapping(value = "/typescript", produces = "text/plain")
     public String typescript() {
+        if (returnTypescript != null) {
+            return returnTypescript;
+        }
         final Map<String, BaseMapper> beansOfType = applicationContext.getBeansOfType(BaseMapper.class);
         final Collection<BaseMapper> mappers = beansOfType.values();
         final List<TableInfo> tableInfos = mappers.stream().map(Object::getClass).map(TableInfoFactory::ofMapperClass).filter(it -> {
             final Class<?> entityClass = it.getEntityClass();
-            //  return !ClassUtil.isAssignable(AuthBase.class, entityClass);
-            return true;
+            return !ClassUtil.isAssignable(AuthBase.class, entityClass);
+            //  return true;
         }).toList();
         final String tables = tableInfos.stream().map(tableInfo -> TABLE_TEMP.formatted(tableInfo.getTableName(), tableInfoToRow(tableInfo), tableInfoToInsert(tableInfo), tableInfoToUpdate(tableInfo), "")).collect(Collectors.joining());
 
@@ -226,7 +232,8 @@ private static final String FUNC_NULL_PRE = CharSequenceUtil.repeat("    ", 3);
         final String compositeTypes = compositeTypes(tableInfos);
         final String functions = functions();
         final String database = DATABASE_TEMP.formatted(tables, functions, enums, compositeTypes);
-        return String.join("\n", HEADER, database, FOOTER);
+        returnTypescript = String.join("\n", HEADER, database, FOOTER);
+        return returnTypescript;
     }
 
     public String tableInfoToRow(TableInfo tableInfo) {

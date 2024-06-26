@@ -77,7 +77,8 @@ public class SecurityConfig {
                             authorize.requestMatchers(HttpMethod.GET, "storage/v1/object/public/**").permitAll();
                             authorize.requestMatchers(HttpMethod.GET, "storage/v1/object/sign/**").permitAll();
 
-                            //     authorize.requestMatchers("/auth/v1/token", "/auth/v1/authorize").authenticated();
+                            //  authorize.requestMatchers("/auth/v1/token", "/auth/v1/authorize").authenticated();
+                            authorize.requestMatchers("/rest/v1/storage_bucket", "/rest/v1/storage_object").denyAll();
                             authorize.anyRequest().authenticated();
                         }
                 ).
@@ -166,7 +167,7 @@ public class SecurityConfig {
 
         @Override
         public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
-
+            // todo  security deny it will use this error info.
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             final PrintWriter out = response.getWriter();
             out.write(mapper.writeValueAsString(AuthExRes.INVALID_GRANT));

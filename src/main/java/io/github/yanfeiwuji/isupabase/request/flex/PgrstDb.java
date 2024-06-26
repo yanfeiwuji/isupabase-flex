@@ -247,7 +247,7 @@ public class PgrstDb {
                             .stream()
                             .anyMatch(it -> !allowsSet.contains(it));
                     if (hasNotAllow) {
-                        throw PgrstExFactory.COLUMN_SECURITY_ERROR;
+                        throw PgrstExFactory.columnSecurityError(tableInfo.getTableNameWithSchema()).get();
                     }
 
                 });
@@ -284,7 +284,7 @@ public class PgrstDb {
                     //   final List<String> list = row.keySet().stream().filter(key -> !allowsSet.contains(key)).toList();
                     // if contains then throw error
                     if (row.keySet().stream().anyMatch(key -> !allowsSet.contains(key))) {
-                        throw PgrstExFactory.COLUMN_SECURITY_ERROR;
+                        throw PgrstExFactory.columnSecurityError(tableNameWithSchema).get();
                     }
                 });
 
