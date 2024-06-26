@@ -55,10 +55,10 @@ import java.util.Base64;
  * @author yanfeiwuji
  * @date 2024/6/10 09:39
  */
-
 @Configuration
 @EnableWebSecurity
 @AllArgsConstructor
+
 public class SecurityConfig {
     private final ISupabaseProperties properties;
 
@@ -78,6 +78,7 @@ public class SecurityConfig {
                             authorize.requestMatchers(HttpMethod.GET, "storage/v1/object/sign/**").permitAll();
 
                             //  authorize.requestMatchers("/auth/v1/token", "/auth/v1/authorize").authenticated();
+                            // protect bucket info
                             authorize.requestMatchers("/rest/v1/storage_bucket", "/rest/v1/storage_object").denyAll();
                             authorize.anyRequest().authenticated();
                         }

@@ -1,13 +1,8 @@
 package io.github.yanfeiwuji.isupabase.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mybatisflex.core.audit.AuditManager;
-import com.mybatisflex.core.audit.ConsoleMessageCollector;
-import com.mybatisflex.core.audit.MessageCollector;
 import com.mybatisflex.core.dialect.*;
 import com.mybatisflex.core.handler.JacksonTypeHandler;
-import com.mybatisflex.core.mybatis.FlexConfiguration;
-import com.mybatisflex.spring.boot.ConfigurationCustomizer;
 
 import io.github.yanfeiwuji.isupabase.auth.provider.AuthMimeMessagePreparationProvider;
 import io.github.yanfeiwuji.isupabase.auth.provider.AuthRequestProvider;
@@ -15,6 +10,7 @@ import io.github.yanfeiwuji.isupabase.auth.provider.DefaultAuthMimeMessagePrepar
 import io.github.yanfeiwuji.isupabase.auth.utils.AuthUtils;
 import io.github.yanfeiwuji.isupabase.auth.provider.DefaultAuthRequestProvider;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
+import io.github.yanfeiwuji.isupabase.request.IReqHandler;
 import io.github.yanfeiwuji.isupabase.request.flex.*;
 import io.github.yanfeiwuji.isupabase.request.flex.policy.TableConfigUtils;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
@@ -28,7 +24,6 @@ import io.github.yanfeiwuji.isupabase.stroage.provider.S3Provider;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.autoconfigure.mail.MailProperties;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -37,6 +32,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.event.EventListener;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -45,27 +41,21 @@ import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.web.servlet.function.ServerResponse;
 
 import java.time.Instant;
 import java.util.Map;
 
-
+@EnableWebSecurity
 @Configuration
-public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
+public class ISupaConfig implements  WebMvcConfigurer {
 
 
-    @Override
-    public void customize(FlexConfiguration flexConfiguration) {
-        AuditManager.setAuditEnable(true);
-        MessageCollector collector = new ConsoleMessageCollector();
-        AuditManager.setMessageCollector(collector);
-    }
 
     @Bean
-    public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer() {
-        return builder -> {
-
-        };
+    RouterFunction<ServerResponse> routerFunction(IReqHandler reqHandler) {
+        return reqHandler.routerFunction();
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -130,13 +120,11 @@ public class ISupaConfig implements ConfigurationCustomizer, WebMvcConfigurer {
                 .build());
         final Jwt encode = jwtEncoder.encode(parameters);
         System.out.println(encode.getTokenValue());
-
     }
 
     @Bean
     @ConditionalOnMissingBean
     public S3Provider s3Provider() {
-
         return new DefaultS3Provider();
     }
 

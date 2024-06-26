@@ -1,12 +1,15 @@
 plugins {
     java
+
+    `maven-publish`
     id("org.springframework.boot") version "3.3.0"
     id("io.spring.dependency-management") version "1.1.5"
-    id("org.graalvm.buildtools.native") version "0.10.2"
+    // id("org.graalvm.buildtools.native") version "0.10.2"
 }
 
-group = "io.github.yanfeiwuji.isupabase"
-version = "0.0.1-SNAPSHOT"
+group = "io.github.yanfeiwuji"
+
+version = "0.0.1"
 
 java {
     toolchain {
@@ -14,7 +17,6 @@ java {
     }
 }
 repositories {
-
     mavenCentral()
     mavenLocal()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
@@ -55,20 +57,14 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
     implementation("org.springframework.boot:spring-boot-starter-mail")
-// https://mvnrepository.com/artifact/me.zhyd.oauth/JustAuth
     implementation("me.zhyd.oauth:JustAuth:$justAuthVersion")
-    // https://mvnrepository.com/artifact/org.apache.commons/commons-fileupload2-jakarta-servlet6
-    implementation("org.apache.commons:commons-fileupload2-jakarta-servlet6:$uploadVersion")
-
-
-//    runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("com.mybatis-flex:mybatis-flex-processor:$mybatisFlexVersion")
     annotationProcessor("org.projectlombok:lombok")
-    runtimeOnly("com.mysql:mysql-connector-j")
+    //runtimeOnly("com.mysql:mysql-connector-j")
 
     // developmentOnly("org.springframework.boot:spring-boot-devtools")
 }
@@ -76,3 +72,24 @@ dependencies {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+tasks.jar {
+    enabled = true
+    // Remove `plain` postfix from jar file name
+    archiveClassifier.set("")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            groupId = "io.github.yanfeiwuji"
+            artifactId = "isupabase"
+            version = "0.0.1"
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
+}
+
+

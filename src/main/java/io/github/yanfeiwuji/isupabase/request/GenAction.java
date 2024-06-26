@@ -353,7 +353,9 @@ public class GenAction {
                 final Type type = parameter.getParameterizedType();
                 return funcClazzTypeToString(clazz, type, tableType);
             }).filter(StrUtil::isNotEmpty).orElse(FUNC_NULL);
-            final String returns = funcClazzTypeToString(it.getReturnType(), it.getGenericReturnType(), "Row");
+
+            final String returns = it.getReturnType().equals(Void.TYPE) ? UNDERFINED : funcClazzTypeToString(it.getReturnType(), it.getGenericReturnType(), "Row");
+
             return FUNC_TEMP.formatted(funcName, args, returns);
         })).collect(Collectors.joining("\n"));
         return Optional.of(functions).filter(StrUtil::isNotBlank).orElse(FUNC_NULL_PRE + NEVER);
