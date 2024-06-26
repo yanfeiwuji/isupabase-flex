@@ -69,7 +69,10 @@ public class SecurityConfig {
             throws Exception {
         http
                 .authorizeHttpRequests(authorize -> {
-                            authorize.requestMatchers("auth/v1/verify", "/auth/v1/authorize", "/auth/v1/callback").permitAll();
+                            authorize.requestMatchers("auth/v1/verify",
+                                    "auth/v1/authorize",
+                                    "auth/v1/callback",
+                                    "meta/generators/typescript").permitAll();
                             authorize.requestMatchers(HttpMethod.PUT, "storage/v1/object/upload/sign/**").permitAll();
                             authorize.requestMatchers(HttpMethod.GET, "storage/v1/object/public/**").permitAll();
                             authorize.requestMatchers(HttpMethod.GET, "storage/v1/object/sign/**").permitAll();

@@ -440,7 +440,7 @@ public class StorageObjectAction {
         final byte[] bytes = multipartFile.getBytes();
         final String name = storageObject.getName();
         final String contentType = multipartFile.getContentType();
-        // todo  filter handler file size and minetype
+
         return s3Provider.putObject(bucket, name, cacheControl, contentType, bytes);
     }
 
