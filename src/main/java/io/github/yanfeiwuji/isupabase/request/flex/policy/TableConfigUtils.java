@@ -5,9 +5,7 @@ import cn.hutool.core.util.ReflectUtil;
 import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
-import io.github.yanfeiwuji.isupabase.entity.SysUser;
 import io.github.yanfeiwuji.isupabase.request.flex.AuthContext;
-import io.github.yanfeiwuji.isupabase.request.flex.TableOneOperateConfig;
 import io.github.yanfeiwuji.isupabase.request.flex.TableSetting;
 import lombok.experimental.UtilityClass;
 import org.springframework.context.ApplicationContext;
@@ -35,7 +33,7 @@ public class TableConfigUtils {
         Map<String, Map<OperateType, TableSetting<Object>>> config = new ConcurrentHashMap<>();
         final List<PolicyBase> policies = context.getBeansOfType(PolicyBase.class).values().stream().toList();
         // only last policy can handler
-        TableInfoFactory.ofEntityClass(SysUser.class);
+
         final Map<String, List<PolicyBase>> policyGrouping = policies.stream().collect(Collectors.groupingBy(TableConfigUtils::operateType));
 
 

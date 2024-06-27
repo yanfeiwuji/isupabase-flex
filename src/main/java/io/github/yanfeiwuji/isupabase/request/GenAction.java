@@ -9,9 +9,11 @@ import com.mybatisflex.annotation.Table;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
+import io.github.yanfeiwuji.isupabase.auth.entity.AuthBase;
 import io.github.yanfeiwuji.isupabase.request.anno.Rpc;
 import io.github.yanfeiwuji.isupabase.request.anno.RpcMapping;
 import io.github.yanfeiwuji.isupabase.request.validate.Valid;
+import io.github.yanfeiwuji.isupabase.stroage.entity.StorageBase;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationContext;
@@ -220,8 +222,8 @@ public class GenAction {
         final Collection<BaseMapper> mappers = beansOfType.values();
         final List<TableInfo> tableInfos = mappers.stream().map(Object::getClass).map(TableInfoFactory::ofMapperClass).filter(it -> {
             final Class<?> entityClass = it.getEntityClass();
-            // return !ClassUtil.isAssignable(AuthBase.class, entityClass) && !ClassUtil.isAssignable(StorageBase.class, entityClass);
-            return true;
+            return !ClassUtil.isAssignable(AuthBase.class, entityClass) && !ClassUtil.isAssignable(StorageBase.class, entityClass);
+            // return true;
         }).toList();
         final String tables = tableInfos.stream().map(tableInfo -> TABLE_TEMP.formatted(tableInfo.getTableName(), tableInfoToRow(tableInfo), tableInfoToInsert(tableInfo), tableInfoToUpdate(tableInfo), "")).collect(Collectors.joining());
 
@@ -494,7 +496,7 @@ public class GenAction {
     }
 
     private String funcClazzTypeToString(Class<?> clazz, Type parameterizedType, String tableType) {
-        System.out.println(clazz);
+
         final boolean isCollection = ClassUtil.isAssignable(Collection.class, clazz);
         Class needClazz;
         if (isCollection) {
@@ -502,14 +504,13 @@ public class GenAction {
         } else {
             needClazz = clazz;
         }
-        System.out.println(needClazz);
         final boolean isBaseType = TableInfoFactory.defaultSupportColumnTypes.contains(needClazz);
         final boolean isTable = needClazz.isAnnotationPresent(Table.class);
         final boolean isMap = ClassUtil.isAssignable(Map.class, needClazz) || needClazz.equals(Map.class);
-        System.out.println(isMap);
+
         if (isBaseType || isTable || isMap) {
             final String rawType = propertyToType(needClazz, tableType);
-            System.out.println(rawType);
+
             return isCollection ? "%s[]".formatted(rawType) : rawType;
         }
 
