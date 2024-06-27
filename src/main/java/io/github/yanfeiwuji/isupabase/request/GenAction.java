@@ -9,7 +9,6 @@ import com.mybatisflex.annotation.Table;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
-import io.github.yanfeiwuji.isupabase.Start;
 import io.github.yanfeiwuji.isupabase.request.anno.Rpc;
 import io.github.yanfeiwuji.isupabase.request.anno.RpcMapping;
 import io.github.yanfeiwuji.isupabase.request.validate.Valid;

@@ -4,6 +4,7 @@ import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryCondition;
 import io.github.yanfeiwuji.isupabase.request.flex.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -22,6 +23,14 @@ public abstract class AllPolicyBase<T> extends PolicyBase<T> {
 
     public List<QueryColumn> columns(PgrstContext context) {
         return null;
+    }
+
+    public QueryCondition and(QueryCondition... queryConditions) {
+        return Arrays.stream(queryConditions).reduce(QueryCondition.createEmpty(), QueryCondition::and);
+    }
+
+    public QueryCondition or(QueryCondition... queryConditions) {
+        return Arrays.stream(queryConditions).reduce(QueryCondition.createEmpty(), QueryCondition::or);
     }
 
 
