@@ -114,7 +114,7 @@ public class AuthAction {
         final AuthUser data = authResponse.getData();
 
         if (Objects.isNull(data) || CharSequenceUtil.isEmpty(data.getEmail())
-                || !ValueValidUtils.isEmail(data.getEmail())) {
+            || !ValueValidUtils.isEmail(data.getEmail())) {
             response.sendRedirect(
                     AuthStrPool.ERROR_GETTING_USER_PROFILE_FROM_EXTERNAL_PROVIDER_URL_TEMP.formatted(referrer));
             return;
@@ -223,7 +223,12 @@ public class AuthAction {
         if (CharSequenceUtil.isNotBlank(signUpParam.getPhone())) {
             authService.singUpByPhone("");
         } else {
-            return authService.singUpByEmail(signUpParam);
+            User user = authService.singUpByEmail(signUpParam);
+            // token set null
+            user.setConfirmationToken(null);
+
+            return user;
+
         }
         return Map.of();
     }

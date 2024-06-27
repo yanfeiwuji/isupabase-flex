@@ -1,6 +1,8 @@
+import groovy.namespace.QName
+
 plugins {
     java
-
+    `java-library`
     `maven-publish`
     id("org.springframework.boot") version "3.3.0"
     id("io.spring.dependency-management") version "1.1.5"
@@ -23,41 +25,37 @@ repositories {
 
 }
 
-var mybatisFlexVersion = "1.9.2"
+var mybatisFlexVersion = "1.9.3"
 var hutoolVersion = "5.8.26"
 var guavaVersion = "33.2.0-jre"
 var justAuthVersion = "1.16.6"
 var uploadVersion = "2.0.0-M2"
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-web") {
 
-        //   exclude("org.springframework.boot","spring-boot-starter-tomcat")
-    }
-
-    implementation("org.springframework.boot:spring-boot-starter-undertow")
-
+    api("org.springframework.boot:spring-boot-starter-web")
+    api("org.springframework.boot:spring-boot-starter-undertow")
     modules {
         // tomcat not read form-data  name empty str
         module("org.springframework.boot:spring-boot-starter-tomcat") {
             replacedBy("org.springframework.boot:spring-boot-starter-undertow")
         }
     }
-    implementation("org.springframework.boot:spring-boot-starter-aop")
+    api("org.springframework.boot:spring-boot-starter-aop")
 
-    implementation("com.zaxxer:HikariCP")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("cn.hutool:hutool-core:$hutoolVersion")
-    implementation("cn.hutool:hutool-http:$hutoolVersion")
-    implementation("com.mybatis-flex:mybatis-flex-spring-boot3-starter:$mybatisFlexVersion")
+    api("com.zaxxer:HikariCP")
+    api("org.springframework.boot:spring-boot-starter-actuator")
+    api("cn.hutool:hutool-core:$hutoolVersion")
+    api("cn.hutool:hutool-http:$hutoolVersion")
+    api("com.mybatis-flex:mybatis-flex-spring-boot3-starter:$mybatisFlexVersion")
     // implementation("com.google.guava:guava:$guavaVersion")
 
-    implementation("org.projectlombok:lombok")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
+    api("org.projectlombok:lombok")
+    api("org.springframework.boot:spring-boot-starter-validation")
 
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
-    implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("me.zhyd.oauth:JustAuth:$justAuthVersion")
+    api("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
+    api("org.springframework.boot:spring-boot-starter-mail")
+    api("me.zhyd.oauth:JustAuth:$justAuthVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 
@@ -79,13 +77,22 @@ tasks.jar {
 }
 
 publishing {
+
     publications {
         create<MavenPublication>("mavenJava") {
+            versionMapping {
+                usage("java-api") {
+                    fromResolutionOf("runtimeClasspath")
+                }
+
+            }
             from(components["java"])
             groupId = "io.github.yanfeiwuji"
             artifactId = "isupabase"
             version = "0.0.1"
+
         }
+
     }
     repositories {
         mavenLocal()

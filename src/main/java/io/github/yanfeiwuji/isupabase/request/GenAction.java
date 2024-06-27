@@ -7,13 +7,14 @@ import com.mybatisflex.annotation.EnumValue;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
 import com.mybatisflex.core.BaseMapper;
+import com.mybatisflex.core.relation.RelationManager;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 import io.github.yanfeiwuji.isupabase.auth.entity.AuthBase;
 import io.github.yanfeiwuji.isupabase.request.anno.Rpc;
 import io.github.yanfeiwuji.isupabase.request.anno.RpcMapping;
 import io.github.yanfeiwuji.isupabase.request.validate.Valid;
-import io.github.yanfeiwuji.isupabase.stroage.entity.StorageBase;
+import io.github.yanfeiwuji.isupabase.storage.entity.StorageBase;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationContext;
@@ -220,12 +221,13 @@ public class GenAction {
         }
         final Map<String, BaseMapper> beansOfType = applicationContext.getBeansOfType(BaseMapper.class);
         final Collection<BaseMapper> mappers = beansOfType.values();
-        final List<TableInfo> tableInfos = mappers.stream().map(Object::getClass).map(TableInfoFactory::ofMapperClass).filter(it -> {
-            final Class<?> entityClass = it.getEntityClass();
-            return !ClassUtil.isAssignable(AuthBase.class, entityClass) && !ClassUtil.isAssignable(StorageBase.class, entityClass);
-            // return true;
-        }).toList();
-        final String tables = tableInfos.stream().map(tableInfo -> TABLE_TEMP.formatted(tableInfo.getTableName(), tableInfoToRow(tableInfo), tableInfoToInsert(tableInfo), tableInfoToUpdate(tableInfo), "")).collect(Collectors.joining());
+        final List<TableInfo> tableInfos = mappers.stream()
+                .map(Object::getClass).map(TableInfoFactory::ofMapperClass).filter(it -> {
+                    final Class<?> entityClass = it.getEntityClass();
+                    return clazzTableFilter(entityClass);
+                }).toList();
+        final String tables = tableInfos.stream()
+                .map(tableInfo -> TABLE_TEMP.formatted(tableInfo.getTableName(), tableInfoToRow(tableInfo), tableInfoToInsert(tableInfo), tableInfoToUpdate(tableInfo), "")).collect(Collectors.joining());
 
         final String enums = enums(tableInfos);
         final String compositeTypes = compositeTypes();
@@ -238,16 +240,19 @@ public class GenAction {
     public String tableInfoToRow(TableInfo tableInfo) {
         String ids = tableInfo.getPrimaryKeyList().stream().map(it -> NON_NULL_FIELD_TEMP.formatted(it.getColumn(), propertyToType(it.getPropertyType(), it.getProperty(), tableInfo.getEntityClass()))).collect(Collectors.joining(";\n"));
         final Class<?> entityClass = tableInfo.getEntityClass();
-        String fields = tableInfo.getColumnInfoList().stream().map(it -> {
 
-            final Field field = FieldUtils.getField(entityClass, it.getProperty());
-            if (field.isAnnotationPresent(NotNull.class)) {
-                return NON_NULL_FIELD_TEMP.formatted(it.getColumn(), propertyToType(it.getPropertyType(), it.getProperty(), tableInfo.getEntityClass()));
-            } else {
-                return NON_NULL_VALUE_NULL_FIELD_TEMP.formatted(it.getColumn(), propertyToType(it.getPropertyType(), it.getProperty(), tableInfo.getEntityClass()));
-            }
-        }).collect(Collectors.joining(";\n"));
-        return String.join(";\n", ids, fields);
+        String fields = tableInfo.getColumnInfoList().stream()
+                .map(it -> {
+                    final Field field = FieldUtils.getField(entityClass, it.getProperty());
+                    if (field.isAnnotationPresent(NotNull.class)) {
+                        return NON_NULL_FIELD_TEMP.formatted(it.getColumn(), propertyToType(it.getPropertyType(), it.getProperty(), tableInfo.getEntityClass()));
+                    } else {
+                        return NON_NULL_VALUE_NULL_FIELD_TEMP.formatted(it.getColumn(), propertyToType(it.getPropertyType(), it.getProperty(), tableInfo.getEntityClass()));
+                    }
+                }).collect(Collectors.joining(";\n"));
+
+        String relFields = relFIelds(tableInfo.getEntityClass());
+        return String.join(";\n", ids, fields, relFields);
     }
 
     public String tableInfoToInsert(TableInfo tableInfo) {
@@ -293,6 +298,7 @@ public class GenAction {
                 return NULL_FIELD_TEMP.formatted(it.getColumn(), propertyToType(it.getPropertyType(), it.getProperty(), tableInfo.getEntityClass()));
             }
         }).collect(Collectors.joining(";\n"));
+
         return String.join(";\n", ids, fields);
     }
 
@@ -401,45 +407,6 @@ public class GenAction {
         return propertyToType(propertyType, "Row");
     }
 
-    private String propertyToType(Class<?> clazz, Type type, String tableType) {
-        final Type[] typeArguments = TypeUtil.getTypeArguments(clazz);
-        if (ClassUtil.isAssignable(Collection.class, clazz)) {
-
-//            final Class<?> nextClazz = TypeUtil.getClass(type);
-//
-//            final Type[] typeArguments = TypeUtil.getTypeArguments(type);
-//            return "%s[]".formatted(propertyToType(aClass));
-        }
-
-        if (ClassUtil.isAssignable(CharSequence.class, clazz)) {
-            return "string";
-        }
-        if (ClassUtil.isAssignable(Boolean.class, clazz)) {
-            return "boolean";
-        }
-        if (ClassUtil.isAssignable(Number.class, clazz)) {
-            return "number";
-        }
-        if (ClassUtil.isAssignable(Map.class, clazz)) {
-            return "Json";
-        }
-        if (EnumUtil.isEnum(clazz)) {
-            final String enumName = CharSequenceUtil.toUnderlineCase(clazz.getSimpleName()).toLowerCase();
-            return "Database[\"public\"][\"Enums\"][\"%s\"]".formatted(enumName);
-        }
-        if (!TableInfoFactory.defaultSupportColumnTypes.contains(clazz)) {
-            final boolean isTable = clazz.isAnnotationPresent(Table.class);
-            // todo tableDef not handle
-            if (isTable) {
-                final String value = clazz.getAnnotation(Table.class).value();
-                return "Database[\"public\"][\"Tables\"][\"%s\"][\"%s\"]".formatted(value, tableType);
-            } else {
-                final String typeName = CharSequenceUtil.toUnderlineCase(clazz.getSimpleName()).toLowerCase();
-                return "Database[\"public\"][\"CompositeTypes\"][\"%s\"]".formatted(typeName);
-            }
-        }
-        return "string";
-    }
 
     /**
      * @param propertyType
@@ -447,12 +414,15 @@ public class GenAction {
      * @return
      */
     private String propertyToType(Class<?> propertyType, String tableType) {
-        if (ClassUtil.isAssignable(CharSequence.class, propertyType)) {
+        if (ClassUtil.isAssignable(CharSequence.class, propertyType)
+            || propertyType.equals(Long.class) || propertyType.equals(long.class)
+        ) {
             return "string";
         }
         if (ClassUtil.isAssignable(Boolean.class, propertyType)) {
             return "boolean";
         }
+
         if (ClassUtil.isAssignable(Number.class, propertyType)) {
             return "number";
         }
@@ -510,7 +480,6 @@ public class GenAction {
 
         if (isBaseType || isTable || isMap) {
             final String rawType = propertyToType(needClazz, tableType);
-
             return isCollection ? "%s[]".formatted(rawType) : rawType;
         }
 
@@ -530,9 +499,12 @@ public class GenAction {
         if (Objects.nonNull(allFieldClazz)) {
             return allFieldClazz;
         }
-        final Stream<Class<?>> tableFieldClazz = applicationContext.getBeansOfType(BaseMapper.class).values().stream().map(Object::getClass)
+        final Stream<Class<?>> tableFieldClazz = applicationContext
+                .getBeansOfType(BaseMapper.class).values().stream().map(Object::getClass)
                 .map(TableInfoFactory::ofMapperClass)
+                .filter(tableInfo -> this.clazzTableFilter(tableInfo.getEntityClass()))
                 .flatMap(tableInfo -> clazzFieldsType(tableInfo.getEntityClass()));
+
 
         final Stream<Class<?>> rpcClazz = applicationContext.getBeansWithAnnotation(RpcMapping.class).values()
                 .stream()
@@ -572,6 +544,19 @@ public class GenAction {
                     final Type genericType = it.getGenericType();
                     return flatTypes(type, genericType);
                 });
+    }
+
+    private boolean clazzTableFilter(Class<?> entityClass) {
+        return !ClassUtil.isAssignable(AuthBase.class, entityClass) && !ClassUtil.isAssignable(StorageBase.class, entityClass);
+    }
+
+    private String relFIelds(Class<?> entityClass) {
+        return RelationManager.getRelations(entityClass).stream().map(it -> {
+            final Field relationField = it.getRelationField();
+            return NON_NULL_VALUE_NULL_FIELD_TEMP.formatted(
+                    CharSequenceUtil.toUnderlineCase(relationField.getName()).toLowerCase(),
+                    propertyToType(relationField.getType(), relationField.getName(), entityClass));
+        }).collect(Collectors.joining(";\n"));
     }
 
 

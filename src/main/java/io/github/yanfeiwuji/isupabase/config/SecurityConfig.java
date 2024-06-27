@@ -58,10 +58,8 @@ import java.util.Base64;
 @Configuration
 @EnableWebSecurity
 @AllArgsConstructor
-
 public class SecurityConfig {
     private final ISupabaseProperties properties;
-
 
     @Bean
     @Order(1)
@@ -110,16 +108,17 @@ public class SecurityConfig {
         try {
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 
+
             byte[] privateKeyBytes = Base64.getDecoder().decode(properties.getAuthPrivateKey()
                     .replace("-----BEGIN PRIVATE KEY-----", "")
                     .replace("-----END PRIVATE KEY-----", "")
-                    .replace("\n", ""));
+                    .replace("\n", "").trim());
             PrivateKey privateKey = keyFactory.generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
 
             byte[] publicKeyBytes = Base64.getDecoder().decode(properties.getAuthPublicKey()
                     .replace("-----BEGIN PUBLIC KEY-----", "")
                     .replace("-----END PUBLIC KEY-----", "")
-                    .replace("\n", ""));
+                    .replace("\n", "").trim());
             PublicKey publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(publicKeyBytes));
 
             RSAKey rsaKey = new RSAKey.

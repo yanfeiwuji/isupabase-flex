@@ -80,7 +80,7 @@ public class User extends AuthBase implements UserDetails {
     @JsonIgnore
     private String emailChangeTokenCurrent;
     @JsonInclude
-    private int emailChangeConfirmStatus;
+    private Integer emailChangeConfirmStatus;
 
     @JsonIgnore
     private OffsetDateTime bannedUntil;

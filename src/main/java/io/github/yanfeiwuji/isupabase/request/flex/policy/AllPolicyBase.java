@@ -25,13 +25,7 @@ public abstract class AllPolicyBase<T> extends PolicyBase<T> {
         return null;
     }
 
-    public QueryCondition and(QueryCondition... queryConditions) {
-        return Arrays.stream(queryConditions).reduce(QueryCondition.createEmpty(), QueryCondition::and);
-    }
 
-    public QueryCondition or(QueryCondition... queryConditions) {
-        return Arrays.stream(queryConditions).reduce(QueryCondition.createEmpty(), QueryCondition::or);
-    }
 
 
     TableSetting<T> config() {

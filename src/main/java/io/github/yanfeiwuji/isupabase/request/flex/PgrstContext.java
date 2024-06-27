@@ -19,15 +19,15 @@ public class PgrstContext {
     private String role;
     private Optional<Jwt> jwt;
 
-    boolean isAnon() {
+    public boolean isAnon() {
         return CharSequenceUtil.equals(getRole(), AuthStrPool.ANON_ROLE);
     }
 
-    boolean isAuth() {
+    public boolean isAuth() {
         return CharSequenceUtil.equals(getRole(), AuthStrPool.AUTHENTICATED_ROLE);
     }
 
-    boolean isServiceRole() {
+    public boolean isServiceRole() {
         return CharSequenceUtil.equals(getRole(), AuthStrPool.SERVICE_ROLE);
     }
 

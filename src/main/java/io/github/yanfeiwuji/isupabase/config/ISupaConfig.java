@@ -1,6 +1,8 @@
 package io.github.yanfeiwuji.isupabase.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.mybatisflex.core.dialect.*;
 import com.mybatisflex.core.handler.JacksonTypeHandler;
 
@@ -18,13 +20,14 @@ import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 
 import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 
-import io.github.yanfeiwuji.isupabase.stroage.provider.DefaultS3Provider;
-import io.github.yanfeiwuji.isupabase.stroage.provider.S3Provider;
-
+import io.github.yanfeiwuji.isupabase.storage.provider.DefaultS3Provider;
+import io.github.yanfeiwuji.isupabase.storage.provider.S3Provider;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.autoconfigure.mail.MailProperties;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -128,6 +131,17 @@ public class ISupaConfig implements WebMvcConfigurer {
     @ConditionalOnMissingBean
     public S3Provider<Resource> s3Provider() {
         return new DefaultS3Provider();
+    }
+
+
+    @Bean
+    Jackson2ObjectMapperBuilderCustomizer customizer() {
+        return builder -> {
+            builder.serializerByType(Long.class, ToStringSerializer.instance);
+            builder.serializerByType(long.class, ToStringSerializer.instance);
+            builder.serializerByType(Long.TYPE, ToStringSerializer.instance);
+            builder.propertyNamingStrategy(SnakeCaseStrategy.INSTANCE);
+        };
     }
 
 

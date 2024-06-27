@@ -86,7 +86,7 @@ public class JWTService {
                         Optional.of(session).map(Session::getAal).map(EAalLevel::getCode)
                                 .orElse(EAalLevel.ALL_1.getCode()))
                 .claim("amr", Amr.of(amr))
-                .claim("session_id", session.getId())
+                .claim("session_id", String.valueOf(session.getId()))
                 .claim("is_anonymous", user.isAnonymous())
                 .claims(map -> map.put("app_metadata", user.getRawAppMetaData()))
                 .build();

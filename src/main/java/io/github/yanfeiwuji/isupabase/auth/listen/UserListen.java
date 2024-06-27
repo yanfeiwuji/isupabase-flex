@@ -16,7 +16,9 @@ import io.github.yanfeiwuji.isupabase.auth.service.SessionService;
 import io.github.yanfeiwuji.isupabase.auth.service.email.AuthMimeMessagePreparator;
 import io.github.yanfeiwuji.isupabase.auth.service.email.MessageParam;
 import io.github.yanfeiwuji.isupabase.auth.utils.ServletUtils;
+import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.AuthStrPool;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import me.zhyd.oauth.model.AuthUser;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +40,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class UserListen {
-    @Value("${isupabase.site-url}")
+
     private String siteUrl;
 
     private final JavaMailSender mailSender;
@@ -49,6 +51,13 @@ public class UserListen {
     private final SessionService sessionService;
     private final UserMapper userMapper;
     private final IdentityService identityService;
+    private final ISupabaseProperties iSupabaseProperties;
+
+    @PostConstruct
+    private void init() {
+        this.siteUrl = iSupabaseProperties.getSiteUrl();
+    }
+
 
     @EventListener(SignUpEvent.class)
     @Async
@@ -60,8 +69,6 @@ public class UserListen {
             sendSingUpEmail(user, signUpParam);
         }
     }
-
-
 
 
     @EventListener(RecoverEvent.class)

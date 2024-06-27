@@ -17,7 +17,8 @@ import java.lang.annotation.*;
 @Documented
 @Import({ISupaConfig.class, SecurityConfig.class})
 @ComponentScan(basePackages = "io.github.yanfeiwuji.isupabase")
-@MapperScan({"io.github.yanfeiwuji.isupabase.*.mapper", "io.github.yanfeiwuji.isupabase.mapper"})
+@MapperScan({"io.github.yanfeiwuji.isupabase.auth.mapper",
+        "io.github.yanfeiwuji.isupabase.storage.mapper"})
 @EnableTransactionManagement
 public @interface EnableSupabase {
 }

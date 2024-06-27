@@ -1,7 +1,7 @@
 package io.github.yanfeiwuji.isupabase.request;
 
+import com.mybatisflex.core.transaction.TransactionException;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
-import io.github.yanfeiwuji.isupabase.request.ex.PgrstEx;
 import org.springframework.web.servlet.function.*;
 
 import static org.springframework.web.servlet.function.RouterFunctions.route;
@@ -35,8 +35,10 @@ public interface IReqHandler {
                         .DELETE(this::handler)
                         .after(this::after)
                         .build()
-                ).onError(PgrstEx.class, this::onError)
+                ).onError(Exception.class, this::onError)
                 //.onError(PersistenceException.class, this::onError)
+                //
+                .onError(TransactionException.class, this::onError)
                 .build();
 
 

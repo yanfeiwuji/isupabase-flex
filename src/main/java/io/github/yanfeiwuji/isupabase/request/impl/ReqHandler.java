@@ -59,6 +59,9 @@ public class ReqHandler implements IReqHandler {
 
         final Throwable causedBy = ExceptionUtil.getCausedBy(throwable, PgrstEx.class);
 
+        if (Optional.ofNullable(causedBy).isEmpty()) {
+            throwable.printStackTrace();
+        }
         return Optional.ofNullable(causedBy)
                 .filter(PgrstEx.class::isInstance)
                 .map(PgrstEx.class::cast)
