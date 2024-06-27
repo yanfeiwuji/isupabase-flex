@@ -1,6 +1,5 @@
 package io.github.yanfeiwuji.isupabase.request;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -10,7 +9,7 @@ import com.mybatisflex.annotation.Table;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
-import io.github.yanfeiwuji.isupabase.auth.entity.AuthBase;
+import io.github.yanfeiwuji.isupabase.Start;
 import io.github.yanfeiwuji.isupabase.request.anno.Rpc;
 import io.github.yanfeiwuji.isupabase.request.anno.RpcMapping;
 import io.github.yanfeiwuji.isupabase.request.validate.Valid;
@@ -21,9 +20,7 @@ import org.springframework.security.util.FieldUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -213,6 +210,7 @@ public class GenAction {
             """;
 
     private String returnTypescript;
+    private List<Class<?>> allFieldClazz;
 
     @GetMapping(value = "/typescript", produces = "text/plain")
     public String typescript() {
@@ -223,13 +221,13 @@ public class GenAction {
         final Collection<BaseMapper> mappers = beansOfType.values();
         final List<TableInfo> tableInfos = mappers.stream().map(Object::getClass).map(TableInfoFactory::ofMapperClass).filter(it -> {
             final Class<?> entityClass = it.getEntityClass();
-            return !ClassUtil.isAssignable(AuthBase.class, entityClass);
-            //  return true;
+            // return !ClassUtil.isAssignable(AuthBase.class, entityClass) && !ClassUtil.isAssignable(StorageBase.class, entityClass);
+            return true;
         }).toList();
         final String tables = tableInfos.stream().map(tableInfo -> TABLE_TEMP.formatted(tableInfo.getTableName(), tableInfoToRow(tableInfo), tableInfoToInsert(tableInfo), tableInfoToUpdate(tableInfo), "")).collect(Collectors.joining());
 
         final String enums = enums(tableInfos);
-        final String compositeTypes = compositeTypes(tableInfos);
+        final String compositeTypes = compositeTypes();
         final String functions = functions();
         final String database = DATABASE_TEMP.formatted(tables, functions, enums, compositeTypes);
         returnTypescript = String.join("\n", HEADER, database, FOOTER);
@@ -299,35 +297,44 @@ public class GenAction {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public String enums(List<TableInfo> tableInfos) {
-        String enums = tableInfos.stream().flatMap(this::tableInfoToColNeedType).filter(Class::isEnum).map(it -> (Class<Enum>) it).distinct().map(enumClass -> {
-            final String enumName = CharSequenceUtil.toUnderlineCase(enumClass.getSimpleName()).toLowerCase();
+        String enums = tableInfos.stream().flatMap(this::tableInfoToColNeedType)
+                .filter(Class::isEnum)
+                .map(it -> (Class<Enum>) it).distinct().map(enumClass -> {
+                    final String enumName = CharSequenceUtil.toUnderlineCase(enumClass.getSimpleName()).toLowerCase();
 
-            final LinkedHashMap<String, Enum> enumMap = EnumUtil.getEnumMap(enumClass);
-            final Field field = Arrays.stream(ClassUtil.getDeclaredFields(enumClass)).filter(it -> it.isAnnotationPresent(EnumValue.class)).findFirst().orElse(null);
-            if (Objects.nonNull(field)) {
-                final String ENUM_ITEM_TEMP = Optional.of(field).map(Field::getType).filter(it -> ClassUtil.isAssignable(Number.class, it)).map(it -> " %s ").orElse(" \"%s\" ");
+                    final LinkedHashMap<String, Enum> enumMap = EnumUtil.getEnumMap(enumClass);
+                    final Field field = Arrays.stream(ClassUtil.getDeclaredFields(enumClass)).filter(it -> it.isAnnotationPresent(EnumValue.class)).findFirst().orElse(null);
+                    if (Objects.nonNull(field)) {
+                        final String ENUM_ITEM_TEMP = Optional.of(field).map(Field::getType).filter(it -> ClassUtil.isAssignable(Number.class, it)).map(it -> " %s ").orElse(" \"%s\" ");
 
-                final String enumsValues = enumMap.values().stream().map(it -> ReflectUtil.getFieldValue(it, field)).map(Object::toString).distinct().map(ENUM_ITEM_TEMP::formatted).collect(Collectors.joining("|"));
-                return ENUM_TEMP.formatted(enumName, enumsValues);
-            }
-            return null;
-        }).filter(Objects::nonNull).collect(Collectors.joining(";\n"));
+                        final String enumsValues = enumMap.values().stream().map(it -> ReflectUtil.getFieldValue(it, field)).map(Object::toString).distinct().map(ENUM_ITEM_TEMP::formatted).collect(Collectors.joining("|"));
+                        return ENUM_TEMP.formatted(enumName, enumsValues);
+                    }
+                    return null;
+                }).filter(Objects::nonNull).collect(Collectors.joining(";\n"));
         return Optional.of(enums).filter(StrUtil::isNotBlank).orElse(ENUM_PRE + NEVER);
     }
 
-    public String compositeTypes(List<TableInfo> tableInfos) {
-        final String compositeTypes = tableInfos.stream().flatMap(this::tableInfoToColNeedType).filter(it -> !TableInfoFactory.defaultSupportColumnTypes.contains(it)).filter(it -> !ClassUtil.isAssignable(Map.class, it)).distinct().filter(it -> !it.isEnum()).map(it -> {
-            final String typeName = CharSequenceUtil.toUnderlineCase(it.getSimpleName()).toLowerCase();
+    public String compositeTypes() {
+        String compositeTypes = allFieldClazz().stream().filter(it -> !it.isAnnotationPresent(Table.class))
+                .filter(it -> !it.equals(Object.class))
+                .filter(it -> !it.equals(byte.class))
+                .filter(it -> !TableInfoFactory.defaultSupportColumnTypes.contains(it))
+                .filter(it -> !ClassUtil.isAssignable(Map.class, it))
+                .filter(it -> !ClassUtil.isAssignable(Collection.class, it))
+                .filter(it -> !it.isEnum())
+                .map(it -> {
+                    final String typeName = CharSequenceUtil.toUnderlineCase(it.getSimpleName()).toLowerCase();
 
-            final Field[] fields = ReflectUtil.getFields(it);
-            final String info = Arrays.stream(fields).filter(this::fieldShouldShow).map(field -> {
-                final String type = propertyToType(field.getType(), field.getName(), it);
-                final boolean notNullMark = field.isAnnotationPresent(NotNull.class);
-                final String temp = notNullMark ? NON_NULL_COMPOSITE_TYPE_TEMP : NON_NULL_VALUE_NULL_COMPOSITE_TYPE_TEMP;
-                return temp.formatted(CharSequenceUtil.toUnderlineCase(field.getName()).toLowerCase(), type);
-            }).collect(Collectors.joining(";\n"));
-            return COMPOSITE_TYPE_TEMP.formatted(typeName, info);
-        }).collect(Collectors.joining());
+                    final Field[] fields = ReflectUtil.getFields(it);
+                    final String info = Arrays.stream(fields).filter(this::fieldShouldShow).map(field -> {
+                        final String type = propertyToType(field.getType(), field.getName(), it);
+                        final boolean notNullMark = field.isAnnotationPresent(NotNull.class);
+                        final String temp = notNullMark ? NON_NULL_COMPOSITE_TYPE_TEMP : NON_NULL_VALUE_NULL_COMPOSITE_TYPE_TEMP;
+                        return temp.formatted(CharSequenceUtil.toUnderlineCase(field.getName()).toLowerCase(), type);
+                    }).collect(Collectors.joining(";\n"));
+                    return COMPOSITE_TYPE_TEMP.formatted(typeName, info);
+                }).collect(Collectors.joining());
         return Optional.of(compositeTypes).orElse(COMPOSITE_TYPE_PRE + NEVER);
     }
 
@@ -337,7 +344,6 @@ public class GenAction {
             final String[] value = it.getAnnotation(Rpc.class).value();
             String funcName = value[0];
             String args = Arrays.stream(it.getParameters()).filter(parameter -> parameter.isAnnotationPresent(RequestBody.class)).findFirst().map(parameter -> {
-
                 String tableType = Optional.ofNullable(parameter.getAnnotation(Validated.class)).map(Validated::value)
                         .map(groups -> {
                             if (ArrayUtil.contains(groups, Valid.Update.class)) {
@@ -394,6 +400,46 @@ public class GenAction {
         return propertyToType(propertyType, "Row");
     }
 
+    private String propertyToType(Class<?> clazz, Type type, String tableType) {
+        final Type[] typeArguments = TypeUtil.getTypeArguments(clazz);
+        if (ClassUtil.isAssignable(Collection.class, clazz)) {
+
+//            final Class<?> nextClazz = TypeUtil.getClass(type);
+//
+//            final Type[] typeArguments = TypeUtil.getTypeArguments(type);
+//            return "%s[]".formatted(propertyToType(aClass));
+        }
+
+        if (ClassUtil.isAssignable(CharSequence.class, clazz)) {
+            return "string";
+        }
+        if (ClassUtil.isAssignable(Boolean.class, clazz)) {
+            return "boolean";
+        }
+        if (ClassUtil.isAssignable(Number.class, clazz)) {
+            return "number";
+        }
+        if (ClassUtil.isAssignable(Map.class, clazz)) {
+            return "Json";
+        }
+        if (EnumUtil.isEnum(clazz)) {
+            final String enumName = CharSequenceUtil.toUnderlineCase(clazz.getSimpleName()).toLowerCase();
+            return "Database[\"public\"][\"Enums\"][\"%s\"]".formatted(enumName);
+        }
+        if (!TableInfoFactory.defaultSupportColumnTypes.contains(clazz)) {
+            final boolean isTable = clazz.isAnnotationPresent(Table.class);
+            // todo tableDef not handle
+            if (isTable) {
+                final String value = clazz.getAnnotation(Table.class).value();
+                return "Database[\"public\"][\"Tables\"][\"%s\"][\"%s\"]".formatted(value, tableType);
+            } else {
+                final String typeName = CharSequenceUtil.toUnderlineCase(clazz.getSimpleName()).toLowerCase();
+                return "Database[\"public\"][\"CompositeTypes\"][\"%s\"]".formatted(typeName);
+            }
+        }
+        return "string";
+    }
+
     /**
      * @param propertyType
      * @param tableType    Row  Insert or Update
@@ -409,7 +455,8 @@ public class GenAction {
         if (ClassUtil.isAssignable(Number.class, propertyType)) {
             return "number";
         }
-        if (ClassUtil.isAssignable(Map.class, propertyType)) {
+
+        if (ClassUtil.isAssignable(Map.class, propertyType) || propertyType.equals(Map.class)) {
             return "Json";
         }
         if (EnumUtil.isEnum(propertyType)) {
@@ -426,17 +473,14 @@ public class GenAction {
                 final String typeName = CharSequenceUtil.toUnderlineCase(propertyType.getSimpleName()).toLowerCase();
                 return "Database[\"public\"][\"CompositeTypes\"][\"%s\"]".formatted(typeName);
             }
-
         }
-
-
         return "string";
     }
 
     private Stream<Class<?>> tableInfoToColNeedType(TableInfo tableInfo) {
         return tableInfo.getColumnInfoList().stream().map(col -> {
             final Class<?> propertyType = col.getPropertyType();
-            if (ClassUtil.isAssignable(SequencedCollection.class, propertyType)) {
+            if (ClassUtil.isAssignable(Collection.class, propertyType)) {
                 final Type fieldType = TypeUtil.getFieldType(tableInfo.getEntityClass(), col.getProperty());
                 final Type typeArgument = TypeUtil.getTypeArgument(fieldType);
                 return TypeUtil.getClass(typeArgument);
@@ -451,6 +495,7 @@ public class GenAction {
     }
 
     private String funcClazzTypeToString(Class<?> clazz, Type parameterizedType, String tableType) {
+        System.out.println(clazz);
         final boolean isCollection = ClassUtil.isAssignable(Collection.class, clazz);
         Class needClazz;
         if (isCollection) {
@@ -458,19 +503,75 @@ public class GenAction {
         } else {
             needClazz = clazz;
         }
+        System.out.println(needClazz);
         final boolean isBaseType = TableInfoFactory.defaultSupportColumnTypes.contains(needClazz);
-        final boolean isTable = clazz.isAnnotationPresent(Table.class);
-        if (isBaseType || isTable) {
+        final boolean isTable = needClazz.isAnnotationPresent(Table.class);
+        final boolean isMap = ClassUtil.isAssignable(Map.class, needClazz) || needClazz.equals(Map.class);
+        System.out.println(isMap);
+        if (isBaseType || isTable || isMap) {
             final String rawType = propertyToType(needClazz, tableType);
+            System.out.println(rawType);
             return isCollection ? "%s[]".formatted(rawType) : rawType;
         }
+
         String rawArgs = Arrays.stream(ReflectUtil.getFields(needClazz)).filter(this::fieldShouldShow).map(field -> {
             final boolean notNullMark = field.isAnnotationPresent(NotNull.class);
             final String typeMark = propertyToType(field.getType(), field.getName(), needClazz, tableType);
             final String temp = notNullMark ? NON_NULL_FUNC_ARG_TEMP : NON_NULL_VALUE_NULL_FUNC_ARG_TEMP;
             return temp.formatted(CharSequenceUtil.toUnderlineCase(field.getName()).toLowerCase(), typeMark);
         }).collect(Collectors.joining(";\n"));
-        return Optional.of(rawArgs).filter(StrUtil::isNotEmpty).map(it -> "{\n%s\n%s}".formatted(it, FUNC_PRE)).map(raw -> isCollection ? "%s[]".formatted(raw) : raw).orElse(isCollection ? FUNC_NULL_ARRAY : FUNC_NULL);
+        return Optional.of(rawArgs)
+                .filter(StrUtil::isNotEmpty)
+                .map(it -> "{\n%s\n%s}".formatted(it, FUNC_PRE))
+                .map(raw -> isCollection ? "%s[]".formatted(raw) : raw).orElse(isCollection ? FUNC_NULL_ARRAY : FUNC_NULL);
+    }
+
+    private List<Class<?>> allFieldClazz() {
+        if (Objects.nonNull(allFieldClazz)) {
+            return allFieldClazz;
+        }
+        final Stream<Class<?>> tableFieldClazz = applicationContext.getBeansOfType(BaseMapper.class).values().stream().map(Object::getClass)
+                .map(TableInfoFactory::ofMapperClass)
+                .flatMap(tableInfo -> clazzFieldsType(tableInfo.getEntityClass()));
+
+        final Stream<Class<?>> rpcClazz = applicationContext.getBeansWithAnnotation(RpcMapping.class).values()
+                .stream()
+                .map(Object::getClass)
+                .map(ReflectUtil::getMethods)
+                .flatMap(methods -> Arrays.stream(methods).filter(it -> it.isAnnotationPresent(Rpc.class))
+                        .flatMap(method -> {
+                            final Stream<Class<?>> args = Arrays.stream(method.getParameters())
+                                    .filter(it -> it.isAnnotationPresent(RequestBody.class))
+                                    .findFirst().map(it -> flatTypes(it.getType(), it.getParameterizedType())).orElse(Stream.of());
+                            final Stream<Class<?>> returns = flatTypes(method.getReturnType(), method.getGenericReturnType());
+                            return Stream.concat(args, returns);
+                        })
+                ).flatMap(this::clazzFieldsType);
+
+        allFieldClazz = Stream.concat(tableFieldClazz, rpcClazz)
+                .distinct()
+                .filter(Objects::nonNull).toList();
+        return allFieldClazz;
+    }
+
+    private Stream<Class<?>> flatTypes(Class<?> clazz, Type parameterizedType) {
+
+        return Stream.concat(Stream.of(clazz, Optional.ofNullable(parameterizedType)
+                        .map(TypeUtil::getClass).orElse(null)),
+                Optional.ofNullable(TypeUtil.getTypeArguments(parameterizedType))
+                        .stream().flatMap(Arrays::stream)
+                        .map(TypeUtil::getClass)
+        ).filter(Objects::nonNull);
+    }
+
+    private Stream<Class<?>> clazzFieldsType(Class<?> clazz) {
+        return Arrays.stream(ReflectUtil.getFields(clazz))
+                .filter(it -> !Modifier.isStatic(it.getModifiers()))
+                .flatMap(it -> {
+                    final Class<?> type = it.getType();
+                    final Type genericType = it.getGenericType();
+                    return flatTypes(type, genericType);
+                });
     }
 
 

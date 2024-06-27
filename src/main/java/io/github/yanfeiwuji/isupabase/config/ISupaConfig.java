@@ -21,6 +21,7 @@ import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import io.github.yanfeiwuji.isupabase.stroage.provider.DefaultS3Provider;
 import io.github.yanfeiwuji.isupabase.stroage.provider.S3Provider;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -32,6 +33,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.io.Resource;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -47,10 +49,10 @@ import org.springframework.web.servlet.function.ServerResponse;
 import java.time.Instant;
 import java.util.Map;
 
+@Slf4j
 @EnableWebSecurity
 @Configuration
-public class ISupaConfig implements  WebMvcConfigurer {
-
+public class ISupaConfig implements WebMvcConfigurer {
 
 
     @Bean
@@ -119,12 +121,12 @@ public class ISupaConfig implements  WebMvcConfigurer {
                 .expiresAt(Instant.EPOCH.plusSeconds(100L * 365 * 24 * 60 * 60))
                 .build());
         final Jwt encode = jwtEncoder.encode(parameters);
-        System.out.println(encode.getTokenValue());
+        log.info("JWT token: {}", encode.getTokenValue());
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public S3Provider s3Provider() {
+    public S3Provider<Resource> s3Provider() {
         return new DefaultS3Provider();
     }
 

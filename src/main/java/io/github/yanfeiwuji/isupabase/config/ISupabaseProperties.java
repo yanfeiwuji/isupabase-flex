@@ -38,14 +38,7 @@ public class ISupabaseProperties {
 
     @PostConstruct
     public void init() {
-        // final HttpConfig httpConfig = HttpConfig.builder()
-        // .timeout(15000)
-        // .proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 1082)))
-        // .build();
-        authProviders.forEach((k, v) -> {
-            v.setRedirectUri(AuthStrPool.AUTH_CALL_BACK_URL_TEMP.formatted(this.siteUrl));
-            // v.setHttpConfig(httpConfig); //v.setHttpConfig();
-        });
+        authProviders.forEach((k, v) -> v.setRedirectUri(AuthStrPool.AUTH_CALL_BACK_URL_TEMP.formatted(this.siteUrl)));
 
     }
 }
