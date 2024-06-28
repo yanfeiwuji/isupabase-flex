@@ -228,7 +228,6 @@ public class AuthAction {
             user.setConfirmationToken(null);
 
             return user;
-
         }
         return Map.of();
     }
