@@ -119,7 +119,20 @@ public class PgrstDb {
     // --- update
     public <T> List<T> updateRowByQuery(BaseMapper<T> baseMapper, Row row, QueryWrapper queryWrapper) {
         final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
+
         applyUpdateColumnsOnRow(tableInfo.getTableNameWithSchema(), row);
+        final Object needHandlerOnUpdate = RowUtil.toEntity(row, tableInfo.getEntityClass());
+        // handler update listeners
+        tableInfo.getOnUpdateListeners().forEach(
+                it -> it.onUpdate(needHandlerOnUpdate)
+        );
+        // if listeners is set some field is null  than set row is null else not handler
+        final Map<String, Object> handlerAfter = BeanUtil.beanToMap(needHandlerOnUpdate, true, false);
+        // handler field
+        row.keySet().forEach(k -> row.replace(k, handlerAfter.get(k)));
+        // add ext field
+        handlerAfter.entrySet().stream().filter(entry -> Objects.nonNull(entry.getValue()))
+                .forEach(entry -> row.putIfAbsent(entry.getKey(), entry.getValue()));
 
         // handler jackson not work
         row.forEach((k, v) -> CacheTableInfoUtils.columnJacksonTypeHandler(k, tableInfo).ifPresent(handler -> {

@@ -165,6 +165,8 @@ public class ApiReq {
         final TableInfo tableInfo = queryExec.getTableInfo();
         final Map<String, String> propertyColumnMapping = tableInfo.getPropertyColumnMapping();
         final Row row = (Row) BeanUtil.beanToMap(first, new Row(), true, propertyColumnMapping::get); // modify
+        // set null
+        this.getFirstBodyKeys().forEach(k -> row.putIfAbsent(k, null));
 
         final QueryWrapper queryWrapper = QueryWrapper.create()
                 .from(queryExec.getQueryTable())
