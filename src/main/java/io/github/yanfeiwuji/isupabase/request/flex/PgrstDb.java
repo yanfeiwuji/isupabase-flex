@@ -59,6 +59,12 @@ public class PgrstDb {
         return baseMapper.selectListByQuery(needQueryWrapper);
     }
 
+    public <T, R> List<R> selectListByQueryAs(BaseMapper<T> baseMapper, QueryWrapper queryWrapper, Class<R> asType) {
+        final QueryWrapper needQueryWrapper = preHandler(baseMapper, queryWrapper, OperateType.SELECT);
+        applySelectColumns(needQueryWrapper);
+        return baseMapper.selectListByQueryAs(needQueryWrapper, asType);
+    }
+
     public <T> List<T> selectListByQuery(BaseMapper<T> baseMapper, QueryWrapper queryWrapper) {
         final QueryWrapper needQueryWrapper = preHandler(baseMapper, queryWrapper, OperateType.SELECT);
         applySelectColumns(needQueryWrapper);
@@ -416,9 +422,9 @@ public class PgrstDb {
         }
 
 
-        // file query table
+        // fill query table
         final List<QueryTable> queryTables = CPI.getQueryTables(result);
-        if (CollUtil.isNotEmpty(queryTables)) {
+        if (CollUtil.isEmpty(queryTables)) {
             final TableInfo tableInfo = mapperToTableInfo(baseMapper);
             result.from(tableInfo.getEntityClass());
         }

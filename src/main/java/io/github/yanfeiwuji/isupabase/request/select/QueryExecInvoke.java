@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.StrUtil;
 
+import com.alibaba.fastjson.JSONObject;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.datasource.DataSourceKey;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -23,7 +24,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.mybatisflex.core.query.QueryMethods.column;
-import static com.mybatisflex.core.query.QueryMethods.trim;
 
 @UtilityClass
 public class QueryExecInvoke {
@@ -41,8 +41,10 @@ public class QueryExecInvoke {
     private List<? extends Map> embeddedList(QueryExec queryExec, BaseMapper<?> baseMapper, PgrstDb pgrstDb, List preList) {
         List<? extends Map> targetObjectList = preList;
         if (Objects.isNull(queryExec.getRelation())) {
+            final Class<?> asType = queryExec.getTableInfo().getEntityClass();
             QueryWrapper queryWrapper = queryExec.handler(QueryWrapper.create());
-            targetObjectList = fetchTargetList(baseMapper, pgrstDb, queryWrapper);
+
+            targetObjectList = fetchTargetList(baseMapper, pgrstDb, queryWrapper, asType);
         } else {
             AbstractRelation<?> relation = queryExec.getRelation();
             choiceDs(relation);
@@ -56,7 +58,8 @@ public class QueryExecInvoke {
             } else {
                 QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
                 queryExec.handler(queryWrapper);
-                targetObjectList = fetchTargetList(baseMapper, pgrstDb, queryWrapper);
+                final Class<?> asType = queryExec.getTableInfo().getEntityClass();
+                targetObjectList = fetchTargetList(baseMapper, pgrstDb, queryWrapper, asType);
                 RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
             }
 
@@ -156,13 +159,16 @@ public class QueryExecInvoke {
         });
     }
 
-    private List<Map<String, Object>> fetchTargetList(BaseMapper<?> baseMapper, PgrstDb pgrstDb, QueryWrapper queryWrapper) {
+    private List<Map<String, Object>> fetchTargetList(BaseMapper<?> baseMapper, PgrstDb pgrstDb, QueryWrapper queryWrapper,
+
+                                                      Class<?> asType) {
         // handler bean not use type but can't use jsonColumn
         final TableInfo tableInfo = TableInfoFactory.ofMapperClass(baseMapper.getClass());
         CacheTableInfoUtils.nNTableCopyOptions(tableInfo);
         final CopyOptions copyOptions = CacheTableInfoUtils.nNTableCopyOptions(tableInfo);
-        return pgrstDb.selectListByQuery(baseMapper, queryWrapper)
-                .stream().map(it -> Optional.ofNullable(it).map(obj -> BeanUtil.beanToMap(it, new TreeMap<>(), copyOptions))
+
+        return pgrstDb.selectListByQueryAs(baseMapper, queryWrapper, asType).stream().map(it -> Optional.ofNullable(it).map(
+                                obj -> BeanUtil.beanToMap(it, new TreeMap<>(), copyOptions))
                         .orElseGet(TreeMap::new))
                 .toList();
     }
