@@ -2,6 +2,8 @@ package io.github.yanfeiwuji.isupabase.request.select;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 
 import com.mybatisflex.core.BaseMapper;
@@ -20,6 +22,7 @@ import io.github.yanfeiwuji.isupabase.request.utils.ValueUtils;
 import lombok.experimental.UtilityClass;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static com.mybatisflex.core.query.QueryMethods.column;
@@ -53,6 +56,7 @@ public class QueryExecInvoke {
 
             if (targetValues.targetValues().isEmpty()) {
                 RelationUtils.join(relation, preList, targetObjectList, targetValues.mappingRows, queryExec.isSpread());
+
                 return preList;
             } else {
                 QueryWrapper queryWrapper = relation.buildQueryWrapper(targetValues.targetValues());
@@ -128,6 +132,13 @@ public class QueryExecInvoke {
         final Map<String, String> pickKeys = Optional.ofNullable(queryExec.getPickKeyMap()).orElse(Map.of());
         final Map<String, String> castMap = Optional.ofNullable(queryExec.getCastMap()).orElse(Map.of());
         final Map<String, String> renameMap = Optional.ofNullable(queryExec.getRenameMap()).orElse(Map.of());
+        final Map<String, String> spreadRenameMap =
+                Optional.ofNullable(queryExec.getSubs()).orElse(List.of())
+                        .stream().filter(QueryExec::isSpread).map(QueryExec::getRenameMap)
+                        .reduce((m1, m2) -> {
+                            m1.putAll(m2);
+                            return m1;
+                        }).orElse(Map.of());
 
         targetObjectList.forEach(item -> {
             if (Objects.isNull(item)) {
@@ -150,13 +161,16 @@ public class QueryExecInvoke {
                 throw PgrstExFactory.exCasingError(e.getMessage()).get();
             }
 
-            renameMap.forEach((k, v) -> {
+            BiConsumer<String, String> renameConsumer = (k, v) -> {
                 final Object temp = item.get(k);
                 item.remove(k);
                 item.put(v, temp);
-            });
+            };
+            renameMap.forEach(renameConsumer);
+            spreadRenameMap.forEach(renameConsumer);
         });
     }
+
 
     private List<Map<String, Object>> fetchTargetList(BaseMapper<?> baseMapper, PgrstDb pgrstDb, QueryWrapper queryWrapper,
 

@@ -65,6 +65,7 @@ public class QueryExec {
     // handler then set it 
     private QueryWrapper queryWrapper;
 
+
     // 不执行
     private boolean notExec = false;
 
