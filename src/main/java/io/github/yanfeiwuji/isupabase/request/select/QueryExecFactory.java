@@ -2,6 +2,7 @@ package io.github.yanfeiwuji.isupabase.request.select;
 
 import java.util.*;
 
+import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.relation.AbstractRelation;
 import com.mybatisflex.core.relation.ToManyRelation;
@@ -27,6 +28,7 @@ public class QueryExecFactory {
 
         String selectValue = Optional
                 .ofNullable(params.getFirst(PgrstStrPool.SELECT))
+                .filter(StrUtil::isNotEmpty)
                 .orElse(PgrstStrPool.STAR);
         Map<String, QueryExec> lookup = new HashMap<>();
 

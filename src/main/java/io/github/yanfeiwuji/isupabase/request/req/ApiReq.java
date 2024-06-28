@@ -260,12 +260,11 @@ public class ApiReq {
 
             if (!columns.isEmpty()) {
                 final CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, o) -> {
-                    final String paramKey = CacheTableInfoUtils.propertyToParamKey(f.getName());
+                    final String paramKey = CacheTableInfoUtils.nNTableColumnPropertyMapping(tableInfo).get(f.getName());
                     return columns.containsKey(paramKey);
                 });
                 // copy
                 this.body = (List<Object>) BeanUtil.copyToList(this.body, entityClass, copyOptions);
-
             }
         } catch (ServletException | IOException e) {
             throw PgrstExFactory.exInvalidJson().get();
