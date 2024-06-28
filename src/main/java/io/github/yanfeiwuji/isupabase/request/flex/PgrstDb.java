@@ -109,16 +109,16 @@ public class PgrstDb {
         return res;
     }
 
-    public <T> long insertBatch(BaseMapper<T> baseMapper, List<T> entity) {
+    public <T> long insertBatch(BaseMapper<T> baseMapper, List<T> entities) {
 
-        applyInsertColumnsOnEntities(baseMapper, entity);
-        applyCheck(baseMapper, OperateType.INSERT, entity);
+        applyInsertColumnsOnEntities(baseMapper, entities);
+        applyCheck(baseMapper, OperateType.INSERT, entities);
 
         final TableInfo tableInfo = mapperToTableInfo(baseMapper);
 
-        publisher.publishEvent(PgrstDbEvent.ofInsertBefore(this, tableInfo.getTableNameWithSchema(), List.of(entity)));
-        final int res = baseMapper.insertBatch(entity);
-        publisher.publishEvent(PgrstDbEvent.ofInsertAfter(this, tableInfo.getTableNameWithSchema(), List.of(entity)));
+        publisher.publishEvent(PgrstDbEvent.ofInsertBefore(this, tableInfo.getTableNameWithSchema(), entities));
+        final int res = baseMapper.insertBatch(entities);
+        publisher.publishEvent(PgrstDbEvent.ofInsertAfter(this, tableInfo.getTableNameWithSchema(), entities));
         return res;
     }
 
@@ -174,7 +174,7 @@ public class PgrstDb {
         Db.updateByCondition(tableInfo.getSchema(), tableInfo.getTableName(), row, idCol.in(needUpdateIds));
 
         final List<T> dbUpdates = baseMapper.selectListByCondition(idCol.in(needUpdateIds));
-        publisher.publishEvent(PgrstDbEvent.ofUpdateBefore(this, tableInfo.getTableNameWithSchema(), needUpdates, dbUpdates));
+        publisher.publishEvent(PgrstDbEvent.ofUpdateAfter(this, tableInfo.getTableNameWithSchema(), needUpdates, dbUpdates));
         return dbUpdates;
     }
 

@@ -3,6 +3,7 @@ package io.github.yanfeiwuji.isupabase.request.impl;
 import cn.hutool.core.exceptions.ExceptionUtil;
 import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.mybatis.Mappers;
+import com.mybatisflex.core.row.Db;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 
@@ -10,10 +11,7 @@ import io.github.yanfeiwuji.isupabase.request.IReqHandler;
 import io.github.yanfeiwuji.isupabase.request.ex.*;
 import io.github.yanfeiwuji.isupabase.request.flex.PgrstDb;
 import io.github.yanfeiwuji.isupabase.request.req.ApiReq;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -46,7 +44,7 @@ public class ReqHandler implements IReqHandler {
     @Override
     public ServerResponse handler(ServerRequest request) {
         final ApiReq apiReq = apiReq(request);
-        return apiReq.handler();
+        return Db.txWithResult(apiReq::handler);
     }
 
     @Override

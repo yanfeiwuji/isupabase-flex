@@ -136,15 +136,9 @@ public class ApiReq {
 
     public void post() {
         if (prefers.containsKey(PgrstStrPool.PREFER_RESOLUTION_MERGE_DUPLICATES)) {
-            Db.tx(() -> {
-                FlexUtils.insertOrUpdateSelective(baseMapper, pgrstDb, body, queryExec.getTableInfo());
-                return true;
-            });
+            FlexUtils.insertOrUpdateSelective(baseMapper, pgrstDb, body, queryExec.getTableInfo());
         } else {
-            Db.tx(() -> {
-                pgrstDb.insertBatch(baseMapper, body);
-                return true;
-            });
+            pgrstDb.insertBatch(baseMapper, body);
         }
         this.httpStatus = HttpStatus.CREATED;
         rowNum = body.size();
@@ -296,7 +290,7 @@ public class ApiReq {
                     .body(responseBody);
         } else {
 
-            if (!httpMethod.equals(HttpMethod.POST) || !httpStatus.equals(HttpStatus.CREATED)) {
+            if (!HttpMethod.POST.equals(httpMethod) || !httpStatus.equals(HttpStatus.CREATED)) {
                 httpStatus = HttpStatus.NO_CONTENT;
             }
             return ServerResponse
@@ -342,25 +336,6 @@ public class ApiReq {
         return QueryExecInvoke.invoke(queryExec, baseMapper, pgrstDb);
     }
 
-    private QueryCondition inIdsCondition(TableInfo tableInfo, List<?> body) {
-
-        final String[] primaryColumns = tableInfo.getPrimaryColumns();
-        // ids
-        final List<Object[]> list = body.stream().map(tableInfo::buildPkSqlArgs)
-                .toList();
-        final QueryColumn queryColumn = CacheTableInfoUtils.nNRealTableIdColumn(tableInfo);
-        // to test
-        if (list.isEmpty()) {
-            return null;
-        }
-        if (primaryColumns.length == 1) {
-            final List<Object> ids = list.stream().map(it -> it[0]).toList();
-            return queryColumn.in(ids);
-        } else {
-            return queryColumn.in(list);
-        }
-
-    }
 
     private void addPreferApplied(String prefer) {
         if (preferApplied == null) {
