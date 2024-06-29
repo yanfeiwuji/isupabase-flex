@@ -10,22 +10,22 @@ import java.util.List;
  * @author yanfeiwuji
  * @date 2024/6/17 14:42
  */
-public abstract class UpdatePolicyBase<T> extends PolicyBase<T> {
-    public QueryCondition using(PgrstContext context) {
+public interface UpdatePolicyBase<T> extends PolicyBase<T> {
+    default QueryCondition using(PgrstContext context) {
         return QueryCondition.createEmpty();
     }
 
-    public void checking(PgrstContext context, List<T> entities) {
+    default void checking(PgrstContext context, List<T> entities) {
 
     }
 
-    public List<QueryColumn> columns(PgrstContext context) {
+    default List<QueryColumn> columns(PgrstContext context) {
         return null;
     }
 
 
     @Override
-    TableSetting<T> config() {
+    default TableSetting<T> config() {
         return new TableSetting<>(
                 this::using,
                 this::checking,

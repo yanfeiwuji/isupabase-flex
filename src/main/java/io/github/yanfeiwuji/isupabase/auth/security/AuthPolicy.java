@@ -15,7 +15,7 @@ import java.util.List;
  * @date 2024/6/26 16:44
  */
 @Policy
-public class AuthPolicy extends AllPolicyBase<AuthBase> {
+public class AuthPolicy implements AllPolicyBase<AuthBase> {
 
     @Override
     public QueryCondition using(PgrstContext context) {

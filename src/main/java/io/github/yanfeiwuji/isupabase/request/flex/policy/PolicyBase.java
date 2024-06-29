@@ -13,36 +13,33 @@ import java.util.Arrays;
  * @author yanfeiwuji
  * @date 2024/6/17 14:38
  */
-public abstract class PolicyBase<T> {
+public interface PolicyBase<T> {
 
-    protected QueryCondition EMPTY_CONDITION = QueryCondition.createEmpty();
-
-
-    abstract TableSetting<T> config();
+    TableSetting<T> config();
 
 
-    protected void deniedOnRow() {
+    default void deniedOnRow() {
         throw PgrstExFactory.rowSecurityError(ServletUtils.tableName()).get();
     }
 
-    protected PgrstEx deniedOnRowEx() {
+    default PgrstEx deniedOnRowEx() {
         return PgrstExFactory.rowSecurityError(ServletUtils.tableName()).get();
     }
 
 
-    protected void deniedOnCol() {
+    default void deniedOnCol() {
         throw PgrstExFactory.columnSecurityError(ServletUtils.tableName()).get();
     }
 
-    protected PgrstEx deniedOnColEx() {
+    default PgrstEx deniedOnColEx() {
         return PgrstExFactory.columnSecurityError(ServletUtils.tableName()).get();
     }
 
-    public QueryCondition and(QueryCondition... queryConditions) {
+    default QueryCondition and(QueryCondition... queryConditions) {
         return Arrays.stream(queryConditions).reduce(QueryCondition.createEmpty(), QueryCondition::and);
     }
 
-    public QueryCondition or(QueryCondition... queryConditions) {
+    default QueryCondition or(QueryCondition... queryConditions) {
         return Arrays.stream(queryConditions).reduce(QueryCondition.createEmpty(), QueryCondition::or);
     }
 

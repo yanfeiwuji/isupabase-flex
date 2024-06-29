@@ -431,6 +431,7 @@ public class StorageObjectAction {
                         .map(MimeType::valueOf).orElse(MimeTypeUtils.TEXT_PLAIN);
 
         final List<String> allowedMimeTypes = bucket.getAllowedMimeTypes();
+
         if (Objects.nonNull(allowedMimeTypes) && !allowedMimeTypes.isEmpty()) {
             final boolean match = allowedMimeTypes.stream().map(MimeType::valueOf).anyMatch(it -> it.includes(contextMimeType));
             if (!match) {

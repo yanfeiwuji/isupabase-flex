@@ -33,7 +33,9 @@ var uploadVersion = "2.0.0-M2"
 
 dependencies {
 
-    api("org.springframework.boot:spring-boot-starter-web")
+    api("org.springframework.boot:spring-boot-starter-web"){
+        exclude("org.springframework.boot", "spring-boot-starter-tomcat")
+    }
     api("org.springframework.boot:spring-boot-starter-undertow")
     modules {
         // tomcat not read form-data  name empty str

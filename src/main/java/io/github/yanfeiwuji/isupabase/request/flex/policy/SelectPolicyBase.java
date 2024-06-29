@@ -13,16 +13,16 @@ import java.util.List;
  * @author yanfeiwuji
  * @date 2024/6/17 14:38
  */
-public abstract class SelectPolicyBase<T> extends PolicyBase<T> {
-    public QueryCondition using(PgrstContext context) {
+public  interface SelectPolicyBase<T> extends PolicyBase<T> {
+    default QueryCondition using(PgrstContext context) {
         return QueryCondition.createEmpty();
     }
 
-    public List<QueryColumn> columns(PgrstContext context) {
+    default List<QueryColumn> columns(PgrstContext context) {
         return null;
     }
 
-    public TableSetting<T> config() {
+    default TableSetting<T> config() {
         return new TableSetting<>(
                 this::using,
                 (context, info) -> {
