@@ -251,7 +251,7 @@ public class GenAction {
                     }
                 }).collect(Collectors.joining(";\n"));
 
-        String relFields = relFIelds(tableInfo.getEntityClass());
+        String relFields = relFields(tableInfo.getEntityClass());
         return String.join(";\n", ids, fields, relFields);
     }
 
@@ -565,7 +565,7 @@ public class GenAction {
         return !ClassUtil.isAssignable(AuthBase.class, entityClass) && !ClassUtil.isAssignable(StorageBase.class, entityClass);
     }
 
-    private String relFIelds(Class<?> entityClass) {
+    private String relFields(Class<?> entityClass) {
         return RelationManager.getRelations(entityClass).stream().map(it -> {
             final Field relationField = it.getRelationField();
             return NON_NULL_VALUE_NULL_FIELD_TEMP.formatted(

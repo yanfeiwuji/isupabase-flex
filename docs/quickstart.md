@@ -264,9 +264,13 @@ public interface AccountMapper extends BaseMapper<Account> {
 
 @RpcMapping
 public class RpcFunction {
+    public record PlusArg(Integer a, Integer b) {
+
+    }
+    // Using a list for the body will not be read into types; this is consistent with Supabase behavior
     @Rpc("plus")
-    public Integer plus(@RequestBody List<Integer> numbers) {
-        return numbers.stream().reduce(Integer::sum).orElse(0);
+    public Integer plus(@RequestBody PlusArg arg) {
+        return arg.a + arg.b;
     }
 }
 ```

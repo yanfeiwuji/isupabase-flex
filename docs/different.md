@@ -118,4 +118,19 @@ public class PostListener {
 
 ```java
 
+@RpcMapping
+public class RpcFunction {
+    public record PlusArg(Integer a, Integer b) {
+
+    }
+
+    // Using a list for the body will not be read into types; this is consistent with Supabase behavior
+    @Rpc("plus")
+    public Integer plus(@RequestBody PlusArg arg) {
+        return arg.a + arg.b;
+    }
+}
 ```
+
+The RPC function is essentially a regular Spring MVC POST endpoint. By default, it is open, but you can secure it using
+Spring Security. Note that all endpoints must use JWT tokens, and the default role for users is anon.
