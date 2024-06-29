@@ -75,7 +75,47 @@ public class AuthPolicy implements AllPolicyBase<AuthBase> {
 For simple field validations, you can use JSR 303. For more complex logic, you can write custom validation annotations
 or implement your own validation logic in the `checking` method.
 
+```java
+
+@Data
+@Table("tb_account")
+public class Account {
+
+    @Id(keyType = KeyType.Auto)
+    private Long id;
+
+    @Length(min = 1, max = 20, message = "Must be between 1 and 20 characters") // Used in Update and Insert
+    @NotNull(groups = Valid.Update.class, message = "Username is required for update") // Used in Update
+    private String userName;
+
+    @Max(value = 200, message = "Age cannot be greater than 200") // Used in Update
+    @Min(value = 0, message = "Age cannot be less than 0") // Used in Update
+    @NotNull(groups = Valid.Insert.class, message = "Age is required for insert") // Used in Update
+    private Integer age;
+
+    private Date birthday;
+}
+```
 
 ## Database Trigger
 
+Database triggers are implemented using Spring event listeners to execute corresponding logic.
+
+```java
+
+@Component
+public class PostListener {
+    // Ensure correct configuration of the condition (tableName.[insert|update|delete].[before|after])
+    // to correctly handle events with entity signatures, preventing type conversion errors.
+    @EventListener(value = PgrstDbEvent.class, condition = "#event.combine == 'post.insert.before'")
+    public void onPostInsert(PgrstDbEvent<Post> event) {
+        event.getNewEntities().forEach(System.out::println);
+    }
+}
+```
+
 ## Rpc Function
+
+```java
+
+```

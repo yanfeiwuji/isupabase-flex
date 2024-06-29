@@ -342,35 +342,50 @@ public class GenAction {
                     }).collect(Collectors.joining(";\n"));
                     return COMPOSITE_TYPE_TEMP.formatted(typeName, info);
                 }).collect(Collectors.joining());
-        return Optional.of(compositeTypes).orElse(COMPOSITE_TYPE_PRE + NEVER);
+
+        return Optional.of(compositeTypes)
+                .filter(StrUtil::isNotEmpty)
+                .orElse(COMPOSITE_TYPE_PRE + NEVER);
     }
 
     public String functions() {
         final Map<String, Object> beansWithAnnotation = applicationContext.getBeansWithAnnotation(RpcMapping.class);
-        String functions = beansWithAnnotation.values().stream().flatMap(rpcMapping -> Arrays.stream(ReflectUtil.getMethods(rpcMapping.getClass())).filter(it -> it.isAnnotationPresent(Rpc.class)).map(it -> {
-            final String[] value = it.getAnnotation(Rpc.class).value();
-            String funcName = value[0];
-            String args = Arrays.stream(it.getParameters()).filter(parameter -> parameter.isAnnotationPresent(RequestBody.class)).findFirst().map(parameter -> {
-                String tableType = Optional.ofNullable(parameter.getAnnotation(Validated.class)).map(Validated::value)
-                        .map(groups -> {
-                            if (ArrayUtil.contains(groups, Valid.Update.class)) {
-                                return "Update";
-                            } else if (ArrayUtil.contains(groups, Valid.Insert.class)) {
-                                return "Insert";
-                            } else {
-                                return "Row";
-                            }
-                        }).orElse("Row");
+        String functions = beansWithAnnotation.values()
+                .stream()
+                .flatMap(rpcMapping -> Arrays.stream(ReflectUtil.getMethods(rpcMapping.getClass())))
+                .filter(it -> it.isAnnotationPresent(Rpc.class))
+                .filter(it -> Arrays.stream(it.getParameters())
+                        .filter(parameter -> parameter.isAnnotationPresent(RequestBody.class))
+                        .findFirst()
+                        .filter(parameter -> !ClassUtil.isAssignable(Collection.class, parameter.getType()))
+                        .isPresent()
+                )
+                .map(it -> {
+                    final String[] value = it.getAnnotation(Rpc.class).value();
+                    String funcName = value[0];
+                    String args = Arrays.stream(it.getParameters()).filter(parameter -> parameter.isAnnotationPresent(RequestBody.class))
+                            .findFirst().map(parameter -> {
+                                String tableType = Optional.ofNullable(parameter.getAnnotation(Validated.class)).map(Validated::value)
+                                        .map(groups -> {
+                                            if (ArrayUtil.contains(groups, Valid.Update.class)) {
+                                                return "Update";
+                                            } else if (ArrayUtil.contains(groups, Valid.Insert.class)) {
+                                                return "Insert";
+                                            } else {
+                                                return "Row";
+                                            }
+                                        }).orElse("Row");
 
-                final Class<?> clazz = parameter.getType();
-                final Type type = parameter.getParameterizedType();
-                return funcClazzTypeToString(clazz, type, tableType);
-            }).filter(StrUtil::isNotEmpty).orElse(FUNC_NULL);
+                                final Class<?> clazz = parameter.getType();
+                                final Type type = parameter.getParameterizedType();
+                                return funcClazzTypeToString(clazz, type, tableType);
+                            }).filter(StrUtil::isNotEmpty).orElse(FUNC_NULL);
 
-            final String returns = it.getReturnType().equals(Void.TYPE) ? UNDERFINED : funcClazzTypeToString(it.getReturnType(), it.getGenericReturnType(), "Row");
+                    final String returns = it.getReturnType().equals(Void.TYPE) ? UNDERFINED : funcClazzTypeToString(it.getReturnType(), it.getGenericReturnType(), "Row");
 
-            return FUNC_TEMP.formatted(funcName, args, returns);
-        })).collect(Collectors.joining("\n"));
+                    return FUNC_TEMP.formatted(funcName, args, returns);
+                })
+                .collect(Collectors.joining("\n"));
         return Optional.of(functions).filter(StrUtil::isNotBlank).orElse(FUNC_NULL_PRE + NEVER);
     }
 
@@ -427,7 +442,7 @@ public class GenAction {
             return "number";
         }
 
-        if (ClassUtil.isAssignable(Map.class, propertyType) || propertyType.equals(Map.class)) {
+        if (ClassUtil.isAssignable(Map.class, propertyType)) {
             return "Json";
         }
         if (EnumUtil.isEnum(propertyType)) {
@@ -476,7 +491,7 @@ public class GenAction {
         }
         final boolean isBaseType = TableInfoFactory.defaultSupportColumnTypes.contains(needClazz);
         final boolean isTable = needClazz.isAnnotationPresent(Table.class);
-        final boolean isMap = ClassUtil.isAssignable(Map.class, needClazz) || needClazz.equals(Map.class);
+        final boolean isMap = ClassUtil.isAssignable(Map.class, needClazz);
 
         if (isBaseType || isTable || isMap) {
             final String rawType = propertyToType(needClazz, tableType);
@@ -558,6 +573,8 @@ public class GenAction {
                     propertyToType(relationField.getType(), relationField.getName(), entityClass));
         }).collect(Collectors.joining(";\n"));
     }
+
+
 
 
 }
