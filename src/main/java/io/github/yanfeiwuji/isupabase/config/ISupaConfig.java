@@ -1,7 +1,6 @@
 package io.github.yanfeiwuji.isupabase.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.mybatisflex.core.dialect.*;
 import com.mybatisflex.core.handler.JacksonTypeHandler;

@@ -2,6 +2,7 @@
 
 Before you begin, we assume that you are already:
 
+- Familiar with Supabase 
 - Familiar with Java environment setup and development
 - Familiar with relational databases, such as MySQL
 - Familiar with Spring Boot and related frameworks
@@ -321,10 +322,12 @@ export type Database = {
         };
         Functions: {
             plus: {
-                Args: number[];
+                Args: {
+                    a: number | null;
+                    b: number | null
+                };
                 Returns: number;
             };
-
         };
         Enums: {
             [_ in never]: never;

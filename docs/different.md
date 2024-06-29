@@ -1,5 +1,31 @@
 # Something Different
 
+## Database Relation
+The relation is configured using [MyBatis-Flex](https://mybatis-flex.com/). For more information, refer to [Mybatis-Flex Relation Query](https://mybatis-flex.com/zh/base/relations-query.html#%E4%B8%80%E5%AF%B9%E4%B8%80-relationonetoone). 
+It's similar to...
+```java
+@EqualsAndHashCode(callSuper = true)
+@Data
+@Table(value = "post")
+public class Post extends BaseEntity {
+    private String title;
+    private String content;
+
+    @RelationManyToMany(joinTable = "post_tag",
+            selfField = "id",
+            joinSelfColumn = "pid",
+            targetField = "id",
+            joinTargetColumn = "tid"
+    )
+    private List<Tag> tags;
+
+    @RelationOneToOne(selfField = "id", targetField = "pid")
+    private PostDetail detail;
+}
+
+```
+You can use the property's underscored name in `SELECT` queries only if it's defined as a relation on the entity.
+
 ## Database Rls and Cls
 
 You can configure RLS (Row-Level Security) and CLS (Column-Level Security) by implements from interfaces

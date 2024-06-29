@@ -429,6 +429,12 @@ public class PgrstDb {
             result.from(tableInfo.getEntityClass());
         }
 
+        // fill query condition
+        final QueryCondition whereQueryCondition = CPI.getWhereQueryCondition(queryWrapper);
+        if (Objects.isNull(whereQueryCondition)) {
+            result.where(QueryCondition.createEmpty());
+        }
+
         // handler limit
         final Long limitRows = CPI.getLimitRows(result);
         final Long maxRows = iSupabaseProperties.getMaxRows();

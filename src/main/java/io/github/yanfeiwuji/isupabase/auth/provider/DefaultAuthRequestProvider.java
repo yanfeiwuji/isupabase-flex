@@ -2,10 +2,8 @@ package io.github.yanfeiwuji.isupabase.auth.provider;
 
 import lombok.RequiredArgsConstructor;
 import me.zhyd.oauth.config.AuthConfig;
-import me.zhyd.oauth.config.AuthDefaultSource;
 import me.zhyd.oauth.request.*;
 
-import java.util.Arrays;
 import java.util.Optional;
 
 /**
@@ -66,11 +64,4 @@ public class DefaultAuthRequestProvider implements AuthRequestProvider {
             default -> null;
         });
     }
-
-    //  out put all impl is auth
-//    public static void main(String[] args) {
-//        Arrays.stream(AuthDefaultSource.values()).map(it -> {
-//            return "case \"%s\" -> new %s(authConfig);".formatted(it.name().toLowerCase(), it.getTargetClass().getSimpleName());
-//        }).forEach(System.out::println);
-//    }
 }

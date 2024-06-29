@@ -35,7 +35,6 @@ public class DefaultS3Provider implements S3Provider<Resource> {
         Path currentDir = Paths.get(CharSequenceUtil.EMPTY).toAbsolutePath();
         this.s3DirPath = currentDir.resolve(S3_DIR);
         if (!Files.exists(s3DirPath)) {
-
             try {
                 Files.createDirectory(s3DirPath);
             } catch (IOException e) {
