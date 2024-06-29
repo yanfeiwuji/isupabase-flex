@@ -2,8 +2,6 @@ package io.github.yanfeiwuji.isupabase.request.select;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 
 import com.mybatisflex.core.BaseMapper;
@@ -131,7 +129,8 @@ public class QueryExecInvoke {
 
         final Map<String, String> pickKeys = Optional.ofNullable(queryExec.getPickKeyMap()).orElse(Map.of());
         final Map<String, String> castMap = Optional.ofNullable(queryExec.getCastMap()).orElse(Map.of());
-        final Map<String, String> renameMap = Optional.ofNullable(queryExec.getRenameMap()).orElse(Map.of());
+        final Map<String, String> renameMap =
+                Optional.ofNullable(queryExec.getRenameMap()).orElse(Map.of());
         final Map<String, String> spreadRenameMap =
                 Optional.ofNullable(queryExec.getSubs()).orElse(List.of())
                         .stream().filter(QueryExec::isSpread).map(QueryExec::getRenameMap)
@@ -162,6 +161,9 @@ public class QueryExecInvoke {
             }
 
             BiConsumer<String, String> renameConsumer = (k, v) -> {
+                if (!pickKeys.containsKey(k)) {
+                    return;
+                }
                 final Object temp = item.get(k);
                 item.remove(k);
                 item.put(v, temp);

@@ -88,7 +88,7 @@ publishing {
             }
             from(components["java"])
             groupId = "io.github.yanfeiwuji"
-            artifactId = "isupabase"
+            artifactId = "isupabase-flex"
             version = "0.0.1"
 
         }

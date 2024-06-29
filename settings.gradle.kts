@@ -1,1 +1,1 @@
-rootProject.name = "isupabase"
+rootProject.name = "isupabase-flex"

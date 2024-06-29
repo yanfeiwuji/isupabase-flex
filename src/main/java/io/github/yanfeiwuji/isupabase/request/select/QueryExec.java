@@ -54,7 +54,7 @@ public class QueryExec {
 
     private boolean all;
 
-    // 挑选的key
+    // pick key
     private Map<String, String> pickKeyMap;
 
     private Map<String, String> renameMap;
