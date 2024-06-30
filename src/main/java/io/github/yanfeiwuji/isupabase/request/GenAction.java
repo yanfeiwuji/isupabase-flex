@@ -445,7 +445,7 @@ public class GenAction {
             return "number";
         }
 
-        if (ClassUtil.isAssignable(Map.class, propertyType)) {
+        if (ClassUtil.isAssignable(Map.class, propertyType) || propertyType.equals(Object.class)) {
             return "Json";
         }
         if (EnumUtil.isEnum(propertyType)) {
@@ -459,6 +459,7 @@ public class GenAction {
                 final String value = propertyType.getAnnotation(Table.class).value();
                 return "Database[\"public\"][\"Tables\"][\"%s\"][\"%s\"]".formatted(value, tableType);
             } else {
+
                 final String typeName = CharSequenceUtil.toUnderlineCase(propertyType.getSimpleName()).toLowerCase();
                 return "Database[\"public\"][\"CompositeTypes\"][\"%s\"]".formatted(typeName);
             }
