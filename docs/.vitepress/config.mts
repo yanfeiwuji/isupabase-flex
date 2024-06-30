@@ -25,7 +25,8 @@ export default defineConfig({
         items: [
           { text: 'Config', link: '/config' },
           { text: 'Using Rls and Cls in code', link: '/using-rls-and-cls-in-code' },
-          { text: 'Customize Your Provider', link: '/provider' }
+          { text: 'Content Not Yet Implemented', link: '/content-not-yet-implemented' },
+          { text: 'Limitations', link: '/limitations' }
         ]
       }
 

@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
@@ -13,6 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.NamingBase;
 
+import com.mybatisflex.annotation.UpdateListener;
+import com.mybatisflex.core.FlexGlobalConfig;
 import com.mybatisflex.core.handler.JacksonTypeHandler;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryTable;
@@ -73,6 +76,8 @@ public class CacheTableInfoUtils {
     private static final Map<Class<?>, Map<String, JacksonTypeHandler>> CACHE_TABLE_COLUMN_TYPE_HANDLER = new ConcurrentHashMap<>();
     private static final Map<Class<?>, CopyOptions> CACHE_TABLE_COPY_OPTIONS = new ConcurrentHashMap<>();
 
+    private static final Map<Class<?>, List<UpdateListener>> CACHE_TABLE_UPDATE_LISTENER = new ConcurrentHashMap<>();
+
     private static ObjectMapper mapper;
     private static Optional<NamingBase> namingBaseOptional;
 
@@ -80,6 +85,20 @@ public class CacheTableInfoUtils {
         CacheTableInfoUtils.mapper = mapper;
         CacheTableInfoUtils.namingBaseOptional = initNamingBaseOptional();
     }
+
+    public List<UpdateListener> nNUpdateListeners(TableInfo tableInfo) {
+        return CACHE_TABLE_UPDATE_LISTENER.computeIfAbsent(tableInfo.getEntityClass(), clazz -> {
+            final List<UpdateListener> onUpdateListeners = tableInfo.getOnUpdateListeners();
+            final Stream<UpdateListener> entityConfig = Optional.ofNullable(onUpdateListeners).orElse(List.of()).stream();
+            final Stream<UpdateListener> flexConfig = FlexGlobalConfig.getGlobalConfigs().values().stream().flatMap(it -> it.getUpdateListener(clazz).stream());
+            return Stream.concat(entityConfig, flexConfig)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(UpdateListener::getClass, it -> it))
+                    .values().stream().toList();
+        });
+    }
+
+    ;
 
     public Map<String, String> nNTableColumnPropertyMapping(TableInfo tableInfo) {
         return CACHE_CLAZZ_COLUMN_PROPERTY.computeIfAbsent(tableInfo.getEntityClass(), clazz -> {

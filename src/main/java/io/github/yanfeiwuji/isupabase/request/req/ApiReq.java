@@ -6,8 +6,11 @@ import java.util.stream.Collectors;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.text.CharPool;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
+import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybatisflex.core.BaseMapper;
@@ -67,7 +70,7 @@ public class ApiReq {
     private QueryExec queryExec;
     private QueryExecLookup queryExecLookup;
 
-    private Map<String, String> columns;
+    private Set<String> columns;
     private Map<String, String> prefers;
 
     private String onConflict;
@@ -97,11 +100,16 @@ public class ApiReq {
         this.queryExec = queryExecLookup.queryExec();
         this.baseMapper = baseMapper;
         this.httpMethod = request.method();
+        final Map<String, String> columnPropertyMapping = CacheTableInfoUtils.nNTableColumnPropertyMapping(tableInfo);
 
-        this.columns = Optional.ofNullable(params.getFirst(PgrstStrPool.COLUMNS))
-                .map(it -> CharSequenceUtil.split(it, StrPool.COMMA))
-                .orElse(List.of())
-                .stream().collect(Collectors.toMap(it -> it, it -> it));
+        this.columns = new HashSet<>(
+                Optional.ofNullable(params.getFirst(PgrstStrPool.COLUMNS))
+                        .map(it -> CharSequenceUtil.removeAll(it, "\""))
+                        .map(it -> CharSequenceUtil.split(it, StrPool.COMMA)
+                                .stream().map(columnPropertyMapping::get).toList()
+                        )
+                        .orElse(List.of())
+        );
 
         this.prefers = PreferUtils.pickPrefer(request.headers().firstHeader(PgrstStrPool.PREFER_HEADER_KEY));
         this.onConflict = params.getFirst(PgrstStrPool.ON_CONFLICT); // not impl
@@ -243,6 +251,8 @@ public class ApiReq {
                 final List<Map> mapList = mapper.readValue(strBody, listMapJavaType);
 
                 Optional.ofNullable(mapList.getFirst()).map(Map::keySet).ifPresent(this::setFirstBodyKeys);
+
+
                 this.body = mapper.readValue(strBody, listType);
             } else {
                 final Map map = mapper.readValue(strBody, Map.class);
@@ -252,22 +262,20 @@ public class ApiReq {
             // validator
             validatorBody();
 
+
             if (!columns.isEmpty()) {
-                final CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, o) -> {
-                    final String paramKey = CacheTableInfoUtils.nNTableColumnPropertyMapping(tableInfo).get(f.getName());
-                    return columns.containsKey(paramKey);
-                });
+                final CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, o) -> columns.contains(f.getName()));
                 // copy
                 this.body = (List<Object>) BeanUtil.copyToList(this.body, entityClass, copyOptions);
             }
         } catch (ServletException | IOException e) {
             throw PgrstExFactory.exInvalidJson().get();
         }
+
     }
 
     public ServerResponse handler() {
         // ok.header().header().header()
-
         switch (httpMethod.name()) {
             case "GET" -> get();
             case "POST" -> post();

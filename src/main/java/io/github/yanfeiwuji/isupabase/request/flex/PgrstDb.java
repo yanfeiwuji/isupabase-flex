@@ -7,7 +7,9 @@ import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.mybatisflex.annotation.UpdateListener;
 import com.mybatisflex.core.BaseMapper;
+import com.mybatisflex.core.FlexGlobalConfig;
 import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.exception.FlexExceptions;
 import com.mybatisflex.core.exception.locale.LocalizedFormats;
@@ -27,7 +29,9 @@ import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.ibatis.type.TypeHandler;
+import org.springframework.cache.interceptor.CacheInterceptor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -129,9 +133,9 @@ public class PgrstDb {
         applyUpdateColumnsOnRow(tableInfo.getTableNameWithSchema(), row);
         final Object needHandlerOnUpdate = RowUtil.toEntity(row, tableInfo.getEntityClass());
         // handler update listeners
-        tableInfo.getOnUpdateListeners().forEach(
-                it -> it.onUpdate(needHandlerOnUpdate)
-        );
+
+        CacheTableInfoUtils.nNUpdateListeners(tableInfo).forEach(it -> it.onUpdate(needHandlerOnUpdate));
+
         // if listeners is set some field is null  than set row is null else not handler
         final Map<String, Object> handlerAfter = BeanUtil.beanToMap(needHandlerOnUpdate, true, false);
         // handler field

@@ -22,6 +22,6 @@ public class FlexUtils {
             return pkArgs.length == 0 || pkArgs[0] == null;
         }));
         Optional.ofNullable(collect.get(true)).ifPresent(it -> pgrstDb.insertBatch(baseMapper, it));
-        Optional.ofNullable(collect.get(false)).ifPresent(it -> it.forEach(e -> pgrstDb.update(baseMapper, it)));
+        Optional.ofNullable(collect.get(false)).ifPresent(it -> it.forEach(e -> pgrstDb.update(baseMapper, e)));
     }
 }
