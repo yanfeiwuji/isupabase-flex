@@ -1,9 +1,13 @@
 # Something Different
 
 ## Database Relation
-The relation is configured using [MyBatis-Flex](https://mybatis-flex.com/). For more information, refer to [Mybatis-Flex Relation Query](https://mybatis-flex.com/zh/base/relations-query.html#%E4%B8%80%E5%AF%B9%E4%B8%80-relationonetoone). 
+
+The relation is configured using [MyBatis-Flex](https://mybatis-flex.com/). For more information, refer
+to [Mybatis-Flex Relation Query](https://mybatis-flex.com/zh/base/relations-query.html#%E4%B8%80%E5%AF%B9%E4%B8%80-relationonetoone).
 It's similar to...
+
 ```java
+
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Table(value = "post")
@@ -24,6 +28,7 @@ public class Post extends BaseEntity {
 }
 
 ```
+
 You can use the property's underscored name in `SELECT` queries only if it's defined as a relation on the entity.
 
 ## Database Rls and Cls
@@ -137,6 +142,33 @@ public class PostListener {
     public void onPostInsert(PgrstDbEvent<Post> event) {
         event.getNewEntities().forEach(System.out::println);
     }
+}
+```
+
+## Database Enums
+
+It will use [Mybatis-Flex](https://mybatis-flex.com/zh/core/enum-property.html).
+You need to add `@JsonValue` so that it can be read into the entity; otherwise, Jackson will use the enum name.s
+
+```java
+public enum TypeEnum {
+    TYPE1(1, "类型1"),
+    TYPE2(2, "类型2"),
+    TYPE3(3, "类型3"),
+    ;
+
+    @EnumValue
+    @JsonValue
+    private int code;
+
+    private String desc;
+
+    TypeEnum(int code, String desc) {
+        this.code = code;
+        this.desc = desc;
+    }
+
+    //getter
 }
 ```
 

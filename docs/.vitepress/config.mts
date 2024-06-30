@@ -21,7 +21,7 @@ export default defineConfig({
         ]
       },
       {
-        text: 'Api info',
+        text: 'Detailed',
         items: [
           { text: 'Config', link: '/config' },
           { text: 'Using Rls and Cls in code', link: '/using-rls-and-cls-in-code' },

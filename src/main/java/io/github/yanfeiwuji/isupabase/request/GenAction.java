@@ -229,7 +229,7 @@ public class GenAction {
         final String tables = tableInfos.stream()
                 .map(tableInfo -> TABLE_TEMP.formatted(tableInfo.getTableName(), tableInfoToRow(tableInfo), tableInfoToInsert(tableInfo), tableInfoToUpdate(tableInfo), "")).collect(Collectors.joining());
 
-        final String enums = enums(tableInfos);
+        final String enums = enums();
         final String compositeTypes = compositeTypes();
         final String functions = functions();
         final String database = DATABASE_TEMP.formatted(tables, functions, enums, compositeTypes);
@@ -303,8 +303,8 @@ public class GenAction {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public String enums(List<TableInfo> tableInfos) {
-        String enums = tableInfos.stream().flatMap(this::tableInfoToColNeedType)
+    public String enums() {
+        String enums = allFieldClazz().stream()
                 .filter(Class::isEnum)
                 .map(it -> (Class<Enum>) it).distinct().map(enumClass -> {
                     final String enumName = CharSequenceUtil.toUnderlineCase(enumClass.getSimpleName()).toLowerCase();
@@ -448,6 +448,7 @@ public class GenAction {
         if (ClassUtil.isAssignable(Map.class, propertyType)) {
             return "Json";
         }
+        // should use clazz and sign type to handler
         if (propertyType.equals(Object.class)) {
             return "Json";
         }
@@ -524,7 +525,8 @@ public class GenAction {
             return allFieldClazz;
         }
         final Stream<Class<?>> tableFieldClazz = applicationContext
-                .getBeansOfType(BaseMapper.class).values().stream().map(Object::getClass)
+                .getBeansOfType(BaseMapper.class)
+                .values().stream().map(Object::getClass)
                 .map(TableInfoFactory::ofMapperClass)
                 .filter(tableInfo -> this.clazzTableFilter(tableInfo.getEntityClass()))
                 .flatMap(tableInfo -> clazzFieldsType(tableInfo.getEntityClass()));

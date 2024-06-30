@@ -1,37 +1,28 @@
 package io.github.yanfeiwuji.isupabase.request.flex;
 
-import ch.qos.logback.core.util.StringUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.map.MapUtil;
-import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.mybatisflex.annotation.UpdateListener;
 import com.mybatisflex.core.BaseMapper;
-import com.mybatisflex.core.FlexGlobalConfig;
 import com.mybatisflex.core.dialect.OperateType;
 import com.mybatisflex.core.exception.FlexExceptions;
-import com.mybatisflex.core.exception.locale.LocalizedFormats;
 import com.mybatisflex.core.handler.JacksonTypeHandler;
 import com.mybatisflex.core.query.*;
 import com.mybatisflex.core.row.Db;
 import com.mybatisflex.core.row.Row;
 import com.mybatisflex.core.row.RowUtil;
 import com.mybatisflex.core.table.ColumnInfo;
-import com.mybatisflex.core.table.IdInfo;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
+import com.mybatisflex.core.update.RawValue;
 import io.github.yanfeiwuji.isupabase.config.ISupabaseProperties;
 import io.github.yanfeiwuji.isupabase.constants.PgrstStrPool;
 import io.github.yanfeiwuji.isupabase.request.event.PgrstDbEvent;
 import io.github.yanfeiwuji.isupabase.request.ex.PgrstExFactory;
 import io.github.yanfeiwuji.isupabase.request.utils.CacheTableInfoUtils;
 import lombok.RequiredArgsConstructor;
-import org.apache.ibatis.type.TypeHandler;
-import org.springframework.cache.interceptor.CacheInterceptor;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -133,16 +124,18 @@ public class PgrstDb {
         applyUpdateColumnsOnRow(tableInfo.getTableNameWithSchema(), row);
         final Object needHandlerOnUpdate = RowUtil.toEntity(row, tableInfo.getEntityClass());
         // handler update listeners
-
         CacheTableInfoUtils.nNUpdateListeners(tableInfo).forEach(it -> it.onUpdate(needHandlerOnUpdate));
+
 
         // if listeners is set some field is null  than set row is null else not handler
         final Map<String, Object> handlerAfter = BeanUtil.beanToMap(needHandlerOnUpdate, true, false);
         // handler field
         row.keySet().forEach(k -> row.replace(k, handlerAfter.get(k)));
+
         // add ext field
         handlerAfter.entrySet().stream().filter(entry -> Objects.nonNull(entry.getValue()))
                 .forEach(entry -> row.putIfAbsent(entry.getKey(), entry.getValue()));
+
 
         // handler jackson not work
         row.forEach((k, v) -> CacheTableInfoUtils.columnJacksonTypeHandler(k, tableInfo).ifPresent(handler -> {
@@ -175,6 +168,9 @@ public class PgrstDb {
 
         publisher.publishEvent(PgrstDbEvent.ofUpdateBefore(this, tableInfo.getTableNameWithSchema(), needUpdates, newList));
 
+        // only put than work
+        // handler on column update config
+        tableInfo.getOnUpdateColumns().forEach(row::setRaw);
         Db.updateByCondition(tableInfo.getSchema(), tableInfo.getTableName(), row, idCol.in(needUpdateIds));
 
         final List<T> dbUpdates = baseMapper.selectListByCondition(idCol.in(needUpdateIds));
