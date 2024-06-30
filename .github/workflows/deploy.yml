@@ -34,15 +34,6 @@ jobs:
           fetch-depth: 0 # Not needed if lastUpdated is not enabled
       # - uses: pnpm/action-setup@v3 # Uncomment this if you're using pnpm
       # - uses: oven-sh/setup-bun@v1 # Uncomment this if you're using Bun
-      - name: Setup Node
-        uses: pnpm/action-setup@v3
-        with:
-          node-version: 20
-          cache: pnpm # or pnpm / yarn
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-          # Ensure the working directory is set to where the package.json is located
-
       # Print the current directory and list files to debug
       - name: Print working directory
         run: pwd
@@ -52,6 +43,16 @@ jobs:
 
       - name: Change directory to the project root
         run: cd docs # Change this to your actual project directory if needed
+
+      - name: Setup Node
+        uses: pnpm/action-setup@v3
+        with:
+          node-version: 20
+          cache: pnpm # or pnpm / yarn
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+          # Ensure the working directory is set to where the package.json is located
+
 
       - name: Install dependencies
         run: pnpm install # or pnpm install / yarn install / bun install
