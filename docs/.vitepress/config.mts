@@ -8,7 +8,6 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Examples', link: '/markdown-examples' }
     ],
 
     sidebar: [
@@ -35,7 +34,7 @@ export default defineConfig({
       provider:"local",
     },
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
+      { icon: 'github', link: 'https://github.com/yanfeiwuji/isupabase-flex' }
     ]
   }
 })

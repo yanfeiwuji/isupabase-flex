@@ -11,8 +11,8 @@ hero:
       text: Quick Start
       link: /quickstart
     - theme: alt
-      text: API Examples
-      link: /api-examples
+      text: Detailed
+      link: /config
 
 features:
   - title: Flexible database selection
