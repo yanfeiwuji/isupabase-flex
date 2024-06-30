@@ -445,9 +445,13 @@ public class GenAction {
             return "number";
         }
 
-        if (ClassUtil.isAssignable(Map.class, propertyType) || propertyType.equals(Object.class)) {
+        if (ClassUtil.isAssignable(Map.class, propertyType)) {
             return "Json";
         }
+        if (propertyType.equals(Object.class)) {
+            return "Json";
+        }
+
         if (EnumUtil.isEnum(propertyType)) {
             final String enumName = CharSequenceUtil.toUnderlineCase(propertyType.getSimpleName()).toLowerCase();
             return "Database[\"public\"][\"Enums\"][\"%s\"]".formatted(enumName);
@@ -461,6 +465,7 @@ public class GenAction {
             } else {
 
                 final String typeName = CharSequenceUtil.toUnderlineCase(propertyType.getSimpleName()).toLowerCase();
+
                 return "Database[\"public\"][\"CompositeTypes\"][\"%s\"]".formatted(typeName);
             }
         }
