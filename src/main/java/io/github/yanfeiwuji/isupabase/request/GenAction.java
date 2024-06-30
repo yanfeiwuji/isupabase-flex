@@ -355,10 +355,13 @@ public class GenAction {
                 .flatMap(rpcMapping -> Arrays.stream(ReflectUtil.getMethods(rpcMapping.getClass())))
                 .filter(it -> it.isAnnotationPresent(Rpc.class))
                 .filter(it -> Arrays.stream(it.getParameters())
-                        .filter(parameter -> parameter.isAnnotationPresent(RequestBody.class))
-                        .findFirst()
-                        .filter(parameter -> !ClassUtil.isAssignable(Collection.class, parameter.getType()))
-                        .isPresent()
+                                      .noneMatch(parameter -> parameter.isAnnotationPresent(RequestMapping.class))
+                              || Arrays.stream(it.getParameters())
+                                      .filter(parameter -> parameter.isAnnotationPresent(RequestBody.class))
+                                      .findFirst()
+                                      .filter(parameter -> !ClassUtil.isAssignable(Collection.class, parameter.getType()))
+                                      .filter(parameter -> !ClassUtil.isAssignable(Map.class, parameter.getType()))
+                                      .isPresent()
                 )
                 .map(it -> {
                     final String[] value = it.getAnnotation(Rpc.class).value();
@@ -573,8 +576,6 @@ public class GenAction {
                     propertyToType(relationField.getType(), relationField.getName(), entityClass));
         }).collect(Collectors.joining(";\n"));
     }
-
-
 
 
 }
