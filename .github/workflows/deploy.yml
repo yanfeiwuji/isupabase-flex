@@ -43,6 +43,13 @@ jobs:
         uses: actions/configure-pages@v4
           # Ensure the working directory is set to where the package.json is located
 
+      # Print the current directory and list files to debug
+      - name: Print working directory
+        run: pwd
+
+      - name: List files in current directory
+        run: ls -la
+
       - name: Change directory to the project root
         run: cd docs # Change this to your actual project directory if needed
 
