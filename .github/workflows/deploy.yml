@@ -43,7 +43,11 @@ jobs:
 
       - name: Change directory to the project root
         run: cd docs # Change this to your actual project directory if needed
+      - name: Print working directory
+        run: pwd
 
+      - name: List files in current directory
+        run: ls -la
       - name: Setup Node
         uses: pnpm/action-setup@v3
         with:
