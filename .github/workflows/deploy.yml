@@ -41,6 +41,11 @@ jobs:
           cache: pnpm # or pnpm / yarn
       - name: Setup Pages
         uses: actions/configure-pages@v4
+          # Ensure the working directory is set to where the package.json is located
+
+      - name: Change directory to the project root
+        run: cd docs # Change this to your actual project directory if needed
+
       - name: Install dependencies
         run: pnpm install # or pnpm install / yarn install / bun install
       - name: Build with VitePress
