@@ -6,7 +6,7 @@ on:
   # Runs on pushes targeting the `main` branch. Change this to `master` if you're
   # using the `master` branch as the default branch.
   push:
-    branches: [main]
+    branches: [ main ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -27,6 +27,7 @@ jobs:
   # Build job
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,20 +49,27 @@ jobs:
 
       - name: List files in current directory
         run: ls -la
+
       - name: Setup Node
         uses: pnpm/action-setup@v3
         with:
           node-version: 20
           cache: pnpm # or pnpm / yarn
+
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-          # Ensure the working directory is set to where the package.json is located
+        # Ensure the working directory is set to where the package.json is located
 
 
       - name: Install dependencies
         run: pnpm install # or pnpm install / yarn install / bun install
+        working-directory: ./docs
+
       - name: Build with VitePress
         run: pnpm docs:build # or pnpm docs:build / yarn docs:build / bun run docs:build
+        working-directory: ./docs
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
