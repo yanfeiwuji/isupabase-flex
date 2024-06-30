@@ -40,7 +40,6 @@ jobs:
         with:
           node-version: 20
           cache: pnpm # or pnpm / yarn
-        working-directory: docs
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
